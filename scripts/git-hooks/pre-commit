@@ -1,0 +1,6 @@
+#!/bin/sh
+# Guardarraíl pre-commit: typecheck + tests.
+# Se activa con: git config core.hooksPath scripts/git-hooks
+set -e
+npm run typecheck
+npm test
