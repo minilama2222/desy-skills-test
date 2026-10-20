@@ -1,11 +1,8 @@
 import { bumpPin, currentRepo, realGit, PIN_PATH } from "./bump.js";
+import type { Assert, Check } from "./caso.js";
+import { grado } from "./grader.js";
 import { readPin } from "./pin.js";
-import {
-  realCommand,
-  realSandboxFactory,
-  runCaso,
-  type Caso,
-} from "./runner.js";
+import { createSandbox, realCommand, runCaso } from "./runner.js";
 
 function usage(): never {
   console.error(
@@ -13,8 +10,8 @@ function usage(): never {
       "Uso: cli <comando> [args]",
       "",
       "Comandos:",
-      "  run <skill> <caso> [prompt...]  Ejecuta un Caso por el SUT y muestra { artefactos, transcript }.",
-      "  grade    Puntúa artefactos (pendiente de tickets 03+).",
+      "  run <skill> <caso> [prompt...]  Ejecuta un Caso por el SUT y muestra la Evidencia.",
+      "  grade <id> <severity> <assert> [weight]  Puntúa un Check sobre Evidencia vacía.",
       "  report   Agrega resultados y renderiza el Scorecard (pendiente de ticket 12).",
       "  bump-pin <ref>  Actualiza vendor/ + pin.json al ref dado (rama, tag o SHA).",
     ].join("\n"),
@@ -31,19 +28,46 @@ function runBumpPin(ref: string): void {
 
 async function runCasos([skill = "", id = "", ...promptParts]: string[]): Promise<void> {
   if (!skill || !id) usage();
-  const caso: Caso = { skill, id, prompt: promptParts.join(" ") };
+  const caso = {
+    tipo: "caso-componente" as const,
+    skill,
+    id,
+    prompt: promptParts.join(" "),
+    checks: [] as Check[],
+  };
   const pin = readPin(PIN_PATH);
-  const { artefactos, transcript } = await runCaso(caso, pin, {
-    sandbox: realSandboxFactory,
+  const evidencia = await runCaso(caso, pin, {
+    sandbox: { create: createSandbox },
     command: realCommand,
   });
   console.log(
-    JSON.stringify(
-      { pin: pin.commit, artefactos, transcript },
-      null,
-      2,
-    ),
+    JSON.stringify({ pin: pin.commit, ...evidencia }, null, 2),
   );
+}
+
+function parseAssertCli(clase: string): Assert {
+  if (clase === "un_solo_h1" || clase === "skip_link" || clase === "fieldset_con_legend") {
+    return { kind: clase };
+  }
+  throw new Error(`assert desconocido: ${clase}`);
+}
+
+function runGrade([id, severity, clase, ...rest]: string[]): void {
+  if (!id || !severity || !clase) usage();
+  if (severity !== "guard" && severity !== "quality") {
+    throw new Error(`severity desconocida: ${severity}`);
+  }
+  const check: Check = {
+    id,
+    severity,
+    weight: severity === "quality" ? Number(rest[0] ?? 1) : 0,
+    assert: parseAssertCli(clase),
+  };
+  const resultado = grado(
+    { artefactos: { files: {} }, transcript: { invocaciones: [] } },
+    { tipo: "caso-componente", checks: [check] },
+  );
+  console.log(JSON.stringify(resultado, null, 2));
 }
 
 function main(): void {
@@ -57,7 +81,7 @@ function main(): void {
       void runCasos(rest);
       return;
     case "grade":
-      console.log("grade: pendiente (tickets 03+).");
+      runGrade(rest);
       return;
     case "report":
       console.log("report: pendiente (ticket 12).");

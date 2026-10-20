@@ -1,15 +1,17 @@
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { basename, join, dirname } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import type { Pin } from "../src/pin.js";
-import { createSandbox, VENDOR_SKILLS_DIR } from "../src/runner.js";
+import { readPin } from "../src/pin.js";
+import { createSandbox, skillsDirDeHome, VENDOR_SKILLS_DIR } from "../src/runner.js";
 
-const pin: Pin = {
-  ref: "main",
-  commit: "b523ca7df8594532f5fd47376894c16bc8f1b5df",
-  fecha: "2026-10-20",
-};
+const pin = readPin(join(process.cwd(), "pin.json"));
+
+function skillsVendoreados(): string[] {
+  return readdirSync(VENDOR_SKILLS_DIR).filter((entry) =>
+    existsSync(join(VENDOR_SKILLS_DIR, entry, "SKILL.md")),
+  );
+}
 
 describe("createSandbox", () => {
   let cleanup: (() => void) | undefined;
@@ -29,18 +31,29 @@ describe("createSandbox", () => {
     expect(sandbox.configDir.startsWith(tmpdir())).toBe(true);
   });
 
-  it("copia los skills del Pin al config del sandbox", () => {
+  it("expone el skillsDir en la ruta que descubre opencode (~/.config/opencode/skills)", () => {
     const sandbox = createSandbox();
     cleanup = () => sandbox.cleanup();
 
-    sandbox.copySkills(pin);
+    expect(sandbox.skillsDir).toBe(skillsDirDeHome(sandbox.home));
+    expect(basename(sandbox.skillsDir)).toBe("skills");
+    expect(dirname(sandbox.skillsDir)).toBe(sandbox.configDir);
+    expect(existsSync(sandbox.skillsDir)).toBe(true);
+  });
 
-    const copied = join(sandbox.skillsDir, "desy-preflight-check", "SKILL.md");
-    expect(existsSync(copied)).toBe(true);
-    const source = readFileSync(
-      join(VENDOR_SKILLS_DIR, "desy-preflight-check", "SKILL.md"),
-    );
-    expect(readFileSync(copied)).toEqual(source);
+  it("copia los skills del Pin al skillsDir que descubre el SUT", () => {
+    const sandbox = createSandbox();
+    cleanup = () => sandbox.cleanup();
+
+    sandbox.copySkills();
+
+    for (const skill of skillsVendoreados()) {
+      const copied = join(sandbox.skillsDir, skill, "SKILL.md");
+      expect(existsSync(copied)).toBe(true);
+      expect(readFileSync(copied)).toEqual(
+        readFileSync(join(VENDOR_SKILLS_DIR, skill, "SKILL.md")),
+      );
+    }
   });
 
   it("recolecta los artefactos producidos en el working dir, sin el sandbox root", () => {
@@ -59,7 +72,7 @@ describe("createSandbox", () => {
 
   it("al limpiarse elimina el sandbox y no toca la instalación real de skills", () => {
     const sandbox = createSandbox();
-    sandbox.copySkills(pin);
+    sandbox.copySkills();
     const root = sandbox.home;
 
     sandbox.cleanup();

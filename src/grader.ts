@@ -1,3 +1,6 @@
+import type { Assert, Check, TipoCaso } from "./caso.js";
+import { parseChecks } from "./caso.js";
+
 export interface Artefactos {
   files: Record<string, string>;
 }
@@ -6,51 +9,13 @@ export interface Transcript {
   invocaciones: string[];
 }
 
-export type TipoCaso = "componente" | "pagina";
-
-export interface AssertMacroPresente {
-  kind: "macro_presente";
-  macro: string;
-}
-
-export interface AssertUnSoloH1 {
-  kind: "un_solo_h1";
-}
-
-export interface AssertSkipLink {
-  kind: "skip_link";
-}
-
-export interface AssertFieldsetConLegend {
-  kind: "fieldset_con_legend";
-}
-
-export interface AssertFlujoCanonico {
-  kind: "flujo_canonico";
-  pasos: string[];
-}
-
-export type Assert =
-  | AssertMacroPresente
-  | AssertUnSoloH1
-  | AssertSkipLink
-  | AssertFieldsetConLegend
-  | AssertFlujoCanonico;
-
-export type Severity = "guard" | "quality";
-
-export interface Check {
-  id: string;
-  severity: Severity;
-  weight: number;
-  assert: Assert;
-}
+export type { Assert, Check, TipoCaso };
 
 export type Grade = "INACEPTABLE" | "ACEPTABLE" | "BUENO" | "EXCELENTE";
 
 export interface DetalleCheck {
   id: string;
-  severity: Severity;
+  severity: Check["severity"];
   passed: boolean;
 }
 
@@ -64,14 +29,9 @@ export interface Evidencia {
   transcript: Transcript;
 }
 
-export interface Caso {
-  tipo: TipoCaso;
-  checks: Check[];
-}
-
 const FRAMEWORK: Record<TipoCaso, Check[]> = {
-  componente: [],
-  pagina: [
+  "caso-componente": [],
+  "caso-pagina": [
     {
       id: "un-solo-h1",
       severity: "guard",
@@ -137,7 +97,7 @@ function evaluar(
 
 export function grado(
   evidencia: Evidencia,
-  caso: Caso,
+  caso: { tipo: TipoCaso; checks: Check[] },
 ): GradeResult {
   const checks = [...frameworkDeChecks(caso.tipo), ...caso.checks];
 
@@ -164,4 +124,14 @@ export function grado(
     ratio === 1 ? "EXCELENTE" : ratio >= 0.66 ? "BUENO" : "ACEPTABLE";
 
   return { grade, detalle };
+}
+
+export function gradoDeEvidencia(
+  evidencia: Evidencia,
+  caso: { tipo: TipoCaso; checksJson: string },
+): GradeResult {
+  return grado(evidencia, {
+    tipo: caso.tipo,
+    checks: parseChecks(caso.checksJson),
+  });
 }

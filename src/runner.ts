@@ -9,30 +9,26 @@ import {
   rmSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, relative, resolve } from "node:path";
-import { dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join, relative } from "node:path";
+import type { Caso } from "./caso.js";
 import type { Pin } from "./pin.js";
+import { REPO_ROOT } from "./repo.js";
 
-const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 export const VENDOR_SKILLS_DIR = join(REPO_ROOT, "vendor", "desy-skills", "skills");
 
 export const MODELO_FIJO = "deepinfra/deepseek-ai/DeepSeek-V4.1-Flash";
 
-export interface Caso {
-  skill: string;
-  id: string;
-  prompt: string;
+export interface Artefactos {
+  files: Record<string, string>;
 }
 
-export interface Artefacto {
-  path: string;
-  contenido: string;
+export interface Transcript {
+  invocaciones: string[];
 }
 
-export interface ResultadoEjecucion {
-  artefactos: Artefacto[];
-  transcript: string;
+export interface Evidencia {
+  artefactos: Artefactos;
+  transcript: Transcript;
 }
 
 export interface CommandResult {
@@ -41,9 +37,11 @@ export interface CommandResult {
   code: number;
 }
 
+export type Entorno = Record<string, string>;
+
 export interface CommandOptions {
   cwd: string;
-  env: Record<string, string>;
+  env: Entorno;
 }
 
 export interface CommandRunner {
@@ -55,8 +53,8 @@ export interface Sandbox {
   readonly home: string;
   readonly configDir: string;
   readonly skillsDir: string;
-  copySkills(pin: Pin): void;
-  listArtefactos(): Artefacto[];
+  copySkills(): void;
+  listArtefactos(): { path: string; contenido: string }[];
   cleanup(): void;
 }
 
@@ -77,7 +75,7 @@ export async function runCaso(
   caso: Caso,
   pin: Pin,
   deps: RunDeps,
-): Promise<ResultadoEjecucion> {
+): Promise<Evidencia> {
   const prompt = caso.prompt.trim();
   if (!prompt) {
     throw new Error(`Caso ${caso.skill}/${caso.id} inválido: prompt vacío`);
@@ -85,19 +83,35 @@ export async function runCaso(
 
   const sandbox = deps.sandbox.create();
   try {
-    sandbox.copySkills(pin);
+    sandbox.copySkills();
     const args = buildOpencodeArgs(prompt);
     const { stdout, stderr } = deps.command.run(args, {
       cwd: sandbox.workDir,
-      env: { HOME: sandbox.home },
+      env: { HOME: sandbox.home, XDG_CONFIG_HOME: sandbox.configDir },
     });
     return {
-      artefactos: sandbox.listArtefactos(),
-      transcript: mergeTranscript(stdout, stderr),
+      artefactos: { files: artefactosToFiles(sandbox.listArtefactos()) },
+      transcript: { invocaciones: parseInvocaciones(mergeTranscript(stdout, stderr)) },
     };
   } finally {
     sandbox.cleanup();
   }
+}
+
+function artefactosToFiles(
+  artefactos: { path: string; contenido: string }[],
+): Record<string, string> {
+  return Object.fromEntries(artefactos.map((a) => [a.path, a.contenido]));
+}
+
+const INVOCACION_RE = /^»\s*skill:\s*(\S+)/gm;
+
+function parseInvocaciones(transcript: string): string[] {
+  const invocaciones: string[] = [];
+  for (const match of transcript.matchAll(INVOCACION_RE)) {
+    invocaciones.push(match[1]!);
+  }
+  return invocaciones;
 }
 
 function mergeTranscript(stdout: string, stderr: string): string {
@@ -134,17 +148,15 @@ export const realCommand: CommandRunner = {
   },
 };
 
-export const realSandboxFactory: SandboxFactory = {
-  create(): Sandbox {
-    return createSandbox();
-  },
-};
+export function skillsDirDeHome(home: string): string {
+  return join(home, ".config", "opencode", "skills");
+}
 
 export function createSandbox(base: string = tmpdir()): Sandbox {
   const root = mkdtempSync(join(base, "desy-sut-"));
   const home = join(root, "home");
   const configDir = join(home, ".config", "opencode");
-  const skillsDir = join(configDir, "skill");
+  const skillsDir = skillsDirDeHome(home);
   const workDir = join(root, "work");
 
   mkdirSync(skillsDir, { recursive: true });
@@ -155,11 +167,9 @@ export function createSandbox(base: string = tmpdir()): Sandbox {
     home,
     configDir,
     skillsDir,
-    copySkills(_pin: Pin): void {
+    copySkills(): void {
       if (!existsSync(VENDOR_SKILLS_DIR)) {
-        throw new Error(
-          `No existe el vendor de skills en ${VENDOR_SKILLS_DIR}`,
-        );
+        throw new Error(`No existe el vendor de skills en ${VENDOR_SKILLS_DIR}`);
       }
       for (const entry of readdirSync(VENDOR_SKILLS_DIR)) {
         cpSync(join(VENDOR_SKILLS_DIR, entry), join(skillsDir, entry), {
@@ -167,7 +177,7 @@ export function createSandbox(base: string = tmpdir()): Sandbox {
         });
       }
     },
-    listArtefactos(): Artefacto[] {
+    listArtefactos() {
       return collectArtefactos(workDir);
     },
     cleanup(): void {
@@ -176,8 +186,8 @@ export function createSandbox(base: string = tmpdir()): Sandbox {
   };
 }
 
-function collectArtefactos(dir: string): Artefacto[] {
-  const artefactos: Artefacto[] = [];
+function collectArtefactos(dir: string): { path: string; contenido: string }[] {
+  const artefactos: { path: string; contenido: string }[] = [];
   const walk = (current: string): void => {
     for (const entry of readdirSync(current, { withFileTypes: true })) {
       const full = join(current, entry.name);

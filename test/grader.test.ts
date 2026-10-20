@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
-import type { Artefactos, Transcript, TipoCaso } from "../src/grader.js";
-import { frameworkDeChecks, grado, type Check } from "../src/grader.js";
+import type { Artefactos, Transcript } from "../src/grader.js";
+import { frameworkDeChecks, grado, gradoDeEvidencia } from "../src/grader.js";
+import type { Check, TipoCaso } from "../src/caso.js";
 
 const artefactos = (files: Record<string, string>): Artefactos => ({ files });
 const transcript = (...invocaciones: string[]): Transcript => ({ invocaciones });
@@ -36,7 +37,7 @@ describe("Grade", () => {
         artefactos: artefactos({ "index.html": htmlValidoPagina("<div></div>") }),
         transcript: transcript(),
       },
-      { tipo: "componente", checks: [checkGuard()] },
+      { tipo: "caso-componente", checks: [checkGuard()] },
     );
 
     expect(resultado.grade).toBe("INACEPTABLE");
@@ -50,7 +51,7 @@ describe("Grade", () => {
         }),
         transcript: transcript(),
       },
-      { tipo: "componente", checks: [checkGuard()] },
+      { tipo: "caso-componente", checks: [checkGuard()] },
     );
 
     expect(resultado.grade).not.toBe("INACEPTABLE");
@@ -70,7 +71,7 @@ describe("detalle por Check", () => {
         }),
         transcript: transcript(),
       },
-      { tipo: "componente", checks },
+      { tipo: "caso-componente", checks },
     );
 
     expect(resultado.detalle).toEqual([
@@ -85,7 +86,7 @@ describe("detalle por Check", () => {
         artefactos: artefactos({ "index.html": htmlValidoPagina() }),
         transcript: transcript(),
       },
-      { tipo: "componente", checks: [checkQuality("q1", 1, "componentAviso")] },
+      { tipo: "caso-componente", checks: [checkQuality("q1", 1, "componentAviso")] },
     );
 
     expect(resultado.detalle).toContainEqual({
@@ -98,20 +99,20 @@ describe("detalle por Check", () => {
 
 describe("Framework de checks", () => {
   it("el Framework de Caso-página incluye h1 único, skip-link y fieldset+legend", () => {
-    const ids = frameworkDeChecks("pagina").map((c) => c.id);
+    const ids = frameworkDeChecks("caso-pagina").map((c) => c.id);
     expect(ids).toContain("un-solo-h1");
     expect(ids).toContain("skip-link");
     expect(ids).toContain("fieldset-con-legend");
   });
 
   it("el Framework de Caso-componente no exige skip-link ni un solo h1", () => {
-    const ids = frameworkDeChecks("componente").map((c) => c.id);
+    const ids = frameworkDeChecks("caso-componente").map((c) => c.id);
     expect(ids).not.toContain("skip-link");
     expect(ids).not.toContain("un-solo-h1");
   });
 
   it("todos los checks del Framework son Guards", () => {
-    for (const tipo of ["componente", "pagina"] as const) {
+    for (const tipo of ["caso-componente", "caso-pagina"] as const) {
       const severities = frameworkDeChecks(tipo).map((c) => c.severity);
       expect(severities.every((s) => s === "guard")).toBe(true);
     }
@@ -127,7 +128,7 @@ describe("combinación Framework + checks propios del Caso", () => {
         }),
         transcript: transcript(),
       },
-      { tipo: "pagina", checks: [checkGuard()] },
+      { tipo: "caso-pagina", checks: [checkGuard()] },
     );
 
     expect(resultado.grade).toBe("INACEPTABLE");
@@ -142,7 +143,7 @@ describe("combinación Framework + checks propios del Caso", () => {
         artefactos: artefactos({ "index.html": htmlValidoPagina() }),
         transcript: transcript(),
       },
-      { tipo: "pagina", checks: [checkQuality("propio", 1, "componentFalta")] },
+      { tipo: "caso-pagina", checks: [checkQuality("propio", 1, "componentFalta")] },
     );
 
     const ids = resultado.detalle.map((d) => d.id);
@@ -155,7 +156,7 @@ describe("Guards estructurales de página", () => {
   const conPagina = (html: string) =>
     grado(
       { artefactos: artefactos({ "index.html": html }), transcript: transcript() },
-      { tipo: "pagina", checks: [] },
+      { tipo: "caso-pagina", checks: [] },
     );
 
   it("un solo h1 pasa", () => {
@@ -188,6 +189,13 @@ describe("Guards estructurales de página", () => {
       resultado.detalle.find((d) => d.id === "fieldset-con-legend")?.passed,
     ).toBe(true);
   });
+
+  it("una página sin fieldsets no exige legend (ausencia aceptable)", () => {
+    const resultado = conPagina(htmlValidoPagina());
+    expect(
+      resultado.detalle.find((d) => d.id === "fieldset-con-legend")?.passed,
+    ).toBe(true);
+  });
 });
 
 describe("Flujo observado vs Flujo canónico", () => {
@@ -207,7 +215,7 @@ describe("Flujo observado vs Flujo canónico", () => {
         artefactos: artefactos({ "index.html": htmlValidoPagina() }),
         transcript: transcript("preflight-check", "implement-component"),
       },
-      { tipo: "componente", checks: [checkFlujo()] },
+      { tipo: "caso-componente", checks: [checkFlujo()] },
     );
 
     expect(resultado.grade).not.toBe("INACEPTABLE");
@@ -219,7 +227,7 @@ describe("Flujo observado vs Flujo canónico", () => {
         artefactos: artefactos({ "index.html": htmlValidoPagina() }),
         transcript: transcript("implement-component"),
       },
-      { tipo: "componente", checks: [checkFlujo()] },
+      { tipo: "caso-componente", checks: [checkFlujo()] },
     );
 
     expect(resultado.grade).toBe("INACEPTABLE");
@@ -231,7 +239,7 @@ describe("Flujo observado vs Flujo canónico", () => {
         artefactos: artefactos({ "index.html": htmlValidoPagina() }),
         transcript: transcript("implement-component", "preflight-check"),
       },
-      { tipo: "componente", checks: [checkFlujo()] },
+      { tipo: "caso-componente", checks: [checkFlujo()] },
     );
 
     expect(resultado.grade).toBe("INACEPTABLE");
@@ -258,7 +266,7 @@ describe("Quality", () => {
   const gradear = (arts: Artefactos, checks: Check[]) =>
     grado(
       { artefactos: arts, transcript: transcript() },
-      { tipo: "componente", checks },
+      { tipo: "caso-componente", checks },
     );
 
   it("todos los Quality presentes da EXCELENTE", () => {
@@ -290,8 +298,47 @@ describe("Quality", () => {
 });
 
 describe("tipos de Caso", () => {
-  it("el TipoCaso se restringe a componente y pagina", () => {
-    const tipos: TipoCaso[] = ["componente", "pagina"];
-    expect(tipos).toEqual(["componente", "pagina"]);
+  it("el TipoCaso usa el vocabulario del glosario", () => {
+    const tipos: TipoCaso[] = ["caso-componente", "caso-pagina"];
+    expect(tipos).toEqual(["caso-componente", "caso-pagina"]);
+  });
+});
+
+describe("gradoDeEvidencia contra el checks.json de un Caso", () => {
+  const checksJson = JSON.stringify({
+    checks: [
+      {
+        id: "usa-macro-boton",
+        severity: "guard",
+        weight: 0,
+        assert: { kind: "macro_presente", macro: "componentBoton" },
+      },
+    ],
+  });
+
+  it("consume el checks.json crudo del Caso y combina con el Framework del tipo", () => {
+    const resultado = gradoDeEvidencia(
+      {
+        artefactos: artefactos({
+          "index.html": htmlValidoPagina("<componentBoton></componentBoton>"),
+        }),
+        transcript: transcript(),
+      },
+      { tipo: "caso-pagina", checksJson },
+    );
+
+    const ids = resultado.detalle.map((d) => d.id);
+    expect(ids).toContain("usa-macro-boton");
+    expect(ids).toContain("skip-link");
+    expect(resultado.grade).not.toBe("INACEPTABLE");
+  });
+
+  it("propaga el error claro cuando el checks.json es inválido", () => {
+    expect(() =>
+      gradoDeEvidencia(
+        { artefactos: artefactos({}), transcript: transcript() },
+        { tipo: "caso-componente", checksJson: '{ "checks": [{ "id": "x" }] }' },
+      ),
+    ).toThrow(/severity/i);
   });
 });

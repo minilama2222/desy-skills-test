@@ -1,10 +1,9 @@
 import { execFileSync } from "node:child_process";
 import { cpSync, existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 import { DEFAULT_REPO, normalizeRef, readPin, type Pin } from "./pin.js";
+import { REPO_ROOT } from "./repo.js";
 
-const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 export const VENDOR_DIR = join(REPO_ROOT, "vendor", "desy-skills");
 export const PIN_PATH = join(REPO_ROOT, "pin.json");
 
