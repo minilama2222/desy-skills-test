@@ -1,5 +1,14 @@
 import type { Assert, Check, TipoCaso } from "./caso.js";
 import { parseChecks } from "./caso.js";
+import {
+  esClaseTipografica,
+  esColorDelSistema,
+  esUtilityArbitraria,
+  esUtilityColor,
+  esUtilitySpacing,
+  esUtilityTailwindPorDefecto,
+  esUtilityTokenValido,
+} from "./tokens.js";
 
 export interface Artefactos {
   files: Record<string, string>;
@@ -29,8 +38,15 @@ export interface Evidencia {
   transcript: Transcript;
 }
 
+const TOKENS_GUARD: Check = {
+  id: "tokens-del-sistema",
+  severity: "guard",
+  weight: 0,
+  assert: { kind: "sin_utility_por_defecto" },
+};
+
 const FRAMEWORK: Record<TipoCaso, Check[]> = {
-  "caso-componente": [],
+  "caso-componente": [TOKENS_GUARD],
   "caso-pagina": [
     {
       id: "un-solo-h1",
@@ -50,6 +66,7 @@ const FRAMEWORK: Record<TipoCaso, Check[]> = {
       weight: 0,
       assert: { kind: "fieldset_con_legend" },
     },
+    TOKENS_GUARD,
   ],
 };
 
@@ -63,6 +80,16 @@ function html(artefactos: Artefactos): string {
 
 function contar(html: string, re: RegExp): number {
   return (html.match(re) ?? []).length;
+}
+
+function clasesDe(html: string): string[] {
+  const clases: string[] = [];
+  for (const match of html.matchAll(/class="([^"]*)"/gi)) {
+    for (const clase of match[1]!.split(/\s+/)) {
+      if (clase.length > 0) clases.push(clase);
+    }
+  }
+  return clases;
 }
 
 function evaluar(
@@ -92,6 +119,20 @@ function evaluar(
       }
       return i === assert.pasos.length;
     }
+    case "sin_utility_por_defecto":
+      return clasesDe(htmlText).every(
+        (clase) => !esUtilityArbitraria(clase) && !esUtilityTailwindPorDefecto(clase),
+      );
+    case "espaciado_del_sistema":
+      return clasesDe(htmlText).every(
+        (clase) => !esUtilitySpacing(clase) || esUtilityTokenValido(clase),
+      );
+    case "color_del_sistema":
+      return clasesDe(htmlText).every(
+        (clase) => !esUtilityColor(clase) || esColorDelSistema(clase),
+      );
+    case "usa_clase_tipografica":
+      return esClaseTipografica(assert.clase) && clasesDe(htmlText).includes(assert.clase);
   }
 }
 

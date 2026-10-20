@@ -1,4 +1,5 @@
 import { bumpPin, currentRepo, realGit, PIN_PATH } from "./bump.js";
+import { cargarCaso } from "./caso-loader.js";
 import type { Assert, Check } from "./caso.js";
 import { grado } from "./grader.js";
 import { readPin } from "./pin.js";
@@ -12,6 +13,7 @@ function usage(): never {
       "Comandos:",
       "  run <skill> <caso> [prompt...]  Ejecuta un Caso por el SUT y muestra la Evidencia.",
       "  grade <id> <severity> <assert> [weight]  Puntúa un Check sobre Evidencia vacía.",
+      "  load <ruta>  Carga un Caso desde su carpeta y muestra su JSON.",
       "  report   Agrega resultados y renderiza el Scorecard (pendiente de ticket 12).",
       "  bump-pin <ref>  Actualiza vendor/ + pin.json al ref dado (rama, tag o SHA).",
     ].join("\n"),
@@ -70,6 +72,11 @@ function runGrade([id, severity, clase, ...rest]: string[]): void {
   console.log(JSON.stringify(resultado, null, 2));
 }
 
+function runLoad([ruta = ""]: string[]): void {
+  if (!ruta) usage();
+  console.log(JSON.stringify(cargarCaso(ruta), null, 2));
+}
+
 function main(): void {
   const [command, ...rest] = process.argv.slice(2);
 
@@ -82,6 +89,9 @@ function main(): void {
       return;
     case "grade":
       runGrade(rest);
+      return;
+    case "load":
+      runLoad(rest);
       return;
     case "report":
       console.log("report: pendiente (ticket 12).");

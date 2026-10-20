@@ -12,6 +12,7 @@
     "setup:hooks": "git config core.hooksPath scripts/git-hooks",
     "run": "tsx src/cli.ts run",
     "grade": "tsx src/cli.ts grade",
+    "load": "tsx src/cli.ts load",
     "report": "tsx src/cli.ts report",
     "bump-pin": "tsx src/cli.ts bump-pin"
   },

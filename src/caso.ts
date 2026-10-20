@@ -22,12 +22,33 @@ export interface AssertFlujoCanonico {
   pasos: string[];
 }
 
+export interface AssertSinUtilityPorDefecto {
+  kind: "sin_utility_por_defecto";
+}
+
+export interface AssertEspaciadoDelSistema {
+  kind: "espaciado_del_sistema";
+}
+
+export interface AssertColorDelSistema {
+  kind: "color_del_sistema";
+}
+
+export interface AssertUsaClaseTipografica {
+  kind: "usa_clase_tipografica";
+  clase: string;
+}
+
 export type Assert =
   | AssertMacroPresente
   | AssertUnSoloH1
   | AssertSkipLink
   | AssertFieldsetConLegend
-  | AssertFlujoCanonico;
+  | AssertFlujoCanonico
+  | AssertSinUtilityPorDefecto
+  | AssertEspaciadoDelSistema
+  | AssertColorDelSistema
+  | AssertUsaClaseTipografica;
 
 export type Severity = "guard" | "quality";
 
@@ -76,6 +97,10 @@ const ASSERT_KINDS = new Set([
   "skip_link",
   "fieldset_con_legend",
   "flujo_canonico",
+  "sin_utility_por_defecto",
+  "espaciado_del_sistema",
+  "color_del_sistema",
+  "usa_clase_tipografica",
 ]);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -115,6 +140,17 @@ function parseAssert(raw: unknown, contexto: string): Assert {
       }
       return { kind: "flujo_canonico", pasos };
     }
+    case "usa_clase_tipografica":
+      return {
+        kind: "usa_clase_tipografica",
+        clase: exigirString(raw, "clase", contexto),
+      };
+    case "sin_utility_por_defecto":
+      return { kind: "sin_utility_por_defecto" };
+    case "espaciado_del_sistema":
+      return { kind: "espaciado_del_sistema" };
+    case "color_del_sistema":
+      return { kind: "color_del_sistema" };
     default:
       return { kind: tipoKind };
   }

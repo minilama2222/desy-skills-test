@@ -74,10 +74,16 @@ describe("detalle por Check", () => {
       { tipo: "caso-componente", checks },
     );
 
-    expect(resultado.detalle).toEqual([
-      { id: "guard-uno", severity: "guard", passed: true },
-      { id: "quality-uno", severity: "quality", passed: true },
-    ]);
+    expect(resultado.detalle).toContainEqual({
+      id: "guard-uno",
+      severity: "guard",
+      passed: true,
+    });
+    expect(resultado.detalle).toContainEqual({
+      id: "quality-uno",
+      severity: "quality",
+      passed: true,
+    });
   });
 
   it("marca como fallado el Check cuya aserción no se cumple", () => {
@@ -115,6 +121,13 @@ describe("Framework de checks", () => {
     for (const tipo of ["caso-componente", "caso-pagina"] as const) {
       const severities = frameworkDeChecks(tipo).map((c) => c.severity);
       expect(severities.every((s) => s === "guard")).toBe(true);
+    }
+  });
+
+  it("ambos Frameworks incluyen el guard de tokens del sistema", () => {
+    for (const tipo of ["caso-componente", "caso-pagina"] as const) {
+      const asserts = frameworkDeChecks(tipo).map((c) => c.assert.kind);
+      expect(asserts).toContain("sin_utility_por_defecto");
     }
   });
 });
@@ -340,5 +353,98 @@ describe("gradoDeEvidencia contra el checks.json de un Caso", () => {
         { tipo: "caso-componente", checksJson: '{ "checks": [{ "id": "x" }] }' },
       ),
     ).toThrow(/severity/i);
+  });
+});
+
+describe("Checks que consultan la librería de tokens DESY", () => {
+  const conHtml = (html: string) => artefactos({ "index.html": htmlValidoPagina(html) });
+
+  const checkToken = (kind: Check["assert"]["kind"], extra: Record<string, unknown> = {}): Check => ({
+    id: `token-${kind}`,
+    severity: "guard",
+    weight: 0,
+    assert: { kind, ...extra } as Check["assert"],
+  });
+
+  it("sin_utility_por_defecto falla si el HTML usa la escala numérica de Tailwind", () => {
+    const resultado = grado(
+      { artefactos: conHtml('<button class="p-4 gap-3">Enviar</button>'), transcript: transcript() },
+      { tipo: "caso-componente", checks: [checkToken("sin_utility_por_defecto")] },
+    );
+
+    expect(resultado.detalle.find((d) => d.id === "token-sin_utility_por_defecto")?.passed).toBe(false);
+  });
+
+  it("sin_utility_por_defecto pasa si el HTML usa tokens del sistema", () => {
+    const resultado = grado(
+      { artefactos: conHtml('<button class="p-base gap-lg bg-primary-base">Enviar</button>'), transcript: transcript() },
+      { tipo: "caso-componente", checks: [checkToken("sin_utility_por_defecto")] },
+    );
+
+    expect(resultado.detalle.find((d) => d.id === "token-sin_utility_por_defecto")?.passed).toBe(true);
+  });
+
+  it("sin_utility_por_defecto falla con valores arbitrarios entre corchetes", () => {
+    const resultado = grado(
+      { artefactos: conHtml('<div class="w-[205px] gap-[21px]"></div>'), transcript: transcript() },
+      { tipo: "caso-componente", checks: [checkToken("sin_utility_por_defecto")] },
+    );
+
+    expect(resultado.detalle.find((d) => d.id === "token-sin_utility_por_defecto")?.passed).toBe(false);
+  });
+
+  it("espaciado_del_sistema falla si hay espaciado fuera de la escala canónica", () => {
+    const resultado = grado(
+      { artefactos: conHtml('<div class="mt-huge"></div>'), transcript: transcript() },
+      { tipo: "caso-componente", checks: [checkToken("espaciado_del_sistema")] },
+    );
+
+    expect(resultado.detalle.find((d) => d.id === "token-espaciado_del_sistema")?.passed).toBe(false);
+  });
+
+  it("espaciado_del_sistema pasa con los tokens canónicos", () => {
+    const resultado = grado(
+      { artefactos: conHtml('<div class="mt-base mb-lg"></div>'), transcript: transcript() },
+      { tipo: "caso-componente", checks: [checkToken("espaciado_del_sistema")] },
+    );
+
+    expect(resultado.detalle.find((d) => d.id === "token-espaciado_del_sistema")?.passed).toBe(true);
+  });
+
+  it("usa_clase_tipografica comprueba la presencia de la clase declarada", () => {
+    const presente = grado(
+      { artefactos: conHtml('<h1 class="c-h1">Título</h1>'), transcript: transcript() },
+      { tipo: "caso-componente", checks: [checkToken("usa_clase_tipografica", { clase: "c-h1" })] },
+    );
+    const ausente = grado(
+      { artefactos: conHtml('<h1 class="text-3xl">Título</h1>'), transcript: transcript() },
+      { tipo: "caso-componente", checks: [checkToken("usa_clase_tipografica", { clase: "c-h1" })] },
+    );
+
+    expect(presente.detalle.find((d) => d.id === "token-usa_clase_tipografica")?.passed).toBe(true);
+    expect(ausente.detalle.find((d) => d.id === "token-usa_clase_tipografica")?.passed).toBe(false);
+  });
+
+  it("sin_utility_por_defecto falla con colores de la paleta Tailwind por defecto", () => {
+    const resultado = grado(
+      { artefactos: conHtml('<p class="text-blue-700 bg-gray-100">Hola</p>'), transcript: transcript() },
+      { tipo: "caso-componente", checks: [checkToken("sin_utility_por_defecto")] },
+    );
+
+    expect(resultado.detalle.find((d) => d.id === "token-sin_utility_por_defecto")?.passed).toBe(false);
+  });
+
+  it("color_del_sistema pasa con familias del sistema y falla con las de Tailwind", () => {
+    const ok = grado(
+      { artefactos: conHtml('<div class="bg-primary-base text-alert-base"></div>'), transcript: transcript() },
+      { tipo: "caso-componente", checks: [checkToken("color_del_sistema")] },
+    );
+    const mal = grado(
+      { artefactos: conHtml('<div class="bg-blue-600"></div>'), transcript: transcript() },
+      { tipo: "caso-componente", checks: [checkToken("color_del_sistema")] },
+    );
+
+    expect(ok.detalle.find((d) => d.id === "token-color_del_sistema")?.passed).toBe(true);
+    expect(mal.detalle.find((d) => d.id === "token-color_del_sistema")?.passed).toBe(false);
   });
 });

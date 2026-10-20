@@ -101,6 +101,49 @@ describe("parseChecks", () => {
     ).toThrow(/pasos/i);
   });
 
+  it("acepta los asserts que consultan la librería de tokens DESY", () => {
+    const checks = parseChecks(
+      JSON.stringify({
+        checks: [
+          {
+            id: "sin-utilities-por-defecto",
+            severity: "guard",
+            weight: 0,
+            assert: { kind: "sin_utility_por_defecto" },
+          },
+          {
+            id: "usa-clase-tipografica",
+            severity: "quality",
+            weight: 1,
+            assert: { kind: "usa_clase_tipografica", clase: "c-h1" },
+          },
+          {
+            id: "espaciado-del-sistema",
+            severity: "quality",
+            weight: 1,
+            assert: { kind: "espaciado_del_sistema" },
+          },
+        ],
+      }),
+    );
+
+    expect(checks.map((c) => c.assert.kind)).toEqual([
+      "sin_utility_por_defecto",
+      "usa_clase_tipografica",
+      "espaciado_del_sistema",
+    ]);
+  });
+
+  it("exige el campo clase en usa_clase_tipografica", () => {
+    expect(() =>
+      parseChecks(
+        JSON.stringify({
+          checks: [{ id: "x", severity: "quality", weight: 1, assert: { kind: "usa_clase_tipografica" } }],
+        }),
+      ),
+    ).toThrow(/clase/i);
+  });
+
   it("exige el campo checks en la raíz", () => {
     expect(() => parseChecks(JSON.stringify({ items: [] }))).toThrow(/checks/i);
   });
