@@ -4,11 +4,11 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Proyecto Node+TS+vitest inicializado y `npm test` ejecuta sin error
-- [ ] `vendor/desy-skills/` contiene la copia de los 12 skills del Pin elegido
-- [ ] `pin.json` registra `{ ref, commit, fecha }` y el reporte puede leerlo
-- [ ] Script `bump-pin <ref>` actualiza vendor + pin.json manualmente
-- [ ] Scripts `run`, `grade` y `report` existen (aunque sea como stubs)
+- [x] Proyecto Node+TS+vitest inicializado y `npm test` ejecuta sin error
+- [x] `vendor/desy-skills/` contiene la copia de los 12 skills del Pin elegido
+- [x] `pin.json` registra `{ ref, commit, fecha }` y el reporte puede leerlo
+- [x] Script `bump-pin <ref>` actualiza vendor + pin.json manualmente
+- [x] Scripts `run`, `grade` y `report` existen (aunque sea como stubs)
 
