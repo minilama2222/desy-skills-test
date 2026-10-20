@@ -1,0 +1,38 @@
+import { describe, expect, it } from "vitest";
+import { parsePin } from "../src/pin.js";
+
+describe("parsePin", () => {
+  it("acepta un pin completo y devuelve el commit como hash testeado", () => {
+    const pin = parsePin({
+      ref: "main",
+      commit: "b523ca7df8594532f5fd47376894c16bc8f1b5df",
+      fecha: "2026-10-20",
+      repo: "https://github.com/minilama2222/desy-skills",
+    });
+
+    expect(pin.commit).toBe("b523ca7df8594532f5fd47376894c16bc8f1b5df");
+    expect(pin.ref).toBe("main");
+    expect(pin.fecha).toBe("2026-10-20");
+  });
+
+  it("rechaza un commit que no parece un SHA de git", () => {
+    expect(() =>
+      parsePin({
+        ref: "main",
+        commit: "no-es-un-sha",
+        fecha: "2026-10-20",
+        repo: "https://github.com/minilama2222/desy-skills",
+      }),
+    ).toThrow(/commit/i);
+  });
+
+  it("rechaza un pin al que le falta la fecha", () => {
+    expect(() =>
+      parsePin({
+        ref: "main",
+        commit: "b523ca7df8594532f5fd47376894c16bc8f1b5df",
+        repo: "https://github.com/minilama2222/desy-skills",
+      }),
+    ).toThrow(/fecha/i);
+  });
+});

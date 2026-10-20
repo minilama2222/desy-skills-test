@@ -1,0 +1,3 @@
+# Grading: Checks tipados con guards que hunden el Grade
+
+El Grade de un Caso se calcula con una única lista de Checks tipados, cada uno `{severity: guard|quality, weight, assert}`. Cualquier Guard que falle fuerza INACEPTABLE; los Quality puntúan hacia ACEPTABLE/BUENO/EXCELENTE. Alternativas descartadas: binario puro por Caso (pierde matiz de calidad) y un único score 0–100 (deja pasar fallos no-negociables como accesibilidad o props inventados). La separación guard/quality mantiene los fallos que históricamente aparecieron (fieldset/legend, h1 único, skip-link) como no-negociables, y el resto como calidad afinable.
