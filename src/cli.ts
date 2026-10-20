@@ -1,5 +1,11 @@
 import { bumpPin, currentRepo, realGit, PIN_PATH } from "./bump.js";
 import { readPin } from "./pin.js";
+import {
+  realCommand,
+  realSandboxFactory,
+  runCaso,
+  type Caso,
+} from "./runner.js";
 
 function usage(): never {
   console.error(
@@ -7,7 +13,7 @@ function usage(): never {
       "Uso: cli <comando> [args]",
       "",
       "Comandos:",
-      "  run      Ejecuta Casos (pendiente de tickets 02+).",
+      "  run <skill> <caso> [prompt...]  Ejecuta un Caso por el SUT y muestra { artefactos, transcript }.",
       "  grade    Puntúa artefactos (pendiente de tickets 03+).",
       "  report   Agrega resultados y renderiza el Scorecard (pendiente de ticket 12).",
       "  bump-pin <ref>  Actualiza vendor/ + pin.json al ref dado (rama, tag o SHA).",
@@ -23,6 +29,23 @@ function runBumpPin(ref: string): void {
   console.log(`Pin actualizado: ${pin.ref} @ ${pin.commit} (${pin.fecha})`);
 }
 
+async function runCasos([skill = "", id = "", ...promptParts]: string[]): Promise<void> {
+  if (!skill || !id) usage();
+  const caso: Caso = { skill, id, prompt: promptParts.join(" ") };
+  const pin = readPin(PIN_PATH);
+  const { artefactos, transcript } = await runCaso(caso, pin, {
+    sandbox: realSandboxFactory,
+    command: realCommand,
+  });
+  console.log(
+    JSON.stringify(
+      { pin: pin.commit, artefactos, transcript },
+      null,
+      2,
+    ),
+  );
+}
+
 function main(): void {
   const [command, ...rest] = process.argv.slice(2);
 
@@ -31,9 +54,7 @@ function main(): void {
       runBumpPin(rest[0] ?? "");
       return;
     case "run":
-      console.log(
-        `run: pendiente (tickets 02+). Pin actual: ${readPin(PIN_PATH).commit}`,
-      );
+      void runCasos(rest);
       return;
     case "grade":
       console.log("grade: pendiente (tickets 03+).");
