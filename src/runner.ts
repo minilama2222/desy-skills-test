@@ -114,11 +114,21 @@ const INVOCACION_RES = [
   /^\u00bb\s*skill:\s*(\S+)/gm,
 ];
 
+/**
+ * El Flujo canónico del glosario nombra los pasos sin prefijo
+ * (`preflight-check`, `implement-component`), pero opencode imprime el nombre
+ * del Skill tal cual está en disco (`desy-preflight-check`). Normalizamos a la
+ * forma del glosario para que el Flujo observado y el canónico sean comparables.
+ */
+function normalizarNombreSkill(nombre: string): string {
+  return nombre.replace(/^desy-/, "");
+}
+
 function parseInvocaciones(transcript: string): string[] {
   const encontradas: { indice: number; nombre: string }[] = [];
   for (const re of INVOCACION_RES) {
     for (const match of transcript.matchAll(re)) {
-      encontradas.push({ indice: match.index!, nombre: match[1]! });
+      encontradas.push({ indice: match.index!, nombre: normalizarNombreSkill(match[1]!) });
     }
   }
   encontradas.sort((a, b) => a.indice - b.indice);

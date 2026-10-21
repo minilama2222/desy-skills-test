@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import type { CasoComponente } from "../src/caso.js";
+import type { CasoComponente, Check } from "../src/caso.js";
+import { grado } from "../src/grader.js";
 import type { Pin } from "../src/pin.js";
 import {
   MODELO_FIJO,
@@ -145,9 +146,9 @@ describe("runCaso", () => {
     const resultado = await runCaso(caso, pin, { sandbox: factoryOf(sandbox), command });
 
     expect(resultado.transcript.invocaciones).toEqual([
-      "desy-implement-component",
-      "desy-scaffold-project",
-      "desy-choose-library",
+      "implement-component",
+      "scaffold-project",
+      "choose-library",
     ]);
   });
 
@@ -163,7 +164,7 @@ describe("runCaso", () => {
 
     const resultado = await runCaso(caso, pin, { sandbox: factoryOf(sandbox), command });
 
-    expect(resultado.transcript.invocaciones).toEqual(["desy-implement-component"]);
+    expect(resultado.transcript.invocaciones).toEqual(["implement-component"]);
   });
 
   it("no confunde una mención cualquiera del nombre con una Invocación real", async () => {
@@ -203,10 +204,72 @@ describe("runCaso", () => {
     const resultado = await runCaso(caso, pin, { sandbox: factoryOf(sandbox), command });
 
     expect(resultado.transcript.invocaciones).toEqual([
-      "desy-implement-component",
-      "desy-scaffold-project",
-      "desy-validate-accessibility",
+      "implement-component",
+      "scaffold-project",
+      "validate-accessibility",
     ]);
+  });
+
+  it("normaliza el nombre del Skill a la forma del Flujo canónico (sin prefijo desy-)", async () => {
+    // El glosario define el Flujo canónico como
+    // `preflight-check → recognizer → choose-page-template → implement-* → ...`
+    // (sin prefijo). opencode imprime `desy-preflight-check`, así que el Flujo
+    // observado debe hablar el mismo idioma que el Flujo canónico o los guards
+    // de flujo fallarán siempre.
+    const sandbox = fakeSandbox();
+    const command: CommandRunner = {
+      run: () => ({
+        stdout: "",
+        stderr: [
+          '\u001b[0m→ \u001b[0mSkill "desy-preflight-check" ',
+          '\u001b[0m→ \u001b[0mSkill "desy-implement-component" ',
+          '\u001b[0m→ \u001b[0mSkill "desy-styles-reference" ',
+        ].join("\n"),
+        code: 0,
+      }),
+    };
+
+    const resultado = await runCaso(caso, pin, { sandbox: factoryOf(sandbox), command });
+
+    expect(resultado.transcript.invocaciones).toEqual([
+      "preflight-check",
+      "implement-component",
+      "styles-reference",
+    ]);
+  });
+
+  it("un Flujo observado normalizado satisface el guard de Flujo canónico", async () => {
+    const sandbox = fakeSandbox([
+      {
+        path: "index.njk",
+        contenido: '{{ componentButton({ "classes": "c-button--primary" }) }}',
+      },
+    ]);
+    const command: CommandRunner = {
+      run: () => ({
+        stdout: "",
+        stderr: [
+          '\u001b[0m→ \u001b[0mSkill "desy-preflight-check" ',
+          '\u001b[0m→ \u001b[0mSkill "desy-implement-component" ',
+        ].join("\n"),
+        code: 0,
+      }),
+    };
+
+    const resultado = await runCaso(caso, pin, { sandbox: factoryOf(sandbox), command });
+
+    const check: Check = {
+      id: "flujo",
+      severity: "guard",
+      weight: 0,
+      assert: { kind: "flujo_canonico", pasos: ["preflight-check", "implement-component"] },
+    };
+    const veredicto = grado(
+      { artefactos: resultado.artefactos, transcript: resultado.transcript },
+      { tipo: "caso-componente", checks: [check] },
+    );
+
+    expect(veredicto.detalle.find((d) => d.id === "flujo")?.passed).toBe(true);
   });
 
   it("limpia el sandbox incluso si el SUT falla", async () => {
