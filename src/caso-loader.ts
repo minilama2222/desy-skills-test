@@ -2,8 +2,12 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Caso, CasoComponente, CasoPagina, Check } from "./caso.js";
 import { parseChecks, tipoDeCarpeta } from "./caso.js";
+import { REPO_ROOT } from "./repo.js";
 
 export type CasoEnDisco = Caso;
+
+/** Raíz canónica del árbol de Casos: <CASOS_DIR>/<skill>/<tipo>/<id>. */
+export const CASOS_DIR = join(REPO_ROOT, "casos");
 
 const RUBRIC = "rubric.md";
 const PROMPT = join("input", "prompt.md");

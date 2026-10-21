@@ -1,0 +1,46 @@
+{
+  "checks": [
+    {
+      "id": "usa-macro-boton",
+      "severity": "guard",
+      "weight": 0,
+      "assert": { "kind": "macro_presente", "macro": "componentButton" }
+    },
+    {
+      "id": "variante-primaria",
+      "severity": "guard",
+      "weight": 0,
+      "assert": {
+        "kind": "macro_con_clase",
+        "macro": "componentButton",
+        "clase": "c-button--primary"
+      }
+    },
+    {
+      "id": "sin-props-inventados",
+      "severity": "guard",
+      "weight": 0,
+      "assert": { "kind": "sin_props_inventados", "macro": "componentButton" }
+    },
+    {
+      "id": "tamano-base",
+      "severity": "quality",
+      "weight": 2,
+      "assert": {
+        "kind": "macro_sin_clase",
+        "macro": "componentButton",
+        "clase": "c-button--sm"
+      }
+    },
+    {
+      "id": "tamano-base-no-grande",
+      "severity": "quality",
+      "weight": 2,
+      "assert": {
+        "kind": "macro_sin_clase",
+        "macro": "componentButton",
+        "clase": "c-button--lg"
+      }
+    }
+  ]
+}

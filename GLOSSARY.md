@@ -49,6 +49,19 @@ El conjunto base de Checks que aplica a un tipo de Caso (Caso-componente o Caso-
 **Check**:
 La aserción declarativa individual dentro de `expected/checks.json`.
 
+**Assert de contrato de macro**:
+Un Check que mira *dentro* de la llamada al macro, no sólo su presencia:
+`macro_con_clase` (el macro lleva una clase, típicamente la variante),
+`macro_sin_clase` (el macro **no** lleva una clase: así se expresa el tamaño
+base) y `sin_props_inventados` (las props usadas existen en el catálogo).
+_Evita_: usarlos contra HTML suelto; miden la llamada al macro.
+
+**Scaffold cacheado**:
+El starter DESY pre-hecho (clonado + `npm install`) que el runner copia al
+`workDir` de cada sandbox antes de lanzar el SUT. Necesario porque
+`desy-scaffold-project` prohíbe al agente scaffoldear sin permiso del usuario.
+Vive en `.scaffold-cache/` (fuera de control de versiones). Ver ADR-0005.
+
 **Guard**:
 Un Check con `severity: guard`. Su fallo hace que el Grade del Caso sea INACEPTABLE.
 

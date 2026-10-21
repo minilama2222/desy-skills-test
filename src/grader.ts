@@ -1,5 +1,6 @@
 import type { Assert, Check, TipoCaso } from "./caso.js";
 import { parseChecks } from "./caso.js";
+import { propsValidasDeMacro } from "./catalogo.js";
 import {
   esClaseTipografica,
   esColorDelSistema,
@@ -133,7 +134,92 @@ function evaluar(
       );
     case "usa_clase_tipografica":
       return esClaseTipografica(assert.clase) && clasesDe(htmlText).includes(assert.clase);
+    case "macro_con_clase":
+      return llamadasAMacro(htmlText, assert.macro).some((props) =>
+        clasesDeString(props.classes).includes(assert.clase),
+      );
+    case "sin_props_inventados": {
+      const validas = propsValidasDeMacro(assert.macro);
+      if (!validas) return false;
+      const validasSet = new Set(validas);
+      return llamadasAMacro(htmlText, assert.macro).every((props) =>
+        Object.keys(props).every((nombre) => validasSet.has(nombre)),
+      );
+    }
+    case "macro_sin_clase":
+      return llamadasAMacro(htmlText, assert.macro).every(
+        (props) => !clasesDeString(props.classes).includes(assert.clase),
+      );
   }
+}
+
+function clasesDeString(clases: string | undefined): string[] {
+  if (!clases) return [];
+  return clases.split(/\s+/).filter((c) => c.length > 0);
+}
+
+/**
+ * Extrae las props de nivel superior de cada llamada al macro en el HTML.
+ * Reconoce la forma canónica de Nunjucks `{{ macro({ "clave": valor, ... }) }}`
+ * y lee sólo las claves del objeto de primer nivel (ignora las anidadas).
+ */
+function llamadasAMacro(html: string, macro: string): Record<string, string>[] {
+  const llamadas: Record<string, string>[] = [];
+  const invocacion = new RegExp(`\\b${macro}\\s*\\(`, "g");
+  let match: RegExpExecArray | null;
+  while ((match = invocacion.exec(html)) !== null) {
+    const desde = html.indexOf("{", match.index + match[0].length);
+    if (desde === -1) continue;
+    const objeto = extraerObjetoBalanceado(html, desde);
+    if (objeto === undefined) continue;
+    llamadas.push(propsDeNivelSuperior(objeto));
+  }
+  return llamadas;
+}
+
+/** Devuelve el contenido entre las llaves que abren en `desde`, respetando el anidamiento y los strings. */
+function extraerObjetoBalanceado(texto: string, desde: number): string | undefined {
+  let profundidad = 0;
+  let enString: string | undefined;
+  for (let i = desde; i < texto.length; i++) {
+    const c = texto[i]!;
+    if (enString) {
+      if (c === "\\") i++;
+      else if (c === enString) enString = undefined;
+      continue;
+    }
+    if (c === '"' || c === "'" || c === "`") {
+      enString = c;
+    } else if (c === "{") {
+      profundidad++;
+    } else if (c === "}") {
+      profundidad--;
+      if (profundidad === 0) return texto.slice(desde + 1, i);
+    }
+  }
+  return undefined;
+}
+
+/** Lee las claves de primer nivel de un literal de objeto JS/JSON (las claves anidadas no cuentan). */
+function propsDeNivelSuperior(objeto: string): Record<string, string> {
+  const normalizado = objeto.replace(
+    /([{,]\s*)([A-Za-z_$][\w$]*)(\s*:)/g,
+    '$1"$2"$3',
+  );
+  try {
+    const parsed = JSON.parse(`{${normalizado}}`) as Record<string, unknown>;
+    return Object.fromEntries(
+      Object.entries(parsed).map(([clave, valor]) => [clave, stringificarValor(valor)]),
+    );
+  } catch {
+    return {};
+  }
+}
+
+function stringificarValor(valor: unknown): string {
+  if (typeof valor === "string") return valor;
+  if (valor === null || valor === undefined) return "";
+  return JSON.stringify(valor);
 }
 
 export function grado(

@@ -14,11 +14,22 @@ Cada **Caso** alimenta al SUT (agente `opencode run` headless) con una entrada y
 npm install
 npm test          # corre los tests unitarios (vitest)
 npm run typecheck # tsc --noEmit
-npm run run       # ejecuta Casos (pendiente de tickets 02+)
+npm run run -- --skill implement-component --case boton-primario  # ejecuta un Caso por el SUT y emite Evidencia + Grade
 npm run grade     # puntúa artefactos (pendiente de tickets 03+)
 npm run report    # agrega resultados y renderiza el Scorecard
 npm run bump-pin <ref>  # actualiza vendor/ + pin.json al ref dado
 ```
+
+## Casos
+
+Los Casos viven en `casos/<skill>/<tipo>/<id>/`, con `input/prompt.md`,
+`expected/checks.json` y `rubric.md`. El tipo (`componente` | `pagina`) determina
+el Framework de checks base que el grader combina con los checks del Caso.
+
+El primer Caso es `casos/implement-component/componente/boton-primario/` (Slice 1):
+un botón primario de tamaño estándar. Sus guards cubren el uso del macro
+`componentButton`, la variante `c-button--primary` y la ausencia de props
+inventadas; sus checks de quality cubren el tamaño base.
 
 ## Pin
 

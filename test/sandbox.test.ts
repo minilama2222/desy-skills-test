@@ -60,13 +60,12 @@ describe("createSandbox", () => {
     const sandbox = createSandbox();
     cleanup = () => sandbox.cleanup();
 
-    mkdirSync(join(sandbox.workDir, "sub"));
-    writeFileSync(join(sandbox.workDir, "pagina.html"), "<h1>Hola</h1>");
-    writeFileSync(join(sandbox.workDir, "sub", "nota.txt"), "nota");
+    mkdirSync(join(sandbox.workDir, "dist"));
+    writeFileSync(join(sandbox.workDir, "dist", "pagina.html"), "<h1>Hola</h1>");
+    writeFileSync(join(sandbox.workDir, "nota.txt"), "no es output");
 
     expect(sandbox.listArtefactos()).toEqual([
-      { path: "pagina.html", contenido: "<h1>Hola</h1>" },
-      { path: "sub/nota.txt", contenido: "nota" },
+      { path: "dist/pagina.html", contenido: "<h1>Hola</h1>" },
     ]);
   });
 

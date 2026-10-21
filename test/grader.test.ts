@@ -448,3 +448,158 @@ describe("Checks que consultan la librería de tokens DESY", () => {
     expect(mal.detalle.find((d) => d.id === "token-color_del_sistema")?.passed).toBe(false);
   });
 });
+
+describe("Contrato de macro: variante y props", () => {
+  const conHtml = (html: string) => artefactos({ "index.html": htmlValidoPagina(html) });
+
+  const checkVariante = (macro: string, clase: string): Check => ({
+    id: "usa-variante-primaria",
+    severity: "guard",
+    weight: 0,
+    assert: { kind: "macro_con_clase", macro, clase },
+  });
+
+  const checkProps = (macro: string): Check => ({
+    id: "sin-props-inventados",
+    severity: "guard",
+    weight: 0,
+    assert: { kind: "sin_props_inventados", macro },
+  });
+
+  const detalle = (arts: Artefactos, check: Check) =>
+    grado({ artefactos: arts, transcript: transcript() }, {
+      tipo: "caso-componente",
+      checks: [check],
+    }).detalle.find((d) => d.id === check.id)?.passed;
+
+  it("macro_con_clase pasa cuando el macro lleva la clase declarada en classes", () => {
+    const passed = detalle(
+      conHtml('{{ componentButton({ "text": "Enviar", "classes": "c-button--primary" }) }}'),
+      checkVariante("componentButton", "c-button--primary"),
+    );
+    expect(passed).toBe(true);
+  });
+
+  it("macro_con_clase falla cuando el macro no lleva la clase (variante ausente)", () => {
+    const passed = detalle(
+      conHtml('{{ componentButton({ "text": "Enviar", "classes": "c-button--secondary" }) }}'),
+      checkVariante("componentButton", "c-button--primary"),
+    );
+    expect(passed).toBe(false);
+  });
+
+  it("macro_con_clase falla cuando no hay ninguna llamada al macro", () => {
+    const passed = detalle(
+      conHtml('<button class="c-button--primary">Enviar</button>'),
+      checkVariante("componentButton", "c-button--primary"),
+    );
+    expect(passed).toBe(false);
+  });
+
+  it("macro_con_clase reconoce la clase entre varias separadas por espacio", () => {
+    const passed = detalle(
+      conHtml('{{ componentButton({ "classes": "c-button--primary mt-base" }) }}'),
+      checkVariante("componentButton", "c-button--primary"),
+    );
+    expect(passed).toBe(true);
+  });
+
+  it("macro_con_clase no confunde una clase que sólo contiene el nombre buscado", () => {
+    const passed = detalle(
+      conHtml('{{ componentButton({ "classes": "c-button--primary-dark" }) }}'),
+      checkVariante("componentButton", "c-button--primary"),
+    );
+    expect(passed).toBe(false);
+  });
+
+  it("sin_props_inventados pasa cuando todas las props están en el catálogo", () => {
+    const passed = detalle(
+      conHtml('{{ componentButton({ "text": "Enviar", "classes": "c-button--primary", "type": "submit" }) }}'),
+      checkProps("componentButton"),
+    );
+    expect(passed).toBe(true);
+  });
+
+  it("sin_props_inventados falla cuando el macro usa una prop inventada", () => {
+    const passed = detalle(
+      conHtml('{{ componentButton({ "text": "Enviar", "variante": "primary" }) }}'),
+      checkProps("componentButton"),
+    );
+    expect(passed).toBe(false);
+  });
+
+  it("sin_props_inventados ignora las claves anidadas, sólo mira el nivel superior", () => {
+    const passed = detalle(
+      conHtml(
+        '{{ componentCheckboxes({ "id": "x", "items": [{ "name": "a", "value": "si" }] }) }}',
+      ),
+      checkProps("componentCheckboxes"),
+    );
+    expect(passed).toBe(true);
+  });
+
+  it("sin_props_inventados pasa cuando no hay llamadas al macro (nada que objetar)", () => {
+    const passed = detalle(
+      conHtml('<div class="p-base">Sin macro</div>'),
+      checkProps("componentButton"),
+    );
+    expect(passed).toBe(true);
+  });
+
+  it("sin_props_inventados falla si el macro no existe en el catálogo", () => {
+    const passed = detalle(
+      conHtml('{{ componentInventado({ "text": "x" }) }}'),
+      checkProps("componentInventado"),
+    );
+    expect(passed).toBe(false);
+  });
+
+  describe("macro_sin_clase (el tamaño base se expresa por ausencia de clase)", () => {
+    const checkSinClase = (macro: string, clase: string): Check => ({
+      id: "tamano-base",
+      severity: "quality",
+      weight: 1,
+      assert: { kind: "macro_sin_clase", macro, clase },
+    });
+
+    it("pasa cuando el macro no lleva la clase prohibida", () => {
+      const passed = detalle(
+        conHtml('{{ componentButton({ "text": "Enviar", "classes": "c-button--primary" }) }}'),
+        checkSinClase("componentButton", "c-button--sm"),
+      );
+      expect(passed).toBe(true);
+    });
+
+    it("falla cuando el macro lleva la clase prohibida", () => {
+      const passed = detalle(
+        conHtml('{{ componentButton({ "text": "Enviar", "classes": "c-button--primary c-button--sm" }) }}'),
+        checkSinClase("componentButton", "c-button--sm"),
+      );
+      expect(passed).toBe(false);
+    });
+
+    it("falla cuando el macro lleva la clase prohibida de tamaño grande", () => {
+      const passed = detalle(
+        conHtml('{{ componentButton({ "classes": "c-button--lg" }) }}'),
+        checkSinClase("componentButton", "c-button--lg"),
+      );
+      expect(passed).toBe(false);
+    });
+
+    it("no confunde una clase que sólo contiene el nombre prohibido", () => {
+      const passed = detalle(
+        conHtml('{{ componentButton({ "classes": "c-button--sm-dark" }) }}'),
+        checkSinClase("componentButton", "c-button--sm"),
+      );
+      expect(passed).toBe(true);
+    });
+
+    it("pasa cuando no hay ninguna llamada al macro", () => {
+      const passed = detalle(
+        conHtml('<div class="p-base">Sin macro</div>'),
+        checkSinClase("componentButton", "c-button--sm"),
+      );
+      expect(passed).toBe(true);
+    });
+  });
+});

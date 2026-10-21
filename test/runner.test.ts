@@ -126,6 +126,89 @@ describe("runCaso", () => {
     ]);
   });
 
+  it("parsea el formato real de opencode: → Skill \"nombre\" (sin prefijo de dos puntos)", async () => {
+    const sandbox = fakeSandbox();
+    const command: CommandRunner = {
+      run: () => ({
+        stdout: [
+          "> build · deepseek-ai/DeepSeek-V4.1-Flash",
+          '→ Skill "desy-implement-component" ',
+          "> build · deepseek-ai/DeepSeek-V4.1-Flash",
+          '→ Skill "desy-scaffold-project" ',
+          '→ Skill "desy-choose-library" ',
+        ].join("\n"),
+        stderr: "",
+        code: 0,
+      }),
+    };
+
+    const resultado = await runCaso(caso, pin, { sandbox: factoryOf(sandbox), command });
+
+    expect(resultado.transcript.invocaciones).toEqual([
+      "desy-implement-component",
+      "desy-scaffold-project",
+      "desy-choose-library",
+    ]);
+  });
+
+  it("ignora los códigos ANSI y espacios de cola que opencode añade al nombre del skill", async () => {
+    const sandbox = fakeSandbox();
+    const command: CommandRunner = {
+      run: () => ({
+        stdout: '\u001b[0m→ \u001b[0mSkill "desy-implement-component" \n',
+        stderr: "",
+        code: 0,
+      }),
+    };
+
+    const resultado = await runCaso(caso, pin, { sandbox: factoryOf(sandbox), command });
+
+    expect(resultado.transcript.invocaciones).toEqual(["desy-implement-component"]);
+  });
+
+  it("no confunde una mención cualquiera del nombre con una Invocación real", async () => {
+    const sandbox = fakeSandbox();
+    const command: CommandRunner = {
+      run: () => ({
+        stdout: 'Usaré desy-implement-component para esto. Skill "otro" no es invocación.\n',
+        stderr: "",
+        code: 0,
+      }),
+    };
+
+    const resultado = await runCaso(caso, pin, { sandbox: factoryOf(sandbox), command });
+
+    expect(resultado.transcript.invocaciones).toEqual([]);
+  });
+
+  it("extrae el Flujo observado aunque las Invocaciones lleguen por stderr (formato real de opencode)", async () => {
+    // `opencode run` escribe las líneas `→ Skill "..."` por stderr, con ANSI,
+    // y la prosa del modelo por stdout. El Flujo observado vive en stderr.
+    const sandbox = fakeSandbox();
+    const command: CommandRunner = {
+      run: () => ({
+        stdout: "Genero el botón primario con el macro componentButton.\n",
+        stderr: [
+          "opencode : \u001b[0m",
+          "> build · deepseek-ai/DeepSeek-V4.1-Flash",
+          '\u001b[0m→ \u001b[0mSkill "desy-implement-component" ',
+          "> build · deepseek-ai/DeepSeek-V4.1-Flash",
+          '\u001b[0m→ \u001b[0mSkill "desy-scaffold-project" ',
+          '\u001b[0m→ \u001b[0mSkill "desy-validate-accessibility" ',
+        ].join("\n"),
+        code: 0,
+      }),
+    };
+
+    const resultado = await runCaso(caso, pin, { sandbox: factoryOf(sandbox), command });
+
+    expect(resultado.transcript.invocaciones).toEqual([
+      "desy-implement-component",
+      "desy-scaffold-project",
+      "desy-validate-accessibility",
+    ]);
+  });
+
   it("limpia el sandbox incluso si el SUT falla", async () => {
     const sandbox = fakeSandbox();
     const command: CommandRunner = {

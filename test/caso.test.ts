@@ -144,6 +144,85 @@ describe("parseChecks", () => {
     ).toThrow(/clase/i);
   });
 
+  it("parsea los asserts de contrato de macro (variante y props)", () => {
+    const checks = parseChecks(
+      JSON.stringify({
+        checks: [
+          {
+            id: "usa-variante-primaria",
+            severity: "guard",
+            weight: 0,
+            assert: { kind: "macro_con_clase", macro: "componentButton", clase: "c-button--primary" },
+          },
+          {
+            id: "sin-props-inventados",
+            severity: "guard",
+            weight: 0,
+            assert: { kind: "sin_props_inventados", macro: "componentButton" },
+          },
+        ],
+      }),
+    );
+
+    expect(checks[0]!.assert).toEqual({
+      kind: "macro_con_clase",
+      macro: "componentButton",
+      clase: "c-button--primary",
+    });
+    expect(checks[1]!.assert).toEqual({
+      kind: "sin_props_inventados",
+      macro: "componentButton",
+    });
+  });
+
+  it("exige macro y clase en macro_con_clase", () => {
+    expect(() =>
+      parseChecks(
+        JSON.stringify({
+          checks: [{ id: "x", severity: "guard", weight: 0, assert: { kind: "macro_con_clase", macro: "componentButton" } }],
+        }),
+      ),
+    ).toThrow(/clase/i);
+  });
+
+  it("exige el campo macro en sin_props_inventados", () => {
+    expect(() =>
+      parseChecks(
+        JSON.stringify({
+          checks: [{ id: "x", severity: "guard", weight: 0, assert: { kind: "sin_props_inventados" } }],
+        }),
+      ),
+    ).toThrow(/macro/i);
+  });
+
+  it("parsea macro_sin_clase y exige macro y clase", () => {
+    const checks = parseChecks(
+      JSON.stringify({
+        checks: [
+          {
+            id: "tamano-base",
+            severity: "quality",
+            weight: 1,
+            assert: { kind: "macro_sin_clase", macro: "componentButton", clase: "c-button--sm" },
+          },
+        ],
+      }),
+    );
+    expect(checks[0]!.assert).toEqual({
+      kind: "macro_sin_clase",
+      macro: "componentButton",
+      clase: "c-button--sm",
+    });
+
+    expect(() =>
+      parseChecks(
+        JSON.stringify({
+          checks: [{ id: "x", severity: "quality", weight: 1, assert: { kind: "macro_sin_clase", macro: "componentButton" } }],
+        }),
+      ),
+    ).toThrow(/clase/i);
+  });
+
   it("exige el campo checks en la raíz", () => {
     expect(() => parseChecks(JSON.stringify({ items: [] }))).toThrow(/checks/i);
   });

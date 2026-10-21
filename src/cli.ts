@@ -1,9 +1,12 @@
 import { bumpPin, currentRepo, realGit, PIN_PATH } from "./bump.js";
-import { cargarCaso } from "./caso-loader.js";
-import type { Assert, Check } from "./caso.js";
+import { CASOS_DIR, cargarCaso } from "./caso-loader.js";
+import type { Assert, Check, TipoCaso } from "./caso.js";
+import { ejecutarCaso } from "./ejecutar.js";
 import { grado } from "./grader.js";
 import { readPin } from "./pin.js";
-import { createSandbox, realCommand, runCaso } from "./runner.js";
+import { createSandbox, realCommand, SCAFFOLD_CACHE_DIR } from "./runner.js";
+import { existsSync, readdirSync } from "node:fs";
+import { join } from "node:path";
 
 function usage(): never {
   console.error(
@@ -11,7 +14,7 @@ function usage(): never {
       "Uso: cli <comando> [args]",
       "",
       "Comandos:",
-      "  run <skill> <caso> [prompt...]  Ejecuta un Caso por el SUT y muestra la Evidencia.",
+      "  run --skill <skill> --case <caso>  Ejecuta un Caso por el SUT y emite Evidencia + Grade.",
       "  grade <id> <severity> <assert> [weight]  Puntúa un Check sobre Evidencia vacía.",
       "  load <ruta>  Carga un Caso desde su carpeta y muestra su JSON.",
       "  report   Agrega resultados y renderiza el Scorecard (pendiente de ticket 12).",
@@ -28,23 +31,45 @@ function runBumpPin(ref: string): void {
   console.log(`Pin actualizado: ${pin.ref} @ ${pin.commit} (${pin.fecha})`);
 }
 
-async function runCasos([skill = "", id = "", ...promptParts]: string[]): Promise<void> {
+function opcion(args: string[], nombre: string): string | undefined {
+  const i = args.indexOf(nombre);
+  if (i === -1) return undefined;
+  return args[i + 1];
+}
+
+/** Localiza la carpeta del Caso dentro de CASOS_DIR: <skill>/<tipo>/<id>. */
+function localizarCaso(skill: string, id: string): string {
+  const skillDir = join(CASOS_DIR, skill);
+  if (!existsSync(skillDir)) {
+    throw new Error(`No existe el skill "${skill}" en el árbol de Casos (${skillDir})`);
+  }
+  for (const tipo of readdirSync(skillDir, { withFileTypes: true })) {
+    if (!tipo.isDirectory()) continue;
+    const candidato = join(skillDir, tipo.name, id);
+    if (existsSync(candidato)) return candidato;
+  }
+  throw new Error(
+    `No se encontró el Caso "${id}" para el skill "${skill}" bajo ${skillDir}`,
+  );
+}
+
+async function runCasos(args: string[]): Promise<void> {
+  const skill = opcion(args, "--skill");
+  const id = opcion(args, "--case");
   if (!skill || !id) usage();
-  const caso = {
-    tipo: "caso-componente" as const,
-    skill,
-    id,
-    prompt: promptParts.join(" "),
-    checks: [] as Check[],
-  };
+
+  const caso = cargarCaso(localizarCaso(skill!, id!));
   const pin = readPin(PIN_PATH);
-  const evidencia = await runCaso(caso, pin, {
-    sandbox: { create: createSandbox },
+  const resultado = await ejecutarCaso(caso, pin, {
+    sandbox: {
+      create: () =>
+        createSandbox(
+          existsSync(SCAFFOLD_CACHE_DIR) ? { scaffoldDir: SCAFFOLD_CACHE_DIR } : {},
+        ),
+    },
     command: realCommand,
   });
-  console.log(
-    JSON.stringify({ pin: pin.commit, ...evidencia }, null, 2),
-  );
+  console.log(JSON.stringify(resultado, null, 2));
 }
 
 function parseAssertCli(clase: string): Assert {
@@ -67,7 +92,7 @@ function runGrade([id, severity, clase, ...rest]: string[]): void {
   };
   const resultado = grado(
     { artefactos: { files: {} }, transcript: { invocaciones: [] } },
-    { tipo: "caso-componente", checks: [check] },
+    { tipo: "caso-componente" as TipoCaso, checks: [check] },
   );
   console.log(JSON.stringify(resultado, null, 2));
 }

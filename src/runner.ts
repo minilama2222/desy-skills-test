@@ -1,4 +1,4 @@
-import { execFileSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import {
   cpSync,
   existsSync,
@@ -15,6 +15,9 @@ import type { Pin } from "./pin.js";
 import { REPO_ROOT } from "./repo.js";
 
 export const VENDOR_SKILLS_DIR = join(REPO_ROOT, "vendor", "desy-skills", "skills");
+
+/** Starter DESY cacheado que se pre-scaffoldea en cada sandbox (ver ADR-0005). */
+export const SCAFFOLD_CACHE_DIR = join(REPO_ROOT, ".scaffold-cache", "desy-html-starter");
 
 export const MODELO_FIJO = "deepinfra/deepseek-ai/DeepSeek-V4.1-Flash";
 
@@ -57,7 +60,6 @@ export interface Sandbox {
   listArtefactos(): { path: string; contenido: string }[];
   cleanup(): void;
 }
-
 export interface SandboxFactory {
   create(): Sandbox;
 }
@@ -104,14 +106,23 @@ function artefactosToFiles(
   return Object.fromEntries(artefactos.map((a) => [a.path, a.contenido]));
 }
 
-const INVOCACION_RE = /^»\s*skill:\s*(\S+)/gm;
+const INVOCACION_RES = [
+  // Formato real de `opencode run`: `→ Skill "desy-implement-component"`, con
+  // posibles códigos ANSI alrededor y espacios de cola.
+  /\u2192\s*(?:\u001b\[[0-9;]*m)?\s*Skill\s+"([^"]+)"/g,
+  // Formato alternativo con prefijo de dos puntos.
+  /^\u00bb\s*skill:\s*(\S+)/gm,
+];
 
 function parseInvocaciones(transcript: string): string[] {
-  const invocaciones: string[] = [];
-  for (const match of transcript.matchAll(INVOCACION_RE)) {
-    invocaciones.push(match[1]!);
+  const encontradas: { indice: number; nombre: string }[] = [];
+  for (const re of INVOCACION_RES) {
+    for (const match of transcript.matchAll(re)) {
+      encontradas.push({ indice: match.index!, nombre: match[1]! });
+    }
   }
-  return invocaciones;
+  encontradas.sort((a, b) => a.indice - b.indice);
+  return encontradas.map((e) => e.nombre);
 }
 
 function mergeTranscript(stdout: string, stderr: string): string {
@@ -120,31 +131,27 @@ function mergeTranscript(stdout: string, stderr: string): string {
 
 export const realCommand: CommandRunner = {
   run(args: string[], opts: CommandOptions): CommandResult {
-    try {
-      const stdout = execFileSync("opencode", args, {
-        cwd: opts.cwd,
-        env: { ...process.env, ...opts.env },
-        encoding: "utf8",
-      });
-      return { stdout, stderr: "", code: 0 };
-    } catch (error) {
-      const failure = error as {
-        stdout?: string;
-        stderr?: string;
-        status?: number;
-        code?: string;
-      };
-      if (failure.code === "ENOENT") {
-        throw new Error(
-          "No se encontró el binario `opencode`. Instálalo o usa un command runner inyectado.",
-        );
-      }
-      return {
-        stdout: failure.stdout ?? "",
-        stderr: failure.stderr ?? String(error),
-        code: failure.status ?? 1,
-      };
+    // `opencode run` emite las líneas de invocación de Skill (`→ Skill "..."`)
+    // por stderr, y la prosa del modelo por stdout. Hay que capturar AMBOS: el
+    // Flujo observado vive en stderr. spawnSync (no execFileSync) para poder
+    // leer los dos streams a la vez.
+    const resultado = spawnSync("opencode", args, {
+      cwd: opts.cwd,
+      env: { ...process.env, ...opts.env },
+      encoding: "utf8",
+    });
+
+    if (resultado.error && (resultado.error as NodeJS.ErrnoException).code === "ENOENT") {
+      throw new Error(
+        "No se encontró el binario `opencode`. Instálalo o usa un command runner inyectado.",
+      );
     }
+
+    return {
+      stdout: resultado.stdout ?? "",
+      stderr: resultado.stderr ?? (resultado.error ? String(resultado.error) : ""),
+      code: resultado.status ?? 1,
+    };
   },
 };
 
@@ -152,7 +159,19 @@ export function skillsDirDeHome(home: string): string {
   return join(home, ".config", "opencode", "skills");
 }
 
-export function createSandbox(base: string = tmpdir()): Sandbox {
+export interface SandboxOptions {
+  /** Directorio donde crear el sandbox temporal. */
+  base?: string;
+  /**
+   * Starter DESY ya scaffoldeado y cacheado que se copia al `workDir` antes de
+   * lanzar el SUT. Ver ADR-0005. Si se omite, el `workDir` queda vacío.
+   */
+  scaffoldDir?: string;
+}
+
+export function createSandbox(opciones: string | SandboxOptions = {}): Sandbox {
+  const opts: SandboxOptions = typeof opciones === "string" ? { base: opciones } : opciones;
+  const base = opts.base ?? tmpdir();
   const root = mkdtempSync(join(base, "desy-sut-"));
   const home = join(root, "home");
   const configDir = join(home, ".config", "opencode");
@@ -161,6 +180,20 @@ export function createSandbox(base: string = tmpdir()): Sandbox {
 
   mkdirSync(skillsDir, { recursive: true });
   mkdirSync(workDir, { recursive: true });
+
+  if (opts.scaffoldDir) {
+    if (!existsSync(opts.scaffoldDir)) {
+      throw new Error(
+        `No existe el scaffold cacheado en ${opts.scaffoldDir} (ver ADR-0005)`,
+      );
+    }
+    copiarContenido(opts.scaffoldDir, workDir);
+  }
+
+  // Línea base: lo que ya traía el scaffold. Sólo cuenta como artefacto lo que
+  // el SUT añade o cambia respecto a esta foto (el dist/ del starter trae ~60
+  // páginas de ejemplo que no son output del Caso).
+  const lineaBase = fotoDeArchivos(workDir);
 
   return {
     workDir,
@@ -178,12 +211,47 @@ export function createSandbox(base: string = tmpdir()): Sandbox {
       }
     },
     listArtefactos() {
-      return collectArtefactos(workDir);
+      return listarArtefactosDeSalida(workDir, lineaBase);
     },
     cleanup(): void {
       rmSync(root, { recursive: true, force: true });
     },
   };
+}
+
+/** Copia el contenido de `origen` dentro de `destino` (no el directorio en sí). */
+function copiarContenido(origen: string, destino: string): void {
+  for (const entry of readdirSync(origen, { withFileTypes: true })) {
+    cpSync(join(origen, entry.name), join(destino, entry.name), { recursive: true });
+  }
+}
+
+/** Foto `ruta relativa -> contenido` de todos los ficheros bajo `dir`. */
+function fotoDeArchivos(dir: string): Map<string, string> {
+  const foto = new Map<string, string>();
+  if (!existsSync(dir)) return foto;
+  for (const a of collectArtefactos(dir)) {
+    foto.set(a.path, a.contenido);
+  }
+  return foto;
+}
+
+/**
+ * Artefactos que produce el SUT: los ficheros del `dist/` compilado que son
+ * **nuevos o modificados** respecto a la línea base del scaffold. Los fuentes
+ * del starter (`src/`, `node_modules/`, config) y sus páginas de ejemplo ya
+ * venían puestos: no son output del Caso. Ver ADR-0005 y la regla del skill:
+ * el output esperado es siempre el `dist/`.
+ */
+export function listarArtefactosDeSalida(
+  workDir: string,
+  lineaBase: Map<string, string> = new Map(),
+): { path: string; contenido: string }[] {
+  const dist = join(workDir, "dist");
+  if (!existsSync(dist)) return [];
+  return collectArtefactos(dist)
+    .filter((a) => lineaBase.get(`dist/${a.path}`) !== a.contenido)
+    .map((a) => ({ path: `dist/${a.path}`, contenido: a.contenido }));
 }
 
 function collectArtefactos(dir: string): { path: string; contenido: string }[] {

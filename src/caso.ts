@@ -39,6 +39,23 @@ export interface AssertUsaClaseTipografica {
   clase: string;
 }
 
+export interface AssertMacroConClase {
+  kind: "macro_con_clase";
+  macro: string;
+  clase: string;
+}
+
+export interface AssertSinPropsInventados {
+  kind: "sin_props_inventados";
+  macro: string;
+}
+
+export interface AssertMacroSinClase {
+  kind: "macro_sin_clase";
+  macro: string;
+  clase: string;
+}
+
 export type Assert =
   | AssertMacroPresente
   | AssertUnSoloH1
@@ -48,7 +65,10 @@ export type Assert =
   | AssertSinUtilityPorDefecto
   | AssertEspaciadoDelSistema
   | AssertColorDelSistema
-  | AssertUsaClaseTipografica;
+  | AssertUsaClaseTipografica
+  | AssertMacroConClase
+  | AssertSinPropsInventados
+  | AssertMacroSinClase;
 
 export type Severity = "guard" | "quality";
 
@@ -101,6 +121,9 @@ const ASSERT_KINDS = new Set([
   "espaciado_del_sistema",
   "color_del_sistema",
   "usa_clase_tipografica",
+  "macro_con_clase",
+  "sin_props_inventados",
+  "macro_sin_clase",
 ]);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -143,6 +166,23 @@ function parseAssert(raw: unknown, contexto: string): Assert {
     case "usa_clase_tipografica":
       return {
         kind: "usa_clase_tipografica",
+        clase: exigirString(raw, "clase", contexto),
+      };
+    case "macro_con_clase":
+      return {
+        kind: "macro_con_clase",
+        macro: exigirString(raw, "macro", contexto),
+        clase: exigirString(raw, "clase", contexto),
+      };
+    case "sin_props_inventados":
+      return {
+        kind: "sin_props_inventados",
+        macro: exigirString(raw, "macro", contexto),
+      };
+    case "macro_sin_clase":
+      return {
+        kind: "macro_sin_clase",
+        macro: exigirString(raw, "macro", contexto),
         clase: exigirString(raw, "clase", contexto),
       };
     case "sin_utility_por_defecto":
