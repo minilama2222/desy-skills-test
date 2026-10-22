@@ -126,3 +126,18 @@ Pendiente y **fuera de esta decisión**: distinguir «no hay artefacto» de
 (fallo del SUT, de dos tipos: #2 llegó al skill y no entregó; #3 ni pasó de
 `preflight-check`) siguen dando INACEPTABLE y hoy no se pueden separar en el
 reporte. Eso es lo que queda por decidir para el criterio 5 del ticket 05.
+
+## Confirmación tras el arreglo (22/10)
+
+Una Ejecución más con el arreglo ya aplicado: flujo
+`preflight-check → implement-component`, **cero artefactos** (ni fuente ni
+compilado), 40 s, INACEPTABLE. Es del tipo #2: el SUT llegó al skill y no
+entregó. No ejercita el arreglo (no había nada que graduar), pero confirma que
+«no entrega» sigue siendo la causa dominante de INACEPTABLE y refuerza la
+necesidad del ticket 15.
+
+El arreglo en sí queda probado de forma determinista por
+`test/regresion-artefacto-src.test.ts`, que mete el **fuente exacto** de la
+Ejecución #1 (guardado en `reports/estabilidad-v2/ejecucion-1-fuente.txt`) por el
+camino sandbox → `runCaso` → `grado` y exige EXCELENTE.
+
