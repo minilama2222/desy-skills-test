@@ -66,7 +66,33 @@ siguiendo la convención que el propio skill documenta: «las páginas son fiche
 La llamada al macro está en el fuente, correcta. El runner no la recogía porque
 solo miraba `dist/`.
 
-### Hallazgo colateral: la caché estaba contaminada
+## Respuesta a «¿es bug del harness o flakiness del SUT?» (experimento v2, 22/10)
+
+3 Ejecuciones con la caché **limpia**, registrando a la vez lo que devuelve el
+runner y lo que el SUT escribió de verdad:
+
+| # | Runner devuelve | Fuente escrita | Grade |
+|---|---|---|---|
+| 1 | `dist/boton-enviar.html` | **`src/boton-enviar.html`** | INACEPTABLE |
+| 2 | — | **—** | INACEPTABLE |
+| 3 | — | **—** | INACEPTABLE |
+
+**Son dos problemas distintos, y ahora están separados:**
+
+- **#1 es bug del harness, no del SUT.** El SUT produjo una respuesta de manual
+  (`componentButton` con `c-button--primary`, texto «Enviar», `type: submit`,
+  `preventDoubleClick: true` — las cuatro props válidas en el catálogo) y el
+  harness la suspendió. Su fuente solo usa `pb-lg` y `c-h1`: **cero utilities de
+  la escala Tailwind**, así que sobre el fuente `tokens-del-sistema` también
+  habría pasado. Los tres fallos de #1 desaparecen moviendo el artefacto al
+  fuente.
+- **#2 y #3 sí son flakiness del SUT, y de dos tipos distintos**: #2 llegó a
+  `implement-component` pero no entregó nada; **#3 ni siquiera pasó de
+  `preflight-check`**, así que se paró antes de entrar al skill bajo test. Los
+  tres fallos de ambas son "no hay artefacto que gradúe", no una valoración del
+  trabajo.
+
+## Hallazgo colateral: la caché estaba contaminada
 
 `src/botones.html` y `dist/botones.html` **también estaban en la caché** del
 scaffold, porque la caché se creó copiando un directorio donde un SUT ya había
@@ -78,3 +104,5 @@ La caché tiene `.git` (es un `git clone` en `37748bd`), así que se detecta con
 `git status` dentro de `.scaffold-cache/desy-html-starter`: debe salir solo
 `.nvmrc`. Corregido: la caché se limpió y la receta fija el commit del starter en
 `scaffold-pin.json`.
+
+## Opciones de arreglo
