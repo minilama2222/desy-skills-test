@@ -4,7 +4,7 @@
 
 **Blocked by:** 05, ADR-0006
 
-**Status:** ready-for-human
+**Status:** done
 
 - [x] El `ResultadoEjecucion` (o el `Grade`) expone si hubo artefacto graduable
 - [x] Una Ejecución sin artefacto no se cuenta igual que una con artefacto incorrecto (en el `detalle` o en un campo aparte)

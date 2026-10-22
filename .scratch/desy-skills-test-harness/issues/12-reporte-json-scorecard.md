@@ -12,3 +12,14 @@
 - [ ] El formato JSON es estable y apto para CI
 - [ ] Test unitario del agregado a partir de Grades de ejemplo
 
+## Notas
+
+- **Aplicar el ADR-0007 al agregar**: un Caso se corre 3 veces; se descartan las
+  Ejecuciones que no alcanzaron el skill (`flujoAlcanzoSkill: false`), y **basta
+  con que una** de las que quedan sea correcta. El scorecard debe poder
+  representar el tercer estado, **Caso indeterminado** (ninguna Ejecución alcanzó
+  el skill), que **no** es un suspenso del skill.
+- Los dos ejes del ticket 15 (`entrega`, `flujoAlcanzoSkill`) son lo que hace
+  agregable el resultado: sin ellos, «no entregó» y «entregó mal» contarían igual.
+
+

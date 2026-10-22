@@ -115,6 +115,32 @@ for (const r of resumen) {
   }
 }
 
+// Veredicto agregado según ADR-0007 (3 Ejecuciones; se descartan las que no
+// alcanzaron el skill; basta con que una de las que quedan sea correcta). Aquí
+// va en línea porque es una lectura de este experimento: la implementación de
+// producción es del scorecard (ticket 12).
+const conDato = resumen.filter((r) => r["flujoAlcanzoSkill"] === true);
+const aprobadas = conDato.filter((r) => r["grade"] === "EXCELENTE");
+const veredicto =
+  conDato.length === 0 ? "INDETERMINADO" : aprobadas.length > 0 ? "PASA" : "SUSPENDE";
+
+process.stderr.write("\n=== VEREDICTO (ADR-0007) ===\n");
+process.stderr.write(
+  `  Ejecuciones: ${resumen.length}  |  alcanzaron el skill: ${conDato.length}  ` +
+    `|  correctas: ${aprobadas.length}/${conDato.length}\n`,
+);
+process.stderr.write(`  Veredicto del Caso: ${veredicto}\n`);
+
+writeFileSync(
+  join(SALIDA, "veredicto.json"),
+  JSON.stringify(
+    { ejecuciones: resumen.length, alcanzaronSkill: conDato.length, correctas: aprobadas.length, veredicto },
+    null,
+    2,
+  ),
+  "utf8",
+);
+
 function foto(dir: string, prefijo: string, acc: Map<string, number>): void {
   if (!existsSync(dir)) return;
   for (const e of readdirSync(dir, { withFileTypes: true })) {

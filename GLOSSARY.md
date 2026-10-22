@@ -58,6 +58,10 @@ _Avoid_: leer `sin-artefacto` como un Grade; contar las Ejecuciones `sin-artefac
 Si el Flujo observado contiene el paso del skill bajo test: es el punto hasta donde llegó el SUT. **Ortogonal** a la Entrega — se puede llegar al skill y no entregar, o no llegar siquiera. Cuando es falso, un INACEPTABLE **no evalúa el skill**: el agente ni lo invocó, así que esa Ejecución no cuenta para medir el skill (sí para medir el agente). Ver el ticket 15.
 _Avoid_: confundirlo con «entregó mal»; meterlo dentro de la Entrega (son ejes distintos).
 
+**Caso indeterminado**:
+El veredicto agregado de un Caso cuando **ninguna** de sus N Ejecuciones alcanzó el skill bajo test. No es suspenso: no hay dato para juzgar el skill (el agente no arrancó ninguna vez). Es un tercer estado además de aprobado/suspendido, y el scorecard debe representarlo. Ver ADR-0007.
+_Avoid_: contarlo como suspenso del skill.
+
 **Check**:
 La aserción declarativa individual dentro de `expected/checks.json`.
 
