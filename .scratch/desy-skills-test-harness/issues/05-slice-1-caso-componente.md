@@ -28,20 +28,36 @@
 - **Bloqueo resuelto (ADR-0005)**: el SUT se detenía en `desy-scaffold-project`
   porque ese skill le prohíbe scaffoldear sin permiso del usuario, y en headless
   no hay usuario. El runner pre-scaffoldea el sandbox con un starter cacheado.
-- `listArtefactos` ahora devuelve sólo el `dist/` **nuevo o modificado** respecto
-  a la línea base del scaffold; antes habría recolectado las ~60 páginas de
-  ejemplo del starter.
+- `listArtefactos` devuelve **sólo lo nuevo o modificado** respecto a la línea
+  base del scaffold; antes habría recolectado las ~60 páginas de ejemplo del
+  starter. **Corregido (ADR-0006)**: el directorio depende del tipo de Caso — el
+  **fuente** (`src/`) para el Caso-componente, el **compilado** (`dist/`) para el
+  Caso-página. Antes miraba siempre el `dist/`, donde el macro ya está expandido,
+  así que los guards de contrato de macro suspendían un output correcto.
 
 ## Pendiente (criterio 5)
 
 El harness es determinista: el grader es puro y hay un golden
 (`test/caso-boton-primario-aceptacion.test.ts`) que fija que una salida correcta
-del SUT da EXCELENTE. Lo que **no** es estable es el SUT: en Ejecuciones reales
-contra el Pin `b523ca7` invocó el Flujo canónico correcto
-(`preflight-check → implement-component → styles-reference`) pero en algunas no
-escribió ningún fichero en `dist/`, dando `INACEPTABLE` por ausencia de
-artefactos. Decidir si eso es flakiness a tolerar (p. ej. N Ejecuciones y tomar
-la mejor), un prompt más explícito, o un hallazgo sobre el skill, es trabajo
-posterior a este ticket.
+del SUT da EXCELENTE. Lo que **no** es estable es el SUT.
+
+Historia de la investigación (ver `HALLAZGO-guards-macro-artefacto.md`):
+
+1. Primero se creyó flakiness del SUT. El experimento de estabilidad v2 sobre 3
+   Ejecuciones con caché limpia mostró que **1 de 3 sí entregó** un botón
+   correcto (macro + variante + props válidas) y el harness lo suspendió: era
+   **bug del harness** (miraba el `dist/`). Arreglado en ADR-0006; el fuente
+   exacto de esa Ejecución da ahora EXCELENTE
+   (`test/regresion-artefacto-src.test.ts`).
+2. Las otras 2 de 3 no entregaron artefacto, y de dos formas distintas: una llegó
+   a `implement-component` y no escribió nada; la otra **ni pasó de
+   `preflight-check`**. Hoy ambas dan INACEPTABLE igual que un output incorrecto,
+   así que el denominador del criterio 5 está sucio.
+
+**Lo que falta para cerrar el criterio 5** (ticket 15): distinguir «no hay
+artefacto» de «artefacto incorrecto» en el resultado. Con eso, la política de N
+Ejecuciones se puede decidir sobre un denominador limpio (medir entregas, no
+arranques). Nunca fue inestabilidad del grader ni del harness determinista.
+
 
 
