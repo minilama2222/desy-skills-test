@@ -67,6 +67,12 @@ const FRAMEWORK: Record<TipoCaso, Check[]> = {
       weight: 0,
       assert: { kind: "fieldset_con_legend" },
     },
+    {
+      id: "labels-visibles",
+      severity: "guard",
+      weight: 0,
+      assert: { kind: "labels_visibles" },
+    },
     TOKENS_GUARD,
   ],
 };
@@ -93,6 +99,30 @@ function clasesDe(html: string): string[] {
   return clases;
 }
 
+/**
+ * Regla del skill `desy-validate-accessibility` (checklist de grep, paso 4):
+ * «Cada input, select y textarea con su label». Se saca el `id` de cada
+ * control (ignorando `type="hidden"`, que no necesita label) y se exige un
+ * `<label for="<id>">`. Un control sin `id` no es asociable y falla.
+ */
+function labelsVisibles(html: string): boolean {
+  const idsConLabel = new Set<string>();
+  for (const match of html.matchAll(/<label[\s>][^>]*\bfor="([^"]+)"/gi)) {
+    idsConLabel.add(match[1]!);
+  }
+
+  const etiquetados = new Set<string>();
+  for (const match of html.matchAll(/<(input|select|textarea)\b([^>]*)>/gi)) {
+    const atributos = match[2]!;
+    if (/\btype\s*=\s*"hidden"/i.test(atributos)) continue;
+    const id = /\bid="([^"]+)"/i.exec(atributos);
+    if (!id) return false;
+    etiquetados.add(id[1]!);
+  }
+
+  return [...etiquetados].every((id) => idsConLabel.has(id));
+}
+
 function evaluar(
   assert: Assert,
   artefactos: Artefactos,
@@ -107,15 +137,17 @@ function evaluar(
     case "un_solo_h1":
       return contar(htmlText, /<h1[\s>]/gi) === 1;
     case "skip_link":
-      return /class="[^"]*skip-link[^"]*"/i.test(htmlText);
+      return /class\s*=\s*(["'])[^"']*skip-link[^"']*\1/i.test(htmlText);
     case "fieldset_con_legend": {
       const fieldsets = htmlText.match(/<fieldset[\s>][\s\S]*?<\/fieldset>/gi) ?? [];
       return fieldsets.every((f) => /<legend[\s>]/i.test(f));
     }
+    case "labels_visibles":
+      return labelsVisibles(htmlText);
     case "flujo_canonico": {
       let i = 0;
       for (const paso of transcript.invocaciones) {
-        if (paso === assert.pasos[i]) i++;
+        if (pasoCoincide(paso, assert.pasos[i])) i++;
         if (i === assert.pasos.length) break;
       }
       return i === assert.pasos.length;
@@ -156,6 +188,18 @@ function evaluar(
 function clasesDeString(clases: string | undefined): string[] {
   if (!clases) return [];
   return clases.split(/\s+/).filter((c) => c.length > 0);
+}
+
+/**
+ * ¿La Invocación observada satisface el paso esperado del Flujo canónico?
+ * Un paso puede terminar en `-*` para admitir una familia de skills, como el
+ * `implement-*` del glosario (que cubre `implement-component`,
+ * `implement-pattern`, `implement-layout-patterns`…).
+ */
+function pasoCoincide(observado: string | undefined, esperado: string | undefined): boolean {
+  if (observado === undefined || esperado === undefined) return false;
+  if (esperado.endsWith("-*")) return observado.startsWith(esperado.slice(0, -1));
+  return observado === esperado;
 }
 
 /**

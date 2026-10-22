@@ -221,7 +221,6 @@ describe("Flujo observado vs Flujo canónico", () => {
       pasos: ["preflight-check", "implement-component"],
     },
   });
-
   it("pasa cuando el Flujo observado contiene los pasos canónicos en orden", () => {
     const resultado = grado(
       {
@@ -256,6 +255,105 @@ describe("Flujo observado vs Flujo canónico", () => {
     );
 
     expect(resultado.grade).toBe("INACEPTABLE");
+  });
+
+  describe("pasos con comodín, como el `implement-*` del Flujo canónico", () => {
+    const checkComodin = (pasos: string[]): Check => ({
+      id: "flujo-comodin",
+      severity: "guard",
+      weight: 0,
+      assert: { kind: "flujo_canonico", pasos },
+    });
+
+    const conFlujo = (invocaciones: string[], pasos: string[]) =>
+      grado(
+        {
+          artefactos: artefactos({ "index.html": htmlValidoPagina() }),
+          transcript: transcript(...invocaciones),
+        },
+        { tipo: "caso-componente", checks: [checkComodin(pasos)] },
+      ).detalle.find((d) => d.id === "flujo-comodin")?.passed;
+
+    it("`implement-*` casa con cualquier skill de implementación", () => {
+      expect(
+        conFlujo(
+          ["preflight-check", "implement-component", "design-match"],
+          ["preflight-check", "implement-*", "design-match"],
+        ),
+      ).toBe(true);
+
+      expect(
+        conFlujo(
+          ["preflight-check", "implement-pattern", "design-match"],
+          ["preflight-check", "implement-*", "design-match"],
+        ),
+      ).toBe(true);
+    });
+
+    it("`implement-*` no casa con un paso que no empieza por implement-", () => {
+      expect(
+        conFlujo(
+          ["preflight-check", "design-match"],
+          ["preflight-check", "implement-*"],
+        ),
+      ).toBe(false);
+    });
+
+    it("el comodín no rompe el orden", () => {
+      expect(
+        conFlujo(
+          ["implement-component", "preflight-check"],
+          ["preflight-check", "implement-*"],
+        ),
+      ).toBe(false);
+    });
+
+    it("el Flujo canónico completo del glosario pasa con la variante de implementación", () => {
+      const canonico = [
+        "preflight-check",
+        "component-recognizer",
+        "choose-page-template",
+        "implement-*",
+        "design-match",
+        "validate-accessibility",
+      ];
+      expect(
+        conFlujo(
+          [
+            "preflight-check",
+            "component-recognizer",
+            "choose-page-template",
+            "implement-component",
+            "design-match",
+            "validate-accessibility",
+          ],
+          canonico,
+        ),
+      ).toBe(true);
+    });
+
+    it("el Flujo canónico completo falla si falta validate-accessibility", () => {
+      const canonico = [
+        "preflight-check",
+        "component-recognizer",
+        "choose-page-template",
+        "implement-*",
+        "design-match",
+        "validate-accessibility",
+      ];
+      expect(
+        conFlujo(
+          [
+            "preflight-check",
+            "component-recognizer",
+            "choose-page-template",
+            "implement-component",
+            "design-match",
+          ],
+          canonico,
+        ),
+      ).toBe(false);
+    });
   });
 });
 

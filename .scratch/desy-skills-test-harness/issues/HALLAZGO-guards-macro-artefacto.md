@@ -1,0 +1,43 @@
+# Hallazgo: los guards de macro leen el artefacto equivocado
+
+El runner devuelve **sólo el `dist/` compilado** (ADR-0005), pero los guards de
+contrato de macro (`macro_presente`, `macro_con_clase`, `macro_sin_clase`,
+`sin_props_inventados`) buscan la **llamada al macro** — que vive en el fuente
+(`.njk`), no en el HTML compilado, donde el macro ya se expandió a
+`<button class="c-button c-button--primary">`.
+
+## Evidencia
+
+Experimento de estabilidad, 3 Ejecuciones del Caso `boton-primario` (Pin
+`b523ca7`, harness con scaffold cacheado). La Ejecución 2 produjo un artefacto
+correcto —`dist/pagina-boton-enviar.html`, con
+`<button type="submit" class="c-button c-button--primary">Enviar</button>`— y el
+harness le dio **tres fallos, ninguno imputable al skill**:
+
+1. `usa-macro-boton` — busca `componentButton` en el HTML compilado, donde ya no
+   existe.
+2. `variante-primaria` — igual: el macro ya se expandió.
+3. `tokens-del-sistema` — marca `text-6xl`, `w-8`, `h-8`, `p-2`… que son del
+   **header y footer del starter**, no del botón generado.
+
+Las 3 Ejecuciones dieron INACEPTABLE, y la 2 es un falso negativo puro.
+
+## Consecuencia
+
+El Grade del Slice 1 hoy no mide lo que dice medir. Antes de decidir la política
+de N Ejecuciones (criterio 5 del ticket 05), hay que arreglar esto — si no,
+cualquier agregación agrega ruido.
+
+## Opciones de arreglo
+
+- **Devolver también el fuente** en `listArtefactos` (p. ej. `src/` nuevo o
+  modificado, además de `dist/`), y que los guards de macro miren el fuente
+  mientras los de HTML/a11y miran el `dist/`. Requiere que los Checks declaren
+  sobre qué miran.
+- **Que los guards de macro acepten ambas formas**: la llamada al macro en el
+  fuente *o* el `<button class="...">` resultante en el compilado.
+- **Que el Caso-componente no compile**: pedir el `.njk` como artefacto y no
+  pasar por `dist/`, dejando el `dist/` para el Caso-página.
+
+Relacionado: ticket 08 (Caso-página) también mide artefactos, así que la decisión
+le afecta.

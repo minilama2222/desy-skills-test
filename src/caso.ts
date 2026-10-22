@@ -17,6 +17,10 @@ export interface AssertFieldsetConLegend {
   kind: "fieldset_con_legend";
 }
 
+export interface AssertLabelsVisibles {
+  kind: "labels_visibles";
+}
+
 export interface AssertFlujoCanonico {
   kind: "flujo_canonico";
   pasos: string[];
@@ -61,6 +65,7 @@ export type Assert =
   | AssertUnSoloH1
   | AssertSkipLink
   | AssertFieldsetConLegend
+  | AssertLabelsVisibles
   | AssertFlujoCanonico
   | AssertSinUtilityPorDefecto
   | AssertEspaciadoDelSistema
@@ -116,6 +121,7 @@ const ASSERT_KINDS = new Set([
   "un_solo_h1",
   "skip_link",
   "fieldset_con_legend",
+  "labels_visibles",
   "flujo_canonico",
   "sin_utility_por_defecto",
   "espaciado_del_sistema",
