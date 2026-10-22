@@ -40,6 +40,9 @@ finally {
   Pop-Location
 }
 
+# NO correr `npm run build` aquí: dejaría un dist/ en la caché que el runner
+# interpreta como contaminación (ver ADR-0005). La caché limpia no tiene dist/;
+# si el .gitignore del starter sigue ignorando dist/, git tampoco lo delataría.
 Write-Host ""
 Write-Host "Scaffold listo en $destino"
 Write-Host "El runner lo copiará a cada sandbox automáticamente."

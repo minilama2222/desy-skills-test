@@ -19,6 +19,76 @@ export const VENDOR_SKILLS_DIR = join(REPO_ROOT, "vendor", "desy-skills", "skill
 /** Starter DESY cacheado que se pre-scaffoldea en cada sandbox (ver ADR-0005). */
 export const SCAFFOLD_CACHE_DIR = join(REPO_ROOT, ".scaffold-cache", "desy-html-starter");
 
+/**
+ * Ficheros que la preparación del scaffold deja sin rastrear y que **no** son
+ * contaminación. `.nvmrc` lo crea el setup del starter.
+ */
+const NO_RASTREADOS_ESPERADOS = new Set([".nvmrc"]);
+
+export interface EstadoScaffold {
+  /** Rutas que `git status` reporta como no rastreadas en la caché. */
+  noRastreados: string[];
+  /** Si existe el `dist/` de la caché. */
+  existeDist: boolean;
+}
+
+/**
+ * Contaminación de la caché del scaffold (ver ADR-0005): los ficheros que dejó
+ * una corrida anterior y que **se colarían en la línea base de todas las
+ * Ejecuciones siguientes** como si fueran parte del starter.
+ *
+ * Una caché limpia es exactamente lo que produce `git clone` + `npm install`:
+ * el `src/` del starter intacto y **sin `dist/`** (la preparación no corre
+ * `npm run build`). Dos señales:
+ *
+ * - **`src/`**: un fichero no rastreado que no sea de los esperados (`git status`
+ *   ve el `src/` porque está versionado).
+ * - **`dist/`**: que exista. El `dist/` del starter está gitignored, así que git
+ *   no lo delata; pero la caché limpia no lo tiene, porque nadie compiló.
+ *
+ * Devuelve una descripción por problema, vacío si está limpia. Regla pura: el
+ * recolector de hechos (leer git, comprobar el disco) es `estadoDelScaffold`.
+ */
+export function contaminacionDelScaffold(estado: EstadoScaffold): string[] {
+  const problemas: string[] = [];
+  for (const ruta of estado.noRastreados) {
+    if (!NO_RASTREADOS_ESPERADOS.has(ruta)) {
+      problemas.push(`fichero no rastreado en el src/ del starter: ${ruta}`);
+    }
+  }
+  if (estado.existeDist) {
+    problemas.push(
+      "el dist/ existe: la caché limpia no compila, así que alguien lo generó en ella",
+    );
+  }
+  return problemas;
+}
+
+/**
+ * Recolecta el estado real de la caché del scaffold. Es el adaptador que alimenta
+ * a la regla pura `contaminacionDelScaffold`. Lanza si no se puede leer git.
+ */
+export function estadoDelScaffold(scaffoldDir: string): EstadoScaffold {
+  const git = spawnSync("git", ["status", "--porcelain"], {
+    cwd: scaffoldDir,
+    encoding: "utf8",
+  });
+  if (git.status !== 0) {
+    throw new Error(
+      `No se pudo leer el estado git de la caché del scaffold en ${scaffoldDir}: ` +
+        `${git.stderr ?? git.error ?? "error desconocido"}`,
+    );
+  }
+  const noRastreados = (git.stdout ?? "")
+    .split("\n")
+    .map((linea) => linea.trim())
+    .filter((linea) => linea.startsWith("?? "))
+    .map((linea) => linea.slice(3).replaceAll('"', "").trim());
+
+  return { noRastreados, existeDist: existsSync(join(scaffoldDir, "dist")) };
+}
+
+
 export const MODELO_FIJO = "deepinfra/deepseek-ai/DeepSeek-V4.1-Flash";
 
 export interface Artefactos {
@@ -219,6 +289,17 @@ export function createSandbox(opciones: string | SandboxOptions = {}): Sandbox {
     if (!existsSync(opts.scaffoldDir)) {
       throw new Error(
         `No existe el scaffold cacheado en ${opts.scaffoldDir} (ver ADR-0005)`,
+      );
+    }
+    const problemas = contaminacionDelScaffold(estadoDelScaffold(opts.scaffoldDir));
+    if (problemas.length > 0) {
+      throw new Error(
+        `La caché del scaffold está contaminada en ${opts.scaffoldDir}. ` +
+          "Se colaría en la línea base de todas las Ejecuciones y falsearía los " +
+          "artefactos (ver ADR-0005). Problemas:\n" +
+          problemas.map((p) => `  - ${p}`).join("\n") +
+          "\nArréglalo regenerando la caché: bórrala y corre " +
+          "`powershell -File scripts/preparar-scaffold.ps1`.",
       );
     }
     copiarContenido(opts.scaffoldDir, workDir);

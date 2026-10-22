@@ -1,18 +1,38 @@
+import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { createSandbox, listarArtefactosDeSalida } from "../src/runner.js";
+import {
+  contaminacionDelScaffold,
+  createSandbox,
+  listarArtefactosDeSalida,
+} from "../src/runner.js";
 
+/**
+ * Caché de scaffold falsa que imita la real: un repo git (la preparación es un
+ * `git clone`), así que `git status` funciona y el check de contaminación tiene
+ * qué leer.
+ */
 function scaffoldFalso(base: string): string {
   const dir = join(base, "starter-falso");
   mkdirSync(join(dir, "src", "templates"), { recursive: true });
   mkdirSync(join(dir, "node_modules", "desy-html"), { recursive: true });
-  writeFileSync(join(dir, ".nvmrc"), "22");
   writeFileSync(join(dir, "package.json"), '{ "name": "desy-html-starter" }');
   writeFileSync(join(dir, "src", "index.html"), "<h1>Starter</h1>");
   writeFileSync(join(dir, "node_modules", "desy-html", "index.js"), "// dep");
+  git(dir, "init", "-q");
+  git(dir, "add", "-A");
+  git(dir, "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "starter");
+  // La preparación crea .nvmrc DESPUÉS del commit, así que queda sin rastrear
+  // (igual que en la caché real).
+  writeFileSync(join(dir, ".nvmrc"), "22");
   return dir;
+}
+
+function git(cwd: string, ...args: string[]): void {
+  const r = spawnSync("git", args, { cwd, encoding: "utf8" });
+  if (r.status !== 0) throw new Error(`git ${args.join(" ")} falló: ${r.stderr}`);
 }
 
 describe("scaffold pre-cacheado en el sandbox", () => {
@@ -65,12 +85,47 @@ describe("scaffold pre-cacheado en el sandbox", () => {
     expect(existsSync(join(dos.workDir, "solo-en-uno.txt"))).toBe(false);
   });
 
+  it("revienta si la caché está contaminada, en vez de copiarla al sandbox", () => {
+    const base = join(tmpdir(), `scaffold-sucia-${Date.now()}`);
+    mkdirSync(base, { recursive: true });
+    const origen = scaffoldFalso(base);
+    cleanup = () => rmSync(base, { recursive: true, force: true });
+
+    // Un SUT anterior dejó su página en la caché: se colaría en la línea base.
+    writeFileSync(join(origen, "src", "botones.html"), "{{ componentButton() }}");
+
+    expect(() => createSandbox({ scaffoldDir: origen })).toThrow(/contaminada/i);
+  });
+
+  it("revienta si la caché tiene un dist/ (el SUT compiló dentro de ella)", () => {
+    const base = join(tmpdir(), `scaffold-sucia-dist-${Date.now()}`);
+    mkdirSync(base, { recursive: true });
+    const origen = scaffoldFalso(base);
+    cleanup = () => rmSync(base, { recursive: true, force: true });
+
+    mkdirSync(join(origen, "dist"), { recursive: true });
+    writeFileSync(join(origen, "dist", "botones.html"), "<button>Enviar</button>");
+
+    expect(() => createSandbox({ scaffoldDir: origen })).toThrow(/contaminada/i);
+  });
+
+  it("acepta una caché limpia (solo .nvmrc sin rastrear, sin dist/)", () => {
+    const base = join(tmpdir(), `scaffold-limpia-${Date.now()}`);
+    mkdirSync(base, { recursive: true });
+    const origen = scaffoldFalso(base);
+    const sandbox = createSandbox({ scaffoldDir: origen });
+    cleanup = () => {
+      sandbox.cleanup();
+      rmSync(base, { recursive: true, force: true });
+    };
+
+    expect(existsSync(join(sandbox.workDir, "src", "index.html"))).toBe(true);
+  });
+
   it("listArtefactos devuelve el fuente (src/) que el SUT produce en un Caso-componente", () => {
     const base = join(tmpdir(), `scaffold-artefactos-${Date.now()}`);
     mkdirSync(base, { recursive: true });
     const origen = scaffoldFalso(base);
-    mkdirSync(join(origen, "dist"), { recursive: true });
-    writeFileSync(join(origen, "dist", "starter-ejemplo.html"), "starter");
 
     const sandbox = createSandbox({ scaffoldDir: origen });
     cleanup = () => {
@@ -141,5 +196,46 @@ describe("listarArtefactosDeSalida", () => {
     expect(artefactos.map((a) => a.path)).toEqual(["src/tocado.html"]);
 
     rmSync(dir, { recursive: true, force: true });
+  });
+});
+
+describe("contaminacionDelScaffold", () => {
+  // Una caché limpia es exactamente lo que produce `git clone` + `npm install`:
+  // el `src/` del starter sin tocar y el `dist/` AUSENTE (el script de preparación
+  // no corre `npm run build`). Cualquier otra cosa la dejó una corrida anterior.
+  it("una caché limpia no tiene contaminación", () => {
+    expect(contaminacionDelScaffold({ noRastreados: [], existeDist: false })).toEqual([]);
+  });
+
+  it(".nvmrc no es contaminación: lo crea la propia preparación", () => {
+    expect(
+      contaminacionDelScaffold({ noRastreados: [".nvmrc"], existeDist: false }),
+    ).toEqual([]);
+  });
+
+  it("un fichero no rastreado en src/ es contaminación", () => {
+    const problemas = contaminacionDelScaffold({
+      noRastreados: ["src/botones.html"],
+      existeDist: false,
+    });
+
+    expect(problemas).toHaveLength(1);
+    expect(problemas[0]).toContain("src/botones.html");
+  });
+
+  it("un dist/ presente es contaminación: la caché limpia no compila", () => {
+    const problemas = contaminacionDelScaffold({ noRastreados: [], existeDist: true });
+
+    expect(problemas).toHaveLength(1);
+    expect(problemas[0]).toContain("dist/");
+  });
+
+  it("lista las dos clases de contaminación a la vez", () => {
+    const problemas = contaminacionDelScaffold({
+      noRastreados: ["src/botones.html"],
+      existeDist: true,
+    });
+
+    expect(problemas).toHaveLength(2);
   });
 });

@@ -48,5 +48,21 @@ versiona es la **receta**, no los 88 MB del starter con `node_modules`.
   rastreado. Cualquier fichero de más (p. ej. una página que dejó un SUT) es
   contaminación y se cuela en todas las Ejecuciones siguientes como si fuera
   línea base, falseando el diff de artefactos.
+- **El `dist/` de la caché también es contaminación, y git no lo ve.** La
+  preparación es `git clone` + `npm install`: **no corre `npm run build`**, así
+  que una caché limpia **no tiene `dist/`**. Pero `dist/` está gitignored en el
+  starter, así que `git status` no lo delata. Un `dist/` en la caché lo generó
+  una corrida anterior (el SUT compiló allí). Es exactamente lo que falseó la
+  primera medición de estabilidad, y costó encontrar porque no había señal.
+- **El runner impide arrancar con una caché contaminada** (regla pura
+  `contaminacionDelScaffold`, adaptador `estadoDelScaffold`, ver
+  `src/runner.ts`): antes de copiar el starter al sandbox, comprueba las dos
+  señales y **falla con un mensaje que dice qué fichero sobra** en vez de
+  copiarlo. Diagnóstico a mano: `npx tsx scripts/verificar-scaffold.ts`.
+- **Consecuencia para el Caso-página (Slice 2)**: el `dist/` no está en el
+  sandbox de partida, así que el SUT tendrá que compilar él mismo para producir
+  el artefacto compilado que ese tipo de Caso mide. Es coherente con lo que el
+  Caso mide (la página renderizada), pero se comprueba cuando se construya el
+  Slice 2.
 - Queda pendiente decidir si el Caso-página (Slice 2) usa la misma caché; es
   esperable que sí, por la misma razón.
