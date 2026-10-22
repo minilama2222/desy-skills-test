@@ -1,0 +1,7 @@
+{
+  "ref": "37748bd",
+  "commit": "37748bdede1ba8d5b0190f24cdbc14c91f7059f5",
+  "fecha": "2026-07-24",
+  "repo": "https://bitbucket.org/sdaragon/desy-html-starter.git",
+  "nota": "Versión del starter DESY cacheado en .scaffold-cache/ y copiado a cada sandbox (ver ADR-0005). El Grade de un Caso depende de esta versión tanto como del Pin de desy-skills."
+}

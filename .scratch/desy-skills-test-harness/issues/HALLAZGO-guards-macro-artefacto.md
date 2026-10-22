@@ -41,3 +41,40 @@ cualquier agregación agrega ruido.
 
 Relacionado: ticket 08 (Caso-página) también mide artefactos, así que la decisión
 le afecta.
+
+## Respuesta a «¿dónde escribe el SUT?» (sonda, 22/10)
+
+Sonda con el sandbox conservado, diff del árbol antes/después de la Ejecución:
+
+```
+[MODIFICADO] src/botones.html     ← el SUT escribe aquí el fuente
+[MODIFICADO] dist/botones.html    ← el build lo compila aquí
+[MODIFICADO] dist/css/styles.css
+[MODIFICADO] dist/index.html (y ~20 páginas más del starter, recompiladas)
+```
+
+**El SUT sí escribe el fuente.** Lo escribe en `src/`, como `.html` (no `.njk`),
+siguiendo la convención que el propio skill documenta: «las páginas son ficheros
+`.html` en `src/` que extienden las plantillas `.njk`». Contenido real:
+
+```njk
+{% from "components/button/_macro.button.njk" import componentButton %}
+...
+{{ componentButton({ "text": "Enviar", "type": "submit", "classes": "c-button--primary" }) }}
+```
+
+La llamada al macro está en el fuente, correcta. El runner no la recogía porque
+solo miraba `dist/`.
+
+### Hallazgo colateral: la caché estaba contaminada
+
+`src/botones.html` y `dist/botones.html` **también estaban en la caché** del
+scaffold, porque la caché se creó copiando un directorio donde un SUT ya había
+corrido. Efecto: esas páginas entraban en la **línea base**, así que el diff las
+daba por pre-existentes y el runner devolvía `dist/botones.html` como si fuera
+output del SUT cuando en realidad era el de una corrida anterior.
+
+La caché tiene `.git` (es un `git clone` en `37748bd`), así que se detecta con
+`git status` dentro de `.scaffold-cache/desy-html-starter`: debe salir solo
+`.nvmrc`. Corregido: la caché se limpió y la receta fija el commit del starter en
+`scaffold-pin.json`.

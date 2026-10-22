@@ -38,8 +38,15 @@ versiona es la **receta**, no los 88 MB del starter con `node_modules`.
 ## Consecuencias
 
 - La reproducibilidad del Slice 1 pasa a depender también de la **versión del
-  starter** (`desy-html-starter`), no solo del Pin de `desy-skills`. La receta de
-  regeneración debe declarar de qué ref se clona.
+  starter** (`desy-html-starter`), no solo del Pin de `desy-skills`. Esa versión
+  se registra en `scaffold-pin.json` y la receta de regeneración la fija por
+  defecto a un **commit concreto** (`37748bd`), no a una rama en movimiento.
 - El sandbox crece de un `workDir` vacío a una copia del starter por Ejecución.
+- **La caché debe prepararse desde un árbol limpio.** El starter viene de un
+  `git clone`, así que la caché tiene historial: `git status` dentro de
+  `.scaffold-cache/desy-html-starter` debe mostrar solo `.nvmrc` como no
+  rastreado. Cualquier fichero de más (p. ej. una página que dejó un SUT) es
+  contaminación y se cuela en todas las Ejecuciones siguientes como si fuera
+  línea base, falseando el diff de artefactos.
 - Queda pendiente decidir si el Caso-página (Slice 2) usa la misma caché; es
   esperable que sí, por la misma razón.

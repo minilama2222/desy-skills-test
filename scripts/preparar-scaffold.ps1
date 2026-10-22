@@ -5,9 +5,13 @@
 # que el harness lo deja hecho de antemano. La caché NO se versiona (el starter
 # con node_modules pesa ~88 MB): lo que se versiona es esta receta.
 #
-# Uso:  powershell -File scripts/preparar-scaffold.ps1 [-Ref main]
+# Uso:  powershell -File scripts/preparar-scaffold.ps1 [-Ref <ref>]
+#
+# IMPORTANTE: `-Ref` debe ser un ref FIJO (tag o SHA), no una rama en
+# movimiento. El Grade del Caso depende de la versión del starter tanto como del
+# Pin de desy-skills (ver ADR-0005).
 param(
-  [string]$Ref = "main",
+  [string]$Ref = "37748bd",
   [string]$Repo = "https://bitbucket.org/sdaragon/desy-html-starter.git"
 )
 
