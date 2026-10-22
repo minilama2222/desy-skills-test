@@ -65,7 +65,7 @@ describe("scaffold pre-cacheado en el sandbox", () => {
     expect(existsSync(join(dos.workDir, "solo-en-uno.txt"))).toBe(false);
   });
 
-  it("listArtefactos sólo devuelve el dist/ que el SUT produce, no el del starter", () => {
+  it("listArtefactos devuelve el fuente (src/) que el SUT produce en un Caso-componente", () => {
     const base = join(tmpdir(), `scaffold-artefactos-${Date.now()}`);
     mkdirSync(base, { recursive: true });
     const origen = scaffoldFalso(base);
@@ -78,15 +78,16 @@ describe("scaffold pre-cacheado en el sandbox", () => {
       rmSync(base, { recursive: true, force: true });
     };
 
-    // El SUT compila su propia página.
-    writeFileSync(join(sandbox.workDir, "dist", "botones.html"), "<button>Enviar</button>");
+    // El SUT escribe el fuente de su página (convención del skill: .html en src/).
+    mkdirSync(join(sandbox.workDir, "src"), { recursive: true });
+    writeFileSync(join(sandbox.workDir, "src", "botones.html"), "{{ componentButton() }}");
 
-    expect(sandbox.listArtefactos().map((a) => a.path)).toEqual(["dist/botones.html"]);
+    expect(sandbox.listArtefactos("src").map((a) => a.path)).toEqual(["src/botones.html"]);
   });
 });
 
 describe("listarArtefactosDeSalida", () => {
-  it("sólo recolecta el dist/ compilado, no los fuentes del starter", () => {
+  it("recolecta lo nuevo o modificado del directorio pedido, no el resto", () => {
     const dir = join(tmpdir(), `artefactos-${Date.now()}`);
     mkdirSync(join(dir, "dist"), { recursive: true });
     mkdirSync(join(dir, "src"), { recursive: true });
@@ -95,46 +96,49 @@ describe("listarArtefactosDeSalida", () => {
     writeFileSync(join(dir, "src", "botones.html"), "{{ componentButton() }}");
     writeFileSync(join(dir, "node_modules", "x", "index.js"), "// dep");
 
-    const artefactos = listarArtefactosDeSalida(dir);
-
-    expect(artefactos.map((a) => a.path)).toEqual(["dist/botones.html"]);
-    expect(artefactos[0]!.contenido).toBe("<button>Enviar</button>");
+    expect(listarArtefactosDeSalida(dir, new Map(), "src").map((a) => a.path)).toEqual([
+      "src/botones.html",
+    ]);
+    expect(listarArtefactosDeSalida(dir, new Map(), "dist").map((a) => a.path)).toEqual([
+      "dist/botones.html",
+    ]);
 
     rmSync(dir, { recursive: true, force: true });
   });
 
-  it("devuelve vacío si no hay dist/", () => {
+  it("devuelve vacío si no existe el directorio pedido", () => {
     const dir = join(tmpdir(), `artefactos-vacio-${Date.now()}`);
     mkdirSync(dir, { recursive: true });
 
-    expect(listarArtefactosDeSalida(dir)).toEqual([]);
+    expect(listarArtefactosDeSalida(dir, new Map(), "src")).toEqual([]);
+    expect(listarArtefactosDeSalida(dir, new Map(), "dist")).toEqual([]);
 
     rmSync(dir, { recursive: true, force: true });
   });
 
-  it("ignora los ficheros del dist/ que ya venían en la línea base (scaffold)", () => {
+  it("ignora los ficheros que ya venían en la línea base (scaffold)", () => {
     const dir = join(tmpdir(), `artefactos-base-${Date.now()}`);
-    mkdirSync(join(dir, "dist"), { recursive: true });
-    writeFileSync(join(dir, "dist", "existente.html"), "starter");
-    writeFileSync(join(dir, "dist", "nuevo.html"), "del SUT");
+    mkdirSync(join(dir, "src"), { recursive: true });
+    writeFileSync(join(dir, "src", "existente.html"), "starter");
+    writeFileSync(join(dir, "src", "nuevo.html"), "del SUT");
 
-    const lineaBase = new Map([["dist/existente.html", "starter"]]);
-    const artefactos = listarArtefactosDeSalida(dir, lineaBase);
+    const lineaBase = new Map([["src/existente.html", "starter"]]);
+    const artefactos = listarArtefactosDeSalida(dir, lineaBase, "src");
 
-    expect(artefactos.map((a) => a.path)).toEqual(["dist/nuevo.html"]);
+    expect(artefactos.map((a) => a.path)).toEqual(["src/nuevo.html"]);
 
     rmSync(dir, { recursive: true, force: true });
   });
 
   it("cuenta como artefacto un fichero de la línea base que el SUT modifica", () => {
     const dir = join(tmpdir(), `artefactos-mod-${Date.now()}`);
-    mkdirSync(join(dir, "dist"), { recursive: true });
-    writeFileSync(join(dir, "dist", "tocado.html"), "ahora distinto");
+    mkdirSync(join(dir, "src"), { recursive: true });
+    writeFileSync(join(dir, "src", "tocado.html"), "ahora distinto");
 
-    const lineaBase = new Map([["dist/tocado.html", "contenido original"]]);
-    const artefactos = listarArtefactosDeSalida(dir, lineaBase);
+    const lineaBase = new Map([["src/tocado.html", "contenido original"]]);
+    const artefactos = listarArtefactosDeSalida(dir, lineaBase, "src");
 
-    expect(artefactos.map((a) => a.path)).toEqual(["dist/tocado.html"]);
+    expect(artefactos.map((a) => a.path)).toEqual(["src/tocado.html"]);
 
     rmSync(dir, { recursive: true, force: true });
   });

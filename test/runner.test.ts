@@ -5,6 +5,7 @@ import type { Pin } from "../src/pin.js";
 import {
   MODELO_FIJO,
   buildOpencodeArgs,
+  dirArtefactoDeCaso,
   runCaso,
   type CommandRunner,
   type Entorno,
@@ -53,8 +54,47 @@ describe("buildOpencodeArgs", () => {
   });
 });
 
+describe("dirArtefactoDeCaso", () => {
+  it("el Caso-componente se mide sobre el fuente (src/): el contrato del macro sólo vive ahí", () => {
+    expect(dirArtefactoDeCaso("caso-componente")).toBe("src");
+  });
+
+  it("el Caso-página se mide sobre el compilado (dist/): el HTML y la a11y sólo existen ahí", () => {
+    expect(dirArtefactoDeCaso("caso-pagina")).toBe("dist");
+  });
+});
+
 describe("runCaso", () => {
   const factoryOf = (sandbox: Sandbox) => ({ create: () => sandbox });
+
+  it("pide los artefactos al directorio que marca el tipo de Caso (componente -> src)", async () => {
+    // El bug original: un Caso-componente devolvía el dist/ compilado, donde la
+    // llamada al macro ya se ha expandido y los guards de macro no ven nada.
+    const sandbox = fakeSandbox();
+    const command: CommandRunner = {
+      run: () => ({ stdout: "", stderr: "", code: 0 }),
+    };
+
+    await runCaso(caso, pin, { sandbox: factoryOf(sandbox), command });
+
+    expect(sandbox.listArtefactos).toHaveBeenCalledWith("src");
+  });
+
+  it("pide el dist/ compilado para un Caso-página", async () => {
+    const sandbox = fakeSandbox();
+    const command: CommandRunner = {
+      run: () => ({ stdout: "", stderr: "", code: 0 }),
+    };
+    const casoPagina = {
+      ...caso,
+      tipo: "caso-pagina" as const,
+      goldPath: "expected/gold.html",
+    };
+
+    await runCaso(casoPagina, pin, { sandbox: factoryOf(sandbox), command });
+
+    expect(sandbox.listArtefactos).toHaveBeenCalledWith("dist");
+  });
 
   it("devuelve la Evidencia (artefactos + transcript) con la forma que consume el grader", async () => {
     const sandbox = fakeSandbox([

@@ -46,6 +46,10 @@ _Avoid_: llamar "caso" a una Ejecución.
 **Framework de checks**:
 El conjunto base de Checks que aplica a un tipo de Caso (Caso-componente o Caso-página), combinado por el grader con los Checks propios del Caso. Evita repetir los guards comunes en cada `checks.json`.
 
+**Artefacto** (de una Ejecución):
+El fichero que el SUT escribió en el sandbox y sobre el que se pasa el Grade. De qué fichero se trata **depende del tipo de Caso**: el fuente (`src/`) para el Caso-componente, el compilado (`dist/`) para el Caso-página. Ver ADR-0006.
+_Avoid_: llamar "artefacto" al `SKILL.md` (eso es el Skill) en el contexto de una Ejecución; confundir el artefacto con el `dist/` entero del starter.
+
 **Check**:
 La aserción declarativa individual dentro de `expected/checks.json`.
 

@@ -57,7 +57,11 @@ export interface Sandbox {
   readonly configDir: string;
   readonly skillsDir: string;
   copySkills(): void;
-  listArtefactos(): { path: string; contenido: string }[];
+  /**
+   * Artefactos que el SUT produjo en `dir` (relativo al `workDir`). El directorio
+   * lo decide el tipo de Caso (`dirArtefactoDeCaso`), no el sandbox.
+   */
+  listArtefactos(dir: string): { path: string; contenido: string }[];
   cleanup(): void;
 }
 export interface SandboxFactory {
@@ -66,6 +70,24 @@ export interface SandboxFactory {
 
 export function buildOpencodeArgs(prompt: string): string[] {
   return ["run", "--model", MODELO_FIJO, prompt];
+}
+
+/**
+ * Directorio del `workDir` que contiene el artefacto que se gradúa, según el
+ * tipo de Caso. No es lo mismo para los dos tipos (ver ADR-0006):
+ *
+ * - **Caso-componente** → `src/`: lo que se juzga es el contrato del componente,
+ *   y el contrato es la *llamada al macro*, que sólo existe en el fuente. Al
+ *   compilar se expande y desaparece (las props y el nombre del macro se
+ *   pierden), así que el `dist/` no sirve para medirlo.
+ * - **Caso-página** → `dist/`: lo que se juzga es la página renderizada (HTML y
+ *   a11y), y eso sólo existe compilado.
+ *
+ * El SUT escribe el fuente en `src/` como `.html` (convención del propio skill),
+ * así que el Caso-componente no necesita compilar nada.
+ */
+export function dirArtefactoDeCaso(tipo: Caso["tipo"]): string {
+  return tipo === "caso-componente" ? "src" : "dist";
 }
 
 export interface RunDeps {
@@ -92,7 +114,9 @@ export async function runCaso(
       env: { HOME: sandbox.home, XDG_CONFIG_HOME: sandbox.configDir },
     });
     return {
-      artefactos: { files: artefactosToFiles(sandbox.listArtefactos()) },
+      artefactos: {
+        files: artefactosToFiles(sandbox.listArtefactos(dirArtefactoDeCaso(caso.tipo))),
+      },
       transcript: { invocaciones: parseInvocaciones(mergeTranscript(stdout, stderr)) },
     };
   } finally {
@@ -201,8 +225,8 @@ export function createSandbox(opciones: string | SandboxOptions = {}): Sandbox {
   }
 
   // Línea base: lo que ya traía el scaffold. Sólo cuenta como artefacto lo que
-  // el SUT añade o cambia respecto a esta foto (el dist/ del starter trae ~60
-  // páginas de ejemplo que no son output del Caso).
+  // el SUT añade o cambia respecto a esta foto (el starter trae ~60 páginas de
+  // ejemplo que no son output del Caso).
   const lineaBase = fotoDeArchivos(workDir);
 
   return {
@@ -220,8 +244,8 @@ export function createSandbox(opciones: string | SandboxOptions = {}): Sandbox {
         });
       }
     },
-    listArtefactos() {
-      return listarArtefactosDeSalida(workDir, lineaBase);
+    listArtefactos(dir: string) {
+      return listarArtefactosDeSalida(workDir, lineaBase, dir);
     },
     cleanup(): void {
       rmSync(root, { recursive: true, force: true });
@@ -247,21 +271,24 @@ function fotoDeArchivos(dir: string): Map<string, string> {
 }
 
 /**
- * Artefactos que produce el SUT: los ficheros del `dist/` compilado que son
- * **nuevos o modificados** respecto a la línea base del scaffold. Los fuentes
- * del starter (`src/`, `node_modules/`, config) y sus páginas de ejemplo ya
- * venían puestos: no son output del Caso. Ver ADR-0005 y la regla del skill:
- * el output esperado es siempre el `dist/`.
+ * Artefactos que produce el SUT: los ficheros de `dir` (relativo al `workDir`)
+ * que son **nuevos o modificados** respecto a la línea base del scaffold. Lo que
+ * ya venía puesto (`node_modules/`, config, páginas de ejemplo del starter) no
+ * es output del Caso.
+ *
+ * `dir` no es fijo: depende del tipo de Caso (`src/` para Caso-componente,
+ * `dist/` para Caso-página). Ver `dirArtefactoDeCaso` y ADR-0006.
  */
 export function listarArtefactosDeSalida(
   workDir: string,
-  lineaBase: Map<string, string> = new Map(),
+  lineaBase: Map<string, string>,
+  dir: string,
 ): { path: string; contenido: string }[] {
-  const dist = join(workDir, "dist");
-  if (!existsSync(dist)) return [];
-  return collectArtefactos(dist)
-    .filter((a) => lineaBase.get(`dist/${a.path}`) !== a.contenido)
-    .map((a) => ({ path: `dist/${a.path}`, contenido: a.contenido }));
+  const raiz = join(workDir, dir);
+  if (!existsSync(raiz)) return [];
+  return collectArtefactos(raiz)
+    .filter((a) => lineaBase.get(`${dir}/${a.path}`) !== a.contenido)
+    .map((a) => ({ path: `${dir}/${a.path}`, contenido: a.contenido }));
 }
 
 function collectArtefactos(dir: string): { path: string; contenido: string }[] {

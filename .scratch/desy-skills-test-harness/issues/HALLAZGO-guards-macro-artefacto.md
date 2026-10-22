@@ -105,4 +105,24 @@ La caché tiene `.git` (es un `git clone` en `37748bd`), así que se detecta con
 `.nvmrc`. Corregido: la caché se limpió y la receta fija el commit del starter en
 `scaffold-pin.json`.
 
-## Opciones de arreglo
+## Resolución (22/10): el artefacto depende del tipo de Caso
+
+Se implementa la tercera opción — **el Caso-componente no compila**: el artefacto
+es el **fuente** (`src/`) para el Caso-componente y el **compilado** (`dist/`)
+para el Caso-página. La decisión se toma en el runner (`dirArtefactoDeCaso`), que
+ya recibe el `Caso`, sin campo nuevo en el Check. Ver **ADR-0006**.
+
+- `listarArtefactosDeSalida(workDir, lineaBase, dir)` y `Sandbox.listArtefactos(dir)`
+  reciben el directorio; `runCaso` pasa el que marca `caso.tipo`.
+- Regresión en `test/regresion-artefacto-src.test.ts`: el fuente **exacto** de la
+  Ejecución #1 (con `preventDoubleClick`, `pb-lg`, `c-h1`) da EXCELENTE por el
+  camino completo, y el mismo contenido compilado en `dist/` confirma que fallaría
+  (el macro ya está expandido).
+- Efecto colateral deseado: `tokens-del-sistema` del Caso-componente deja de
+  escanear el boilerplate del header/footer del starter.
+
+Pendiente y **fuera de esta decisión**: distinguir «no hay artefacto» de
+«artefacto incorrecto». Con C, la Ejecución #1 pasa a EXCELENTE, pero #2 y #3
+(fallo del SUT, de dos tipos: #2 llegó al skill y no entregó; #3 ni pasó de
+`preflight-check`) siguen dando INACEPTABLE y hoy no se pueden separar en el
+reporte. Eso es lo que queda por decidir para el criterio 5 del ticket 05.

@@ -56,15 +56,20 @@ describe("createSandbox", () => {
     }
   });
 
-  it("recolecta los artefactos producidos en el working dir, sin el sandbox root", () => {
+  it("recolecta los artefactos del directorio pedido, sin el resto del working dir", () => {
     const sandbox = createSandbox();
     cleanup = () => sandbox.cleanup();
 
     mkdirSync(join(sandbox.workDir, "dist"));
+    mkdirSync(join(sandbox.workDir, "src"));
     writeFileSync(join(sandbox.workDir, "dist", "pagina.html"), "<h1>Hola</h1>");
+    writeFileSync(join(sandbox.workDir, "src", "pagina.html"), "{% block x %}");
     writeFileSync(join(sandbox.workDir, "nota.txt"), "no es output");
 
-    expect(sandbox.listArtefactos()).toEqual([
+    expect(sandbox.listArtefactos("src")).toEqual([
+      { path: "src/pagina.html", contenido: "{% block x %}" },
+    ]);
+    expect(sandbox.listArtefactos("dist")).toEqual([
       { path: "dist/pagina.html", contenido: "<h1>Hola</h1>" },
     ]);
   });
