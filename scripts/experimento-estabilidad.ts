@@ -67,6 +67,8 @@ for (let i = 1; i <= N; i++) {
       ejecucion: i,
       segundos,
       grade: resultado.grade,
+      entrega: resultado.entrega,
+      flujoAlcanzoSkill: resultado.flujoAlcanzoSkill,
       flujoObservado: resultado.flujoObservado,
       runnerDevuelve: Object.keys(resultado.artefactos),
       fuenteEscrita: escritos.filter((p) => p.startsWith("src/")),
@@ -83,7 +85,9 @@ for (let i = 1; i <= N; i++) {
     writeFileSync(join(SALIDA, `ejecucion-${i}.json`), JSON.stringify(resultado, null, 2), "utf8");
 
     process.stderr.write(
-      `grade=${resultado.grade}  runner=${salida.runnerDevuelve.length}  ` +
+      `grade=${resultado.grade}  entrega=${resultado.entrega}  ` +
+        `llego=${resultado.flujoAlcanzoSkill}  ` +
+        `runner=${salida.runnerDevuelve.length}  ` +
         `src=[${salida.fuenteEscrita.join(", ")}]  dist=${distEscritos.length}  ${segundos}s\n`,
     );
   } catch (error) {
@@ -102,7 +106,8 @@ for (const r of resumen) {
     process.stderr.write(`  #${r["ejecucion"]}: ERROR ${r["error"]}\n`);
   } else {
     process.stderr.write(
-      `  #${r["ejecucion"]}: grade=${r["grade"]}  ` +
+      `  #${r["ejecucion"]}: grade=${r["grade"]}  entrega=${r["entrega"]}  ` +
+        `llego=${r["flujoAlcanzoSkill"]}  ` +
         `runnerDevuelve=${JSON.stringify(r["runnerDevuelve"])}  ` +
         `fuenteEscrita=${JSON.stringify(r["fuenteEscrita"])}  ` +
         `macroEnFuente=${r["fuenteTieneMacro"]}  varianteEnFuente=${r["fuenteTieneVariante"]}\n`,

@@ -195,8 +195,15 @@ function clasesDeString(clases: string | undefined): string[] {
  * Un paso puede terminar en `-*` para admitir una familia de skills, como el
  * `implement-*` del glosario (que cubre `implement-component`,
  * `implement-pattern`, `implement-layout-patterns`…).
+ *
+ * Es la definición única de «esta Invocación es ese paso»: la usan el guard
+ * `flujo_canonico` y el cálculo de si el skill bajo test llegó a correr
+ * (`flujoAlcanzoSkill`), para que no puedan discrepar.
  */
-function pasoCoincide(observado: string | undefined, esperado: string | undefined): boolean {
+export function pasoCoincide(
+  observado: string | undefined,
+  esperado: string | undefined,
+): boolean {
   if (observado === undefined || esperado === undefined) return false;
   if (esperado.endsWith("-*")) return observado.startsWith(esperado.slice(0, -1));
   return observado === esperado;

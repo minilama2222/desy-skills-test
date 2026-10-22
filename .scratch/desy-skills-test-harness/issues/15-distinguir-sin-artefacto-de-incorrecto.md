@@ -4,12 +4,52 @@
 
 **Blocked by:** 05, ADR-0006
 
-**Status:** needs-triage
+**Status:** ready-for-human
 
-- [ ] El `ResultadoEjecucion` (o el `Grade`) expone si hubo artefacto graduable
-- [ ] Una Ejecución sin artefacto no se cuenta igual que una con artefacto incorrecto (en el `detalle` o en un campo aparte)
+- [x] El `ResultadoEjecucion` (o el `Grade`) expone si hubo artefacto graduable
+- [x] Una Ejecución sin artefacto no se cuenta igual que una con artefacto incorrecto (en el `detalle` o en un campo aparte)
 - [ ] El reporte/scorecard puede agregar «no entregó» separado de «entregó mal»
-- [ ] Tests con: (a) artefacto correcto, (b) artefacto incorrecto, (c) cero artefactos
+- [x] Tests con: (a) artefacto correcto, (b) artefacto incorrecto, (c) cero artefactos
+
+## Notas de implementación
+
+- **Forma elegida: campos aparte**, no un `Grade` nuevo. `ResultadoEjecucion`
+  expone **dos ejes ortogonales**:
+  - `entrega`: `"con-artefacto" | "sin-artefacto"` — ¿produjo Artefacto?
+  - `flujoAlcanzoSkill`: ¿el Flujo observado contiene el paso del skill bajo test?
+  El `Grade` responde «cuánto de bien»; estos dos, «qué pasó». Mezclarlos rompía
+  el scorecard (que promedia notas). Vocabulario en el glosario.
+- **Por qué dos ejes y no un `sin-artefacto` subdividido**: «¿llegó?» y
+  «¿entregó?» son hechos independientes (se puede llegar y no entregar, o no
+  llegar siquiera), así que meter el flujo dentro de la Entrega repetiría el
+  error de mezclar Grade y Entrega. El scorecard querrá contarlos por separado:
+  las Ejecuciones que ni arrancan el skill contaminan el denominador.
+- **Reglas aisladas** (funciones puras en `src/ejecutar.ts`):
+  `entregaDeArtefactos(artefactos)` y `alcanzoSkill(flujo, skill)`. La segunda
+  reutiliza `pasoCoincide` (exportado desde `grader.ts`) para no discrepar del
+  guard `flujo_canonico` sobre qué es «este paso».
+- **Frontera de `entrega`**: cuenta como entrega que exista **algún** Artefacto;
+  un fichero vacío sigue siendo entrega (y fallará los Checks). Confundir «no
+  produjo nada» con «produjo algo malo» es justo el bug del ticket.
+- **No se cambió la forma de `DetalleCheck`** ni el `Grade`: una Ejecución sin
+  Artefacto sigue dando INACEPTABLE. Lo que cambia es que la **causa** ahora es
+  distinguible en el resultado.
+- Las costuras se probaron por separado: `ejecutarCaso` (campos propagados por el
+  camino real), las dos reglas puras (bordes y comodín), y las composiciones
+  («mismo Grade, distinta entrega»; «llegar al skill no implica entregar»).
+  +19 tests (207 en total).
+- `scripts/experimento-estabilidad.ts` ahora registra `entrega` y
+  `flujoAlcanzoSkill`, para que la próxima medición de estabilidad separe los
+  «no entregó» de los «entregó mal» y los «ni arrancó».
+
+## Pendiente: criterio 3 (agregado en el scorecard)
+
+El criterio 3 pide que **el reporte/scorecard** agregue «no entregó» separado de
+«entregó mal». Este ticket aporta **la entrada** que ese agregado necesita (los
+dos campos del resultado), pero el agregado en sí vive en el **ticket 12**, que
+sigue sin construir (`cli.ts` responde `report: pendiente`). Por eso el checkbox
+queda sin marcar: el dato ya existe, el reporte que lo agrega todavía no.
+
 
 ## Contexto
 

@@ -50,6 +50,14 @@ El conjunto base de Checks que aplica a un tipo de Caso (Caso-componente o Caso-
 El fichero que el SUT escribió en el sandbox y sobre el que se pasa el Grade. De qué fichero se trata **depende del tipo de Caso**: el fuente (`src/`) para el Caso-componente, el compilado (`dist/`) para el Caso-página. Ver ADR-0006.
 _Avoid_: llamar "artefacto" al `SKILL.md` (eso es el Skill) en el contexto de una Ejecución; confundir el artefacto con el `dist/` entero del starter.
 
+**Entrega**:
+Qué produjo una Ejecución: `con-artefacto` (hay al menos un Artefacto que graduar) o `sin-artefacto` (no produjo ninguno). Es un eje **distinto** del Grade: `sin-artefacto` no es «lo hizo mal», es «no hubo nada que juzgar» — el skill ni llegó a producir. El scorecard agrega las Ejecuciones `sin-artefacto` aparte, para no contarlas como fallos del skill. Ver el ticket 15.
+_Avoid_: leer `sin-artefacto` como un Grade; contar las Ejecuciones `sin-artefacto` como suspensos del skill.
+
+**Alcanzó el skill**:
+Si el Flujo observado contiene el paso del skill bajo test: es el punto hasta donde llegó el SUT. **Ortogonal** a la Entrega — se puede llegar al skill y no entregar, o no llegar siquiera. Cuando es falso, un INACEPTABLE **no evalúa el skill**: el agente ni lo invocó, así que esa Ejecución no cuenta para medir el skill (sí para medir el agente). Ver el ticket 15.
+_Avoid_: confundirlo con «entregó mal»; meterlo dentro de la Entrega (son ejes distintos).
+
 **Check**:
 La aserción declarativa individual dentro de `expected/checks.json`.
 
