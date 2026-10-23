@@ -5,10 +5,18 @@ import type { Assert, Check, TipoCaso } from "./caso.js";
 import { ejecutarCaso } from "./ejecutar.js";
 import { grado } from "./grader.js";
 import { readPin } from "./pin.js";
+import {
+  EJECUCIONES_DIR,
+  guardarEjecucion,
+  leerEjecuciones,
+  rutaRelativa,
+  SCORECARD_JSON_PATH,
+  SCORECARD_MD_PATH,
+} from "./reportes.js";
 import { createSandbox, realCommand, SCAFFOLD_CACHE_DIR } from "./runner.js";
-import { existsSync, readdirSync } from "node:fs";
+import { agregarScorecard, renderScorecard } from "./scorecard.js";
+import { existsSync, mkdirSync, readdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-
 function usage(): never {
   console.error(
     [
@@ -19,7 +27,7 @@ function usage(): never {
       "  grade <id> <severity> <assert> [weight]  Puntúa un Check sobre Evidencia vacía.",
       "  load <ruta>  Carga un Caso desde su carpeta y muestra su JSON.",
       "  capturar-gold --skill <skill> --case <caso>  Genera/valida la Captura de Gold (Gold-imagen) del Caso-página.",
-      "  report   Agrega resultados y renderiza el Scorecard (pendiente de ticket 12).",
+      "  report  Agrega las Ejecuciones en JSON y renderiza el Scorecard.",
       "  bump-pin <ref>  Actualiza vendor/ + pin.json al ref dado (rama, tag o SHA).",
     ].join("\n"),
   );
@@ -71,6 +79,8 @@ async function runCasos(args: string[]): Promise<void> {
     },
     command: realCommand,
   });
+  const guardado = guardarEjecucion(EJECUCIONES_DIR, resultado);
+  console.error(`Ejecución guardada: ${rutaRelativa(guardado)}`);
   console.log(JSON.stringify(resultado, null, 2));
 }
 
@@ -102,6 +112,29 @@ function runGrade([id, severity, clase, ...rest]: string[]): void {
 function runLoad([ruta = ""]: string[]): void {
   if (!ruta) usage();
   console.log(JSON.stringify(cargarCaso(ruta), null, 2));
+}
+
+/**
+ * El reporte: agrega las Ejecuciones persistidas en el Scorecard (JSON, fuente de
+ * verdad) y lo renderiza a markdown legible. El JSON se escribe siempre —es lo
+ * que consume CI— y la ruta se anuncia por stderr para no ensuciar la salida
+ * estándar, que es el Scorecard.
+ */
+function runReport(): void {
+  const pin = readPin(PIN_PATH);
+  const ejecuciones = leerEjecuciones(EJECUCIONES_DIR);
+  const scorecard = agregarScorecard(ejecuciones, pin);
+
+  mkdirSync(dirname(SCORECARD_JSON_PATH), { recursive: true });
+  writeFileSync(SCORECARD_JSON_PATH, JSON.stringify(scorecard, null, 2) + "\n", "utf8");
+  const markdown = renderScorecard(scorecard) + "\n";
+  writeFileSync(SCORECARD_MD_PATH, markdown, "utf8");
+
+  console.error(
+    `Scorecard: ${ejecuciones.length} Ejecución/es → ` +
+      `${rutaRelativa(SCORECARD_JSON_PATH)} + ${rutaRelativa(SCORECARD_MD_PATH)}`,
+  );
+  console.log(markdown.trimEnd());
 }
 
 function runCapturarGold(args: string[]): void {
@@ -142,7 +175,7 @@ function main(): void {
       runCapturarGold(rest);
       return;
     case "report":
-      console.log("report: pendiente (ticket 12).");
+      runReport();
       return;
     default:
       usage();

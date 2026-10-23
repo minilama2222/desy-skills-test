@@ -12,7 +12,7 @@ Alternativas descartadas: **una sola Ejecución** (el SUT es flaky: en la medici
 
 El criterio 5 del ticket 05 («el resultado es estable entre Ejecuciones repetidas») no se podía decidir antes del ticket 15: una Ejecución donde el agente no arrancaba el skill daba el mismo INACEPTABLE que una donde el skill producía un output incorrecto, así que no se sabía si la inestabilidad era del skill o del agente. El ticket 15 expuso `entrega` y `flujoAlcanzoSkill`, que hacen el denominador limpio. Evidencia en `.scratch/desy-skills-test-harness/issues/HALLAZGO-guards-macro-artefacto.md`.
 
-Es una **política de aceptación**, no una feature: no requiere que `run` corra N veces por sí solo. Mientras el scorecard (ticket 12) no exista, se aplica en el experimento de estabilidad y a mano sobre varias Ejecuciones.
+Es una **política de aceptación**, no una feature: no requiere que `run` corra N veces por sí solo. Mientras el scorecard (ticket 12) no existía, se aplicaba en el experimento de estabilidad y a mano sobre varias Ejecuciones.
 
 La regla de «al menos una» se fijó **con datos**: en la primera medición de validación (3 Ejecuciones), el denominador limpio fue 2 (una no arrancó) y solo 1 era correcta. Exigir mayoría sobre un denominador de 2 condenaba el skill con evidencia insuficiente, así que la regla se corrigió antes de cerrar el criterio.
 
@@ -22,5 +22,5 @@ La regla de «al menos una» se fijó **con datos**: en la primera medición de 
 - Un Caso puede quedar **indeterminado**, que no es lo mismo que suspendido: sin ninguna Ejecución que alcance el skill, no hay juicio. El scorecard debe poder representar ese tercer estado.
 - La regla se apoya en `flujoAlcanzoSkill` (ticket 15), que a su vez se apoya en `pasoCoincide` (el mismo que usa el guard `flujo_canonico`): «¿es este el paso del skill?» tiene una sola definición.
 - N = 3 es una decisión de comodidad (cada Ejecución tardó 50–190 s); subirlo a 5 es un cambio de constante, no de política. Con «al menos una», subir N solo aumenta la confianza, nunca endurece el criterio.
-- El **consumidor** de esta política es el scorecard (ticket 12); cuando se construya, aplica el ADR y representa el estado indeterminado.
+- El **consumidor** de esta política es el scorecard (`src/scorecard.ts`, ticket 12): `agregarScorecard` implementa `veredictoDe` sobre el denominador limpio y representa el estado indeterminado.
 

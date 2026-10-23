@@ -8,7 +8,7 @@
 
 - [x] El `ResultadoEjecucion` (o el `Grade`) expone si hubo artefacto graduable
 - [x] Una Ejecución sin artefacto no se cuenta igual que una con artefacto incorrecto (en el `detalle` o en un campo aparte)
-- [ ] El reporte/scorecard puede agregar «no entregó» separado de «entregó mal»
+- [x] El reporte/scorecard puede agregar «no entregó» separado de «entregó mal» — **cerrado por el ticket 12**
 - [x] Tests con: (a) artefacto correcto, (b) artefacto incorrecto, (c) cero artefactos
 
 ## Notas de implementación
@@ -42,13 +42,14 @@
   `flujoAlcanzoSkill`, para que la próxima medición de estabilidad separe los
   «no entregó» de los «entregó mal» y los «ni arrancó».
 
-## Pendiente: criterio 3 (agregado en el scorecard)
+## Criterio 3: cerrado por el ticket 12
 
 El criterio 3 pide que **el reporte/scorecard** agregue «no entregó» separado de
-«entregó mal». Este ticket aporta **la entrada** que ese agregado necesita (los
-dos campos del resultado), pero el agregado en sí vive en el **ticket 12**, que
-sigue sin construir (`cli.ts` responde `report: pendiente`). Por eso el checkbox
-queda sin marcar: el dato ya existe, el reporte que lo agrega todavía no.
+«entregó mal». Este ticket aportó **la entrada** que ese agregado necesita (los
+dos campos del resultado); el agregado en sí lo construyó el **ticket 12**
+(`src/scorecard.ts`): cada Caso lleva `sinArtefacto` y `entregoMal` como cuentas
+distintas, y el Scorecard renderiza ambas columnas. Con eso el `Status` pasa a
+`done`.
 
 
 ## Contexto
