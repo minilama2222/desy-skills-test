@@ -7,6 +7,7 @@ import { grado } from "./grader.js";
 import { readPin } from "./pin.js";
 import {
   EJECUCIONES_DIR,
+  escribirScorecard,
   guardarEjecucion,
   leerEjecuciones,
   rutaRelativa,
@@ -15,7 +16,7 @@ import {
 } from "./reportes.js";
 import { createSandbox, realCommand, SCAFFOLD_CACHE_DIR } from "./runner.js";
 import { agregarScorecard, renderScorecard } from "./scorecard.js";
-import { existsSync, mkdirSync, readdirSync, writeFileSync } from "node:fs";
+import { existsSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 function usage(): never {
   console.error(
@@ -124,11 +125,9 @@ function runReport(): void {
   const pin = readPin(PIN_PATH);
   const ejecuciones = leerEjecuciones(EJECUCIONES_DIR);
   const scorecard = agregarScorecard(ejecuciones, pin);
-
-  mkdirSync(dirname(SCORECARD_JSON_PATH), { recursive: true });
-  writeFileSync(SCORECARD_JSON_PATH, JSON.stringify(scorecard, null, 2) + "\n", "utf8");
   const markdown = renderScorecard(scorecard) + "\n";
-  writeFileSync(SCORECARD_MD_PATH, markdown, "utf8");
+
+  escribirScorecard(JSON.stringify(scorecard, null, 2) + "\n", markdown);
 
   console.error(
     `Scorecard: ${ejecuciones.length} Ejecución/es → ` +

@@ -32,7 +32,7 @@ export interface CasoScorecard {
   ejecuciones: number;
   /** Ejecuciones cuyo Flujo observado contiene el skill bajo test (denominador limpio). */
   alcanzaronSkill: number;
-  /** Ejecuciones que alcanzaron el skill y tienen Artefacto con Grade EXCELENTE. */
+  /** Ejecuciones que alcanzaron el skill, con Artefacto y Grade EXCELENTE («entregó bien»). */
   correctas: number;
   /** Ejecuciones que alcanzaron el skill, tienen Artefacto y no aprobaron los Checks. */
   entregoMal: number;
@@ -65,11 +65,21 @@ export interface Scorecard {
 }
 
 function esCorrecta(ejecucion: ResultadoEjecucion): boolean {
-  return ejecucion.grade === GRADE_CORRECTO;
+  return ejecucion.entrega === "con-artefacto" && ejecucion.grade === GRADE_CORRECTO;
+}
+
+/**
+ * Las Ejecuciones que alcanzaron el skill bajo test: el **denominador limpio**
+ * del ADR-0007. Las que no lo alcanzaron no evalúan el skill, así que no entran
+ * en ninguna cuenta del Caso. Es el único predicado que define el denominador;
+ * `veredictoDe`, `mejorEjecucion` y `agregarCaso` lo comparten.
+ */
+function conDatoDe(ejecuciones: ResultadoEjecucion[]): ResultadoEjecucion[] {
+  return ejecuciones.filter((e) => e.flujoAlcanzoSkill);
 }
 
 function veredictoDe(ejecuciones: ResultadoEjecucion[]): VeredictoCaso {
-  const conDato = ejecuciones.filter((e) => e.flujoAlcanzoSkill);
+  const conDato = conDatoDe(ejecuciones);
   if (conDato.length === 0) return "INDETERMINADO";
   return conDato.some(esCorrecta) ? "PASA" : "SUSPENDE";
 }
@@ -97,7 +107,7 @@ function guardsDe(ejecucion: ResultadoEjecucion): { ok: number; total: number } 
  * ninguna: es el Caso indeterminado.
  */
 function mejorEjecucion(ejecuciones: ResultadoEjecucion[]): ResultadoEjecucion | undefined {
-  const conDato = ejecuciones.filter((e) => e.flujoAlcanzoSkill);
+  const conDato = conDatoDe(ejecuciones);
   if (conDato.length === 0) return undefined;
   return conDato.reduce((mejor, actual) => {
     const okMejor = guardsDe(mejor).ok;
@@ -118,7 +128,7 @@ function agregarCaso(
   caso: string,
   ejecuciones: ResultadoEjecucion[],
 ): CasoScorecard {
-  const conDato = ejecuciones.filter((e) => e.flujoAlcanzoSkill);
+  const conDato = conDatoDe(ejecuciones);
   const conArtefacto = conDato.filter((e) => e.entrega === "con-artefacto");
   const correctas = conDato.filter(esCorrecta);
   const mejor = mejorEjecucion(ejecuciones);

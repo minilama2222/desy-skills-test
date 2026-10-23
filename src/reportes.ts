@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
-import { join, relative } from "node:path";
+import { dirname, join, relative } from "node:path";
 import type { ResultadoEjecucion } from "./ejecutar.js";
 import { REPO_ROOT } from "./repo.js";
 
@@ -67,4 +67,15 @@ function ficherosJson(dir: string): string[] {
 /** Ruta relativa al repo, para mensajes. */
 export function rutaRelativa(path: string): string {
   return relative(REPO_ROOT, path).split("\\").join("/");
+}
+
+/**
+ * Escribe las dos formas del reporte: el JSON (fuente de verdad, lo que consume
+ * CI) y el Scorecard legible. El trazado de `reports/` es de este módulo, no del
+ * CLI; el CLI sólo pide «escribe el Scorecard» y anuncia dónde quedó.
+ */
+export function escribirScorecard(json: string, markdown: string): void {
+  mkdirSync(dirname(SCORECARD_JSON_PATH), { recursive: true });
+  writeFileSync(SCORECARD_JSON_PATH, json, "utf8");
+  writeFileSync(SCORECARD_MD_PATH, markdown, "utf8");
 }

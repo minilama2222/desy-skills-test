@@ -135,6 +135,37 @@ describe("agregarScorecard: separa «no entregó» de «entregó mal»", () => {
     expect(caso.correctas).toBe(0);
     expect(caso.entregoMal).toBe(0);
   });
+
+  it("«correctas» exige Artefacto: una EXCELENTE sin entregar no es una entrega correcta", () => {
+    // Frontera: un sin-artefacto con Grade EXCELENTE (posible con un Caso cuyos
+    // guards pasen en vacío) no es «entregó bien», es «no entregó». Si contara
+    // en «correctas» se contaría dos veces y daría PASA a algo que no entregó.
+    const reporte = agregarScorecard(
+      [ejecucion({ flujoAlcanzoSkill: true, entrega: "sin-artefacto", grade: "EXCELENTE" })],
+      pin,
+    );
+
+    const caso = reporte.skills[0]!.casos[0]!;
+    expect(caso.correctas).toBe(0);
+    expect(caso.sinArtefacto).toBe(1);
+    expect(caso.correctas + caso.entregoMal + caso.sinArtefacto).toBe(caso.alcanzaronSkill);
+  });
+
+  it("las tres cuentas suman el denominador limpio en cualquier mezcla", () => {
+    const reporte = agregarScorecard(
+      [
+        ejecucion({ flujoAlcanzoSkill: true, entrega: "con-artefacto", grade: "EXCELENTE" }),
+        ejecucion({ flujoAlcanzoSkill: true, entrega: "con-artefacto", grade: "BUENO" }),
+        ejecucion({ flujoAlcanzoSkill: true, entrega: "sin-artefacto", grade: "INACEPTABLE" }),
+        ejecucion({ flujoAlcanzoSkill: false, entrega: "con-artefacto", grade: "EXCELENTE" }),
+      ],
+      pin,
+    );
+
+    const caso = reporte.skills[0]!.casos[0]!;
+    expect(caso.correctas + caso.entregoMal + caso.sinArtefacto).toBe(caso.alcanzaronSkill);
+    expect(caso.alcanzaronSkill).toBe(3);
+  });
 });
 
 describe("agregarScorecard: forma del reporte JSON (fuente de verdad)", () => {
