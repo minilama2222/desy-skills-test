@@ -99,6 +99,8 @@ export interface CasoPagina {
   prompt: string;
   checks: Check[];
   goldPath: string;
+  /** Captura de Gold (Gold-imagen) como fixture: `input/gold.png`. */
+  goldImagenPath: string;
 }
 
 export type Caso = CasoComponente | CasoPagina;

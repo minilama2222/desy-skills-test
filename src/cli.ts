@@ -1,4 +1,5 @@
 import { bumpPin, currentRepo, realGit, PIN_PATH } from "./bump.js";
+import { ANCHO_CAPTURA, asegurarCaptura, capturarConAgentBrowser } from "./captura-gold.js";
 import { CASOS_DIR, cargarCaso } from "./caso-loader.js";
 import type { Assert, Check, TipoCaso } from "./caso.js";
 import { ejecutarCaso } from "./ejecutar.js";
@@ -6,7 +7,7 @@ import { grado } from "./grader.js";
 import { readPin } from "./pin.js";
 import { createSandbox, realCommand, SCAFFOLD_CACHE_DIR } from "./runner.js";
 import { existsSync, readdirSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 
 function usage(): never {
   console.error(
@@ -17,6 +18,7 @@ function usage(): never {
       "  run --skill <skill> --case <caso>  Ejecuta un Caso por el SUT y emite Evidencia + Grade.",
       "  grade <id> <severity> <assert> [weight]  Puntúa un Check sobre Evidencia vacía.",
       "  load <ruta>  Carga un Caso desde su carpeta y muestra su JSON.",
+      "  capturar-gold --skill <skill> --case <caso>  Genera/valida la Captura de Gold (Gold-imagen) del Caso-página.",
       "  report   Agrega resultados y renderiza el Scorecard (pendiente de ticket 12).",
       "  bump-pin <ref>  Actualiza vendor/ + pin.json al ref dado (rama, tag o SHA).",
     ].join("\n"),
@@ -102,6 +104,24 @@ function runLoad([ruta = ""]: string[]): void {
   console.log(JSON.stringify(cargarCaso(ruta), null, 2));
 }
 
+function runCapturarGold(args: string[]): void {
+  const skill = opcion(args, "--skill");
+  const id = opcion(args, "--case");
+  if (!skill || !id) usage();
+
+  const caso = cargarCaso(localizarCaso(skill!, id!));
+  if (caso.tipo !== "caso-pagina") {
+    throw new Error(
+      `El Caso ${skill}/${id} es ${caso.tipo}: sólo un Caso-página lleva Captura de Gold.`,
+    );
+  }
+  const dirGold = dirname(caso.goldPath);
+  const ruta = asegurarCaptura(dirGold, {
+    capturar: capturarConAgentBrowser(caso.goldPath, ANCHO_CAPTURA),
+  });
+  console.log(`Captura de Gold lista: ${ruta}`);
+}
+
 function main(): void {
   const [command, ...rest] = process.argv.slice(2);
 
@@ -117,6 +137,9 @@ function main(): void {
       return;
     case "load":
       runLoad(rest);
+      return;
+    case "capturar-gold":
+      runCapturarGold(rest);
       return;
     case "report":
       console.log("report: pendiente (ticket 12).");

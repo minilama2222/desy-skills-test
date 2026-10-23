@@ -89,6 +89,7 @@ describe("runCaso", () => {
       ...caso,
       tipo: "caso-pagina" as const,
       goldPath: "expected/gold.html",
+      goldImagenPath: "expected/gold.png",
     };
 
     await runCaso(casoPagina, pin, { sandbox: factoryOf(sandbox), command });

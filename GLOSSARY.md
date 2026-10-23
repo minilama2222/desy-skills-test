@@ -102,7 +102,7 @@ La forma descargada del Gold: el `patron-pagina-*.html` servido por desy.aragon.
 La Captura de Gold. Es la referencia visual contra la que se compara el output.
 
 **Captura de Gold**:
-El screenshot a 1900px de ancho generado con `agent-browser` a partir del Gold-HTML. Es la forma canónica del Gold-imagen.
+El screenshot a 1900px de ancho generado con `agent-browser` a partir del Gold-HTML. Es la forma canónica del Gold-imagen. Se guarda como **fixture versionada** junto al Gold-HTML del Caso (`input/gold.png`), con un manifiesto (`input/gold.captura.json`) que registra el ancho y una clave (hash del Gold-HTML + ancho): si el HTML o el viewport cambian, la clave caduca y se recaptura. No se regenera en cada Ejecución. Ver ADR-0008.
 _Avoid_: usar los SVG/PNG de preview de la doc como referencia visual.
 
 ### Pinning

@@ -109,6 +109,19 @@ describe("cargarCaso", () => {
     expect(caso.goldPath).toBe(join(dir, "input", "gold.html"));
   });
 
+  it("un Caso-página expone la Captura de Gold como fixture del input/", () => {
+    root = mkdtempSync(join(tmpdir(), "casos-"));
+    const dir = crearCaso(root, "implement-pattern", "pagina", "paso-1", {
+      goldHtml: "<html><body><h1>Gold</h1></body></html>",
+    });
+    writeFileSync(join(dir, "input", "gold.png"), "PNG-FALSO");
+
+    const caso = cargarCaso(dir);
+
+    if (caso.tipo !== "caso-pagina") throw new Error("tipo inesperado");
+    expect(caso.goldImagenPath).toBe(join(dir, "input", "gold.png"));
+  });
+
   it("propaga un error claro si falta rubric.md", () => {
     root = mkdtempSync(join(tmpdir(), "casos-"));
     const dir = crearCaso(root, "implement-component", "componente", "sin-rubric", {

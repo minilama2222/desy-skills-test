@@ -252,8 +252,10 @@ describe("Caso", () => {
       prompt: "Maqueta la página",
       checks: [],
       goldPath: "input/gold.html",
+      goldImagenPath: "input/gold.png",
     };
     expect(caso.goldPath).toBe("input/gold.html");
+    expect(caso.goldImagenPath).toBe("input/gold.png");
   });
 
   it("el Caso es una unión discriminada por tipo", () => {
@@ -264,6 +266,7 @@ describe("Caso", () => {
       prompt: "x",
       checks: [],
       goldPath: "gold.html",
+      goldImagenPath: "gold.png",
     };
     expect(caso.tipo).toBe("caso-pagina");
   });

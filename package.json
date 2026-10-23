@@ -13,6 +13,8 @@
     "run": "tsx src/cli.ts run",
     "grade": "tsx src/cli.ts grade",
     "load": "tsx src/cli.ts load",
+    "capturar-gold": "tsx src/cli.ts capturar-gold",
+    "verificar-captura-gold": "tsx scripts/verificar-captura-gold.ts",
     "report": "tsx src/cli.ts report",
     "bump-pin": "tsx src/cli.ts bump-pin"
   },

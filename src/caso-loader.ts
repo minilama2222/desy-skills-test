@@ -13,6 +13,7 @@ const RUBRIC = "rubric.md";
 const PROMPT = join("input", "prompt.md");
 const CHECKS = join("expected", "checks.json");
 const GOLD = join("input", "gold.html");
+const GOLD_IMAGEN = join("input", "gold.png");
 
 function leer(path: string, descripcion: string): string {
   if (!existsSync(path)) {
@@ -58,7 +59,15 @@ export function cargarCaso(dir: string): Caso {
     if (!existsSync(goldPath)) {
       throw new Error(`Caso-página inválido: falta el Gold-HTML en input/gold.html (${goldPath})`);
     }
-    const caso: CasoPagina = { tipo, skill, id, prompt, checks, goldPath };
+    const caso: CasoPagina = {
+      tipo,
+      skill,
+      id,
+      prompt,
+      checks,
+      goldPath,
+      goldImagenPath: join(dir, GOLD_IMAGEN),
+    };
     return caso;
   }
 
