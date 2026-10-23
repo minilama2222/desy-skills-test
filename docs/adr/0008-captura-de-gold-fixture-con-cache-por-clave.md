@@ -63,3 +63,7 @@ el PNG mide 1900px de ancho.
   proceso propio; en un runner paralelo deja procesos vivos y cuelga la suite
   (observado). Se verifica con `scripts/verificar-captura-gold.ts`. La suite sólo
   prueba la regla de invalidación, que es determinista.
+- **Un guardarraíl impide reintroducirlo**: `npm run verificar-tests` falla si
+  algún test referencia un navegador (`agent-browser`, `capturarConAgentBrowser`,
+  `playwright`, `puppeteer`). Corre en el pre-commit, antes de `npm test`, así que
+  un test que colgaría la suite no llega a commitearse.
