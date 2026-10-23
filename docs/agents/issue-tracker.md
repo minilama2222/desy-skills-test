@@ -10,6 +10,17 @@ Issues and specs for this repo live as markdown files in `.scratch/`.
 - Triage state is recorded as a `Status:` line near the top of each issue file (see `triage-labels.md` for the role strings)
 - Comments and conversation history append to the bottom of the file under a `## Comments` heading
 
+## Which ticket to work next
+
+The next ticket is the lowest-numbered file whose `Blocked by:` tickets are all
+`Status: done`. Working the frontier blockers-first is what keeps the ticket
+graph buildable; a ticket whose blockers are not `done` is not ready, however
+small it looks.
+
+`Status: done` means **built and landed**, not "the code was written". A ticket
+with a criterion that depends on unbuilt work stays `ready-for-human` until that
+work lands — `npm run verificar-tracker` fails the commit otherwise.
+
 ## When a skill says "publish to the issue tracker"
 
 Create a new file under `.scratch/<feature-slug>/` (creating the directory if needed).

@@ -25,6 +25,12 @@ The failure this prevents has happened twice in this repo: a ticket marked `done
 whose acceptance criterion depended on an unbuilt scorecard, and an ADR whose
 numeric rule only survived because the first run contradicted it.
 
+The same claim lives in the `README.md`'s usage block, and no guardrail can read
+it: whether `npm run report` "aggregates results" depends on the prose next to the
+command, not on the command existing. The mechanical half of this rule — a ticket
+`done` with an open checkbox — is enforced by `npm run verificar-tracker`; the
+prose half is yours to check against the CLI's own `usage()`.
+
 ## Domain language comes from the glossary
 
 When the diff names a domain concept, it uses the term as `GLOSSARY.md` defines

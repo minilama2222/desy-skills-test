@@ -1,7 +1,8 @@
 #!/bin/sh
-# Guardarraíl pre-commit: typecheck + tests + guardarraíl de tests.
+# Guardarraíl pre-commit: typecheck + tests + guardarraíles (tests y tracker).
 # Se activa con: git config core.hooksPath scripts/git-hooks
 set -e
 npm run typecheck
 npm run verificar-tests
+npm run verificar-tracker
 npm test
