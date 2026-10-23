@@ -11,6 +11,7 @@ import {
 import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
 import type { Caso } from "./caso.js";
+import { esCasoPagina } from "./caso.js";
 import type { Pin } from "./pin.js";
 import { REPO_ROOT } from "./repo.js";
 
@@ -138,8 +139,13 @@ export interface SandboxFactory {
   create(): Sandbox;
 }
 
-export function buildOpencodeArgs(prompt: string): string[] {
-  return ["run", "--model", MODELO_FIJO, prompt];
+export function buildOpencodeArgs(prompt: string, imagen?: string): string[] {
+  const args = ["run", "--model", MODELO_FIJO];
+  // La Captura de Gold (Gold-imagen) viaja al prompt como referencia visual
+  // (spec, ticket 08): `--file` la adjunta al mensaje del SUT.
+  if (imagen !== undefined) args.push("--file", imagen);
+  args.push(prompt);
+  return args;
 }
 
 /**
@@ -178,7 +184,8 @@ export async function runCaso(
   const sandbox = deps.sandbox.create();
   try {
     sandbox.copySkills();
-    const args = buildOpencodeArgs(prompt);
+    const imagen = adjuntarGoldImagen(caso, sandbox.workDir);
+    const args = buildOpencodeArgs(promptParaSut(prompt, imagen), imagen);
     const { stdout, stderr } = deps.command.run(args, {
       cwd: sandbox.workDir,
       env: { HOME: sandbox.home, XDG_CONFIG_HOME: sandbox.configDir },
@@ -198,6 +205,45 @@ function artefactosToFiles(
   artefactos: { path: string; contenido: string }[],
 ): Record<string, string> {
   return Object.fromEntries(artefactos.map((a) => [a.path, a.contenido]));
+}
+
+/**
+ * Copia la Captura de Gold del Caso dentro del sandbox y devuelve la ruta
+ * **dentro del workDir** para adjuntarla al prompt. Un Caso-componente no lleva
+ * Gold-imagen, así que devuelve undefined y el prompt va sin adjunto.
+ *
+ * Se copia al sandbox (no se adjunta la ruta del repo) para que el adjunto sea
+ * la fixture congelada del Caso y no una ruta del harness que el SUT no debería
+ * ver.
+ */
+function adjuntarGoldImagen(caso: Caso, workDir: string): string | undefined {
+  if (!esCasoPagina(caso)) return undefined;
+  if (!existsSync(caso.goldImagenPath)) {
+    throw new Error(
+      `Caso-página ${caso.skill}/${caso.id} sin Captura de Gold: falta ${caso.goldImagenPath}. ` +
+        "Genera la fixture con `npm run capturar-gold` (ver el ticket 06).",
+    );
+  }
+  const destino = join(workDir, "gold.png");
+  cpSync(caso.goldImagenPath, destino);
+  return destino;
+}
+
+/**
+ * El prompt que recibe el SUT. Para un Caso-página se le añade la referencia
+ * explícita a la Captura de Gold adjunta, porque `--file` adjunta la imagen pero
+ * no la nombra: sin la línea, el modelo no sabe que existe ni para qué usarla.
+ */
+function promptParaSut(prompt: string, imagen: string | undefined): string {
+  if (imagen === undefined) return prompt;
+  const nombre = imagen.split(/[\\/]/).pop()!;
+  return [
+    prompt,
+    "",
+    `Referencia visual: te adjunto la captura del Gold (\`${nombre}\`), la página ` +
+      "oficial a la que debe parecerse. Úsala para la fidelidad visual (anchos, " +
+      "tipografía, márgenes).",
+  ].join("\n");
 }
 
 const INVOCACION_RES = [
@@ -329,9 +375,36 @@ export function createSandbox(opciones: string | SandboxOptions = {}): Sandbox {
       return listarArtefactosDeSalida(workDir, lineaBase, dir);
     },
     cleanup(): void {
-      rmSync(root, { recursive: true, force: true });
+      borrarConReintento(root);
     },
   };
+}
+
+/**
+ * Borra el sandbox, tolerando el bloqueo transitorio de Windows.
+ *
+ * En Windows, los procesos que el SUT dejó vivos (esbuild/node de su `npm run
+ * build`) pueden retener un instante el `work` del sandbox; quitar el directorio
+ * en ese hueco da `EBUSY`. Reintentar unos ms lo resuelve sin ruido. Si aun así
+ * sigue bloqueado, no se tumba la Ejecución: el sandbox vive en el temporal y lo
+ * limpiará el SO. El fallo de limpieza no debe ocultar la Evidencia ya recogida.
+ */
+function borrarConReintento(dir: string): void {
+  for (let intento = 0; intento < 5; intento++) {
+    try {
+      rmSync(dir, { recursive: true, force: true });
+      return;
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code;
+      if (code !== "EBUSY" && code !== "EPERM" && code !== "ENOTEMPTY") throw error;
+      esperar(200);
+    }
+  }
+}
+
+/** Espera síncrona (sin busy-wait) entre reintentos de limpieza. */
+function esperar(ms: number): void {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
 }
 
 /** Copia el contenido de `origen` dentro de `destino` (no el directorio en sí). */
@@ -359,6 +432,13 @@ function fotoDeArchivos(dir: string): Map<string, string> {
  *
  * `dir` no es fijo: depende del tipo de Caso (`src/` para Caso-componente,
  * `dist/` para Caso-página). Ver `dirArtefactoDeCaso` y ADR-0006.
+ *
+ * **Caso-página**: el `dist/` entero es *generado* por el build, así que la
+ * línea base (cacheada sin `dist/`) no puede separar la página del SUT de las
+ * ~20 páginas de ejemplo del starter: todas serían «nuevas». El artefacto de una
+ * página es sólo la que el SUT **escribió en `src/`**: se queda el `dist/X.html`
+ * cuya fuente `src/X.html` sea nueva o modificada. El resto del `dist/` (css, js,
+ * las demás páginas) es salida del starter, no del Caso.
  */
 export function listarArtefactosDeSalida(
   workDir: string,
@@ -367,9 +447,27 @@ export function listarArtefactosDeSalida(
 ): { path: string; contenido: string }[] {
   const raiz = join(workDir, dir);
   if (!existsSync(raiz)) return [];
-  return collectArtefactos(raiz)
-    .filter((a) => lineaBase.get(`${dir}/${a.path}`) !== a.contenido)
-    .map((a) => ({ path: `${dir}/${a.path}`, contenido: a.contenido }));
+  const nuevos = collectArtefactos(raiz).filter(
+    (a) => lineaBase.get(`${dir}/${a.path}`) !== a.contenido,
+  );
+  if (dir === "dist") {
+    return nuevos
+      .filter((a) => a.path.endsWith(".html") && fuenteModificada(workDir, lineaBase, a.path))
+      .map((a) => ({ path: `${dir}/${a.path}`, contenido: a.contenido }));
+  }
+  return nuevos.map((a) => ({ path: `${dir}/${a.path}`, contenido: a.contenido }));
+}
+
+/** ¿La fuente `src/<mismaRuta>` es nueva o modificada respecto a la línea base? */
+function fuenteModificada(
+  workDir: string,
+  lineaBase: Map<string, string>,
+  rutaRelativa: string,
+): boolean {
+  const fuente = join(workDir, "src", rutaRelativa);
+  if (!existsSync(fuente)) return false;
+  const contenido = readFileSync(fuente, "utf8");
+  return lineaBase.get(`src/${rutaRelativa}`) !== contenido;
 }
 
 function collectArtefactos(dir: string): { path: string; contenido: string }[] {

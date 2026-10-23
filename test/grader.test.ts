@@ -30,6 +30,13 @@ const htmlValidoPagina = (extra = ""): string =>
     "</main></body></html>",
   ].join("");
 
+/**
+ * Gold-HTML mínimo para los guards de fidelidad estructural del Caso-página.
+ * Sin clases de container/h1/gap en el Gold, esos guards pasan trivialmente:
+ * estas pruebas no son de fidelidad, sólo necesitan un Gold válido presente.
+ */
+const GOLD_MINIMO = "<main><h1>Gold</h1></main>";
+
 describe("Grade", () => {
   it("cualquier Guard que falle fuerza INACEPTABLE", () => {
     const resultado = grado(
@@ -435,7 +442,7 @@ describe("gradoDeEvidencia contra el checks.json de un Caso", () => {
         }),
         transcript: transcript(),
       },
-      { tipo: "caso-pagina", checksJson },
+      { tipo: "caso-pagina", checksJson, gold: GOLD_MINIMO },
     );
 
     const ids = resultado.detalle.map((d) => d.id);

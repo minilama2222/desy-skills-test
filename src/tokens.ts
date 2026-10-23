@@ -42,9 +42,63 @@ const COMBINADOR_UTILITY = new RegExp(
 
 const ARBITRARIA_RE = /-\[[^\]]+\]/;
 
-const COLOR_UTILITY_RE = new RegExp(
-  `^(?:${PREFIJOS_UTILITY})-[a-z]+(?:-[a-z0-9]+)?$`,
-);
+/**
+ * Los sufijos que **no** son una paleta de color, sino un modificador de la
+ * utility: alineación y tamaño de texto (`text-center`, `text-sm`), lados y
+ * grosores de borde (`border-b`, `border-2`)… Mirarlos como «color» era un falso
+ * positivo del guard: `border-b` no es un color fuera del sistema, es el borde
+ * de abajo.
+ */
+const MODIFICADORES_NO_COLOR = new Set([
+  "left",
+  "center",
+  "right",
+  "justify",
+  "start",
+  "end",
+  "top",
+  "bottom",
+  "middle",
+  "baseline",
+  "xs",
+  "sm",
+  "base",
+  "lg",
+  "xl",
+  "2xl",
+  "3xl",
+  "4xl",
+  "t",
+  "b",
+  "l",
+  "r",
+  "x",
+  "y",
+  "s",
+  "e",
+  "collapse",
+  "separate",
+  "hidden",
+  "solid",
+  "dashed",
+  "dotted",
+  "double",
+  "none",
+]);
+
+/**
+ * Una utility de color: `text-blue-700`, `bg-primary-base`, `border-neutral-dark`.
+ * El segmento tras el prefijo debe ser una **paleta** (`blue`, `primary`…), no un
+ * modificador (`center`, `sm`, `b`). El segundo segmento, si lo hay, es un tono
+ * (`base`, `700`) — pero `primary` a secas también cuenta.
+ */
+export function esUtilityColor(clase: string): boolean {
+  const match = new RegExp(`^(?:${PREFIJOS_UTILITY})-([a-z]+)(?:-([a-z0-9]+))?$`).exec(clase);
+  if (!match) return false;
+  const paleta = match[1]!;
+  if (MODIFICADORES_NO_COLOR.has(paleta) && match[2] === undefined) return false;
+  return true;
+}
 
 const SPACING_UTILITY_RE = new RegExp(
   `^(?:${PREFIJOS_SPACING})[trblxy]*(?:-[xy])?-(.+)$`,
@@ -81,17 +135,34 @@ export function esUtilitySpacing(clase: string): boolean {
   return SPACING_UTILITY_RE.test(clase);
 }
 
-export function esUtilityColor(clase: string): boolean {
-  return COLOR_UTILITY_RE.test(clase);
-}
-
+/**
+ * ¿Es una utility con un valor de la escala por defecto de Tailwind (prohibida
+ * por el sistema) en vez de un token DESY?
+ *
+ * Matices anclados en el propio Gold oficial (`desy-styles-reference`):
+ * - **`0` no es un valor de escala inventado**: `mb-0`, `p-0` son *resets* a cero
+ *   (quitar el margen que puso el sistema), no un espaciado a ojo. El sistema no
+ *   tiene un token «0» porque no es espaciado, es ausencia de él.
+ * - **`black` y `white` son neutros del sistema**: el Gold los usa (`border-black`
+ *   en los inputs, `text-black`). No son familias de Tailwind ajenas.
+ */
 export function esUtilityTailwindPorDefecto(clase: string): boolean {
   const spacing = SPACING_UTILITY_RE.exec(clase);
-  if (spacing) return /^[0-9]+(?:[0-9.]*)?$/.test(spacing[1]!);
+  if (spacing) {
+    const valor = spacing[1]!;
+    if (valor === "0") return false;
+    return /^[0-9]+(?:[0-9.]*)?$/.test(valor);
+  }
 
+  if (esNeutroBasico(clase)) return false;
   if (esUtilityColor(clase) && !esColorDelSistema(clase)) return true;
 
   return false;
+}
+
+/** `black`/`white` en cualquier utility de color (`border-black`, `text-white`). */
+function esNeutroBasico(clase: string): boolean {
+  return /^(?:bg|text|border|ring|from|to|via|fill|stroke)-(?:black|white)$/.test(clase);
 }
 
 export function esUtilityTokenValido(clase: string): boolean {
@@ -99,7 +170,7 @@ export function esUtilityTokenValido(clase: string): boolean {
   if (esUtilityTailwindPorDefecto(clase)) return false;
 
   const spacing = SPACING_UTILITY_RE.exec(clase);
-  if (spacing) return esTokenEspaciado(spacing[1]!);
+  if (spacing) return spacing[1] === "0" || esTokenEspaciado(spacing[1]!);
 
   return COMBINADOR_UTILITY.test(clase) && familiaColor(clase) !== undefined;
 }

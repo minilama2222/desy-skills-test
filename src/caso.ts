@@ -60,6 +60,33 @@ export interface AssertMacroSinClase {
   clase: string;
 }
 
+/**
+ * Hechos estructurales del Gold-HTML que el artefacto debe reproducir (ver
+ * `src/fidelidad.ts`): el ancho del container, la escala tipográfica del h1 y el
+ * gap de la rejilla principal. La fuente de verdad es el Gold del Caso, no una
+ * clase escrita a mano en el check. La lista es la fuente única del tipo y de la
+ * validación del `kind`.
+ */
+export const HECHOS_ESTRUCTURALES = ["container", "escala_h1", "gap"] as const;
+
+export type HechoEstructural = (typeof HECHOS_ESTRUCTURALES)[number];
+
+export interface AssertFidelidadEstructural {
+  kind: "fidelidad_estructural";
+  hecho: HechoEstructural;
+}
+
+/**
+ * Hecho estructural de contenido: el HTML generado contiene un texto. Para un
+ * Caso-página el artefacto es el compilado, donde el macro ya se expandió, así
+ * que la forma de comprobar que la página tiene un campo o una acción concreta
+ * es su texto (las etiquetas y los rótulos que fija el Gold).
+ */
+export interface AssertContieneTexto {
+  kind: "contiene_texto";
+  texto: string;
+}
+
 export type Assert =
   | AssertMacroPresente
   | AssertUnSoloH1
@@ -73,7 +100,9 @@ export type Assert =
   | AssertUsaClaseTipografica
   | AssertMacroConClase
   | AssertSinPropsInventados
-  | AssertMacroSinClase;
+  | AssertMacroSinClase
+  | AssertFidelidadEstructural
+  | AssertContieneTexto;
 
 export type Severity = "guard" | "quality";
 
@@ -105,6 +134,11 @@ export interface CasoPagina {
 
 export type Caso = CasoComponente | CasoPagina;
 
+/** ¿El Caso es un Caso-página? (el único tipo que lleva Gold). */
+export function esCasoPagina(caso: Caso): caso is CasoPagina {
+  return caso.tipo === "caso-pagina";
+}
+
 const CARPETAS: Record<string, TipoCaso> = {
   componente: "caso-componente",
   pagina: "caso-pagina",
@@ -132,6 +166,8 @@ const ASSERT_KINDS = new Set([
   "macro_con_clase",
   "sin_props_inventados",
   "macro_sin_clase",
+  "fidelidad_estructural",
+  "contiene_texto",
 ]);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -193,6 +229,17 @@ function parseAssert(raw: unknown, contexto: string): Assert {
         macro: exigirString(raw, "macro", contexto),
         clase: exigirString(raw, "clase", contexto),
       };
+    case "fidelidad_estructural": {
+      const hecho = exigirString(raw, "hecho", contexto);
+      if (!(HECHOS_ESTRUCTURALES as readonly string[]).includes(hecho)) {
+        throw new Error(
+          `${contexto}: "hecho" desconocido (${hecho}); esperado: ${HECHOS_ESTRUCTURALES.join(", ")}`,
+        );
+      }
+      return { kind: "fidelidad_estructural", hecho: hecho as HechoEstructural };
+    }
+    case "contiene_texto":
+      return { kind: "contiene_texto", texto: exigirString(raw, "texto", contexto) };
     case "sin_utility_por_defecto":
       return { kind: "sin_utility_por_defecto" };
     case "espaciado_del_sistema":

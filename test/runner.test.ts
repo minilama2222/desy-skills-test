@@ -1,4 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import type { CasoComponente, Check } from "../src/caso.js";
 import { grado } from "../src/grader.js";
 import type { Pin } from "../src/pin.js";
@@ -52,6 +55,17 @@ describe("buildOpencodeArgs", () => {
       caso.prompt,
     ]);
   });
+
+  it("adjunta una imagen con --file cuando se pasa una Captura de Gold", () => {
+    expect(buildOpencodeArgs("prompt", "gold.png")).toEqual([
+      "run",
+      "--model",
+      "deepinfra/deepseek-ai/DeepSeek-V4.1-Flash",
+      "--file",
+      "gold.png",
+      "prompt",
+    ]);
+  });
 });
 
 describe("dirArtefactoDeCaso", () => {
@@ -81,20 +95,83 @@ describe("runCaso", () => {
   });
 
   it("pide el dist/ compilado para un Caso-página", async () => {
-    const sandbox = fakeSandbox();
-    const command: CommandRunner = {
-      run: () => ({ stdout: "", stderr: "", code: 0 }),
-    };
-    const casoPagina = {
-      ...caso,
-      tipo: "caso-pagina" as const,
-      goldPath: "expected/gold.html",
-      goldImagenPath: "expected/gold.png",
-    };
+    const dir = mkdtempSync(join(tmpdir(), "runner-pagina-"));
+    const casoDir = mkdtempSync(join(tmpdir(), "runner-caso-"));
+    try {
+      const goldPng = join(casoDir, "gold.png");
+      writeFileSync(goldPng, "PNG");
+      const sandbox = { ...fakeSandbox(), workDir: dir };
+      const command: CommandRunner = {
+        run: () => ({ stdout: "", stderr: "", code: 0 }),
+      };
+      const casoPagina = {
+        ...caso,
+        tipo: "caso-pagina" as const,
+        goldPath: join(casoDir, "gold.html"),
+        goldImagenPath: goldPng,
+      };
 
-    await runCaso(casoPagina, pin, { sandbox: factoryOf(sandbox), command });
+      await runCaso(casoPagina, pin, { sandbox: factoryOf(sandbox), command });
 
-    expect(sandbox.listArtefactos).toHaveBeenCalledWith("dist");
+      expect(sandbox.listArtefactos).toHaveBeenCalledWith("dist");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+      rmSync(casoDir, { recursive: true, force: true });
+    }
+  });
+
+  it("un Caso-página adjunta la Captura de Gold al prompt (referencia visual)", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "runner-gold-"));
+    const casoDir = mkdtempSync(join(tmpdir(), "runner-caso-"));
+    try {
+      const goldPng = join(casoDir, "gold.png");
+      writeFileSync(goldPng, "PNG");
+      const sandbox = { ...fakeSandbox(), workDir: dir };
+      const run = vi.fn(() => ({ stdout: "", stderr: "", code: 0 }));
+      const casoPagina = {
+        ...caso,
+        tipo: "caso-pagina" as const,
+        goldPath: join(casoDir, "gold.html"),
+        goldImagenPath: goldPng,
+      };
+
+      await runCaso(casoPagina, pin, {
+        sandbox: factoryOf(sandbox),
+        command: { run },
+      });
+
+      const [args] = run.mock.calls[0] as unknown as [string[]];
+      expect(args).toContain("--file");
+      const i = args.indexOf("--file");
+      expect(args[i + 1]).toBe(join(dir, "gold.png"));
+      // El prompt referencia la imagen adjunta para que el modelo la use.
+      expect(args[args.length - 1]).toContain("gold.png");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+      rmSync(casoDir, { recursive: true, force: true });
+    }
+  });
+
+  it("un Caso-página sin Captura de Gold revienta con un error claro", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "runner-sin-gold-"));
+    try {
+      const sandbox = { ...fakeSandbox(), workDir: dir };
+      const casoPagina = {
+        ...caso,
+        tipo: "caso-pagina" as const,
+        goldPath: join(dir, "gold.html"),
+        goldImagenPath: join(dir, "no-existe.png"),
+      };
+
+      await expect(
+        runCaso(casoPagina, pin, {
+          sandbox: factoryOf(sandbox),
+          command: { run: vi.fn() },
+        }),
+      ).rejects.toThrow(/Captura de Gold/i);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 
   it("devuelve la Evidencia (artefactos + transcript) con la forma que consume el grader", async () => {

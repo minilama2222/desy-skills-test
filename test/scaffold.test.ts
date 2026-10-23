@@ -197,6 +197,30 @@ describe("listarArtefactosDeSalida", () => {
 
     rmSync(dir, { recursive: true, force: true });
   });
+
+  it("en un Caso-página, sólo es artefacto el dist/ de la página que el SUT escribió en src/", () => {
+    // El dist/ entero lo genera el build (la caché no lo trae), así que la línea
+    // base no separa la página del SUT de las ~20 de ejemplo del starter. El
+    // artefacto es el dist/X.html cuya fuente src/X.html cambió.
+    const dir = join(tmpdir(), `artefactos-pagina-${Date.now()}`);
+    mkdirSync(join(dir, "src"), { recursive: true });
+    mkdirSync(join(dir, "dist"), { recursive: true });
+    // Página del starter: src intacto -> su dist no es artefacto.
+    writeFileSync(join(dir, "src", "index.html"), "starter");
+    writeFileSync(join(dir, "dist", "index.html"), "<h1>starter</h1>");
+    // Página del SUT: src nuevo -> su dist SÍ es artefacto.
+    writeFileSync(join(dir, "src", "mi-pagina.html"), "{% extends 'x' %}");
+    writeFileSync(join(dir, "dist", "mi-pagina.html"), "<h1>Mi página</h1>");
+    // Assets del build: no son la página.
+    writeFileSync(join(dir, "dist", "styles.css"), "body{}");
+
+    const lineaBase = new Map([["src/index.html", "starter"]]);
+    const artefactos = listarArtefactosDeSalida(dir, lineaBase, "dist").map((a) => a.path);
+
+    expect(artefactos).toEqual(["dist/mi-pagina.html"]);
+
+    rmSync(dir, { recursive: true, force: true });
+  });
 });
 
 describe("contaminacionDelScaffold", () => {

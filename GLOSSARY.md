@@ -36,8 +36,19 @@ La unidad de test declarativa: una carpeta con `input/`, `expected/` y `rubric.m
 Un Caso cuyo objetivo es el contrato de un componente aislado. No lleva Gold; valida el macro, sus props y sus tokens.
 
 **Caso-página**:
-Un Caso cuyo objetivo es una página completa a partir de un Gold. Lleva el Gold (Gold-HTML y Gold-imagen) y añade a los guards base el encadenado, la a11y de página y la fidelidad contra el Gold-HTML.
+Un Caso cuyo objetivo es una página completa a partir de un Gold. Lleva el Gold (Gold-HTML y Gold-imagen) y añade a los guards base el encadenado, la a11y de página y la fidelidad estructural contra el Gold-HTML.
 _Avoid_: mezclar los dos tipos; el tipo determina qué checks aplican.
+
+**Utilidades del Gold**:
+Las clases que usa el Gold-HTML de un Caso. En un Caso-página, el guard de tokens
+(`tokens-del-sistema`) **las exime**: un SUT que reproduce el Gold hereda sus
+clases legadas (`mr-2`, `pt-0.5`…) y eso es fidelidad, no invención. Sólo se exime
+lo que el Gold trae; un valor que el Gold no use sigue suspendiendo. Ver ADR-0010.
+_Evita_: leer «exime las utilidades del Gold» como «no hay guard de tokens en
+páginas»: el guard sigue atrapando lo inventado.
+
+**Fidelidad estructural**:
+La comprobación determinista de que la página generada reproduce los hechos de estructura que fija el Gold-HTML — el ancho del container, la escala tipográfica del `h1` y el gap/columnas de la rejilla principal. No es comparación de píxeles (eso es la capa nightly, fuera de v1): la verdad la fija el Gold del Caso, no una lista de clases escrita a mano. Ver `src/fidelidad.ts`.
 
 **Ejecución**:
 Un run concreto de un Caso por el SUT. Tiene timestamp y hash del pin; queda en `reports/`. Un Caso tiene N Ejecuciones.
@@ -47,7 +58,7 @@ _Avoid_: llamar "caso" a una Ejecución.
 El conjunto base de Checks que aplica a un tipo de Caso (Caso-componente o Caso-página), combinado por el grader con los Checks propios del Caso. Evita repetir los guards comunes en cada `checks.json`.
 
 **Artefacto** (de una Ejecución):
-El fichero que el SUT escribió en el sandbox y sobre el que se pasa el Grade. De qué fichero se trata **depende del tipo de Caso**: el fuente (`src/`) para el Caso-componente, el compilado (`dist/`) para el Caso-página. Ver ADR-0006.
+El fichero que el SUT escribió en el sandbox y sobre el que se pasa el Grade. De qué fichero se trata **depende del tipo de Caso**: el fuente (`src/`) para el Caso-componente, el compilado (`dist/`) para el Caso-página. En el Caso-página el Artefacto es **la página que el SUT escribió** (el `dist/X.html` cuya fuente `src/X.html` cambió), no el `dist/` entero del build. Ver ADR-0006 y ADR-0009.
 _Avoid_: llamar "artefacto" al `SKILL.md` (eso es el Skill) en el contexto de una Ejecución; confundir el artefacto con el `dist/` entero del starter.
 
 **Entrega**:
@@ -85,10 +96,22 @@ Un Check con `severity: guard`. Su fallo hace que el Grade del Caso sea INACEPTA
 Un Check con `severity: quality`. Puntúa (con `weight`) hacia el Grade.
 
 **Grade**:
-El veredicto de un Caso o Ejecución: INACEPTABLE / ACEPTABLE / BUENO / EXCELENTE.
+El veredicto de una **Ejecución**: INACEPTABLE / ACEPTABLE / BUENO / EXCELENTE. El
+de un **Caso** no es el de una Ejecución, sino su agregación (ver Veredicto de un
+Caso).
+_Avoid_: hablar del «Grade del Caso» cuando se quiere decir su veredicto.
+
+**Veredicto de un Caso**:
+El resultado agregado de las N Ejecuciones de un Caso (ADR-0007): **PASA** (al
+menos una de las Ejecuciones que alcanzaron el skill fue EXCELENTE), **SUSPENDE**
+(alguna alcanzó el skill, ninguna fue correcta) o **INDETERMINADO** (ninguna lo
+alcanzó). Lo calcula el scorecard (`src/scorecard.ts`).
+_Avoid_: usar «Grade» para este agregado; llamar «suspenso» al indeterminado.
 
 **Scorecard**:
-El agregado de Grades por Skill, renderizado a partir del JSON de resultados.
+El agregado de Grades por Skill, renderizado a partir del JSON de resultados. Es
+el consumidor de la política de N (ADR-0007): da el Veredicto de un Caso y separa
+las Ejecuciones «no entregó» de «entregó mal». Ver `src/scorecard.ts`.
 
 ### Referencias DESY
 

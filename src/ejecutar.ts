@@ -1,9 +1,11 @@
 import type { Caso } from "./caso.js";
+import { esCasoPagina } from "./caso.js";
 import type { DetalleCheck, Grade } from "./grader.js";
 import { grado, pasoCoincide } from "./grader.js";
 import type { Pin } from "./pin.js";
 import type { RunDeps } from "./runner.js";
 import { runCaso } from "./runner.js";
+import { readFileSync } from "node:fs";
 
 export interface ResultadoEjecucion {
   skill: string;
@@ -47,6 +49,17 @@ export function alcanzoSkill(flujoObservado: string[], skill: string): boolean {
 }
 
 /**
+ * El Gold-HTML de un Caso-página, o undefined para un Caso-componente (no lleva
+ * Gold). Los guards de fidelidad estructural comparan contra él; el resto de
+ * checks lo ignoran. Se lee del disco aquí, en el orquestador, para que el
+ * grader siga siendo puro: recibe texto, no rutas.
+ */
+function goldDeCaso(caso: Caso): string | undefined {
+  if (!esCasoPagina(caso)) return undefined;
+  return readFileSync(caso.goldPath, "utf8");
+}
+
+/**
  * Camino vertical completo de un Caso: corre el SUT (runner), recoge la
  * Evidencia y la puntúa con el grader. Es el orquestador que consume el CLI.
  */
@@ -59,6 +72,7 @@ export async function ejecutarCaso(
   const { grade, detalle } = grado(evidencia, {
     tipo: caso.tipo,
     checks: caso.checks,
+    gold: goldDeCaso(caso),
   });
 
   return {

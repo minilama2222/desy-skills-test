@@ -5,10 +5,18 @@ import { frameworkDeChecks, grado } from "../src/grader.js";
 const artefactos = (html: string) => ({ files: { "index.html": html } });
 const transcript = (...invocaciones: string[]) => ({ invocaciones });
 
+/**
+ * Gold-HTML mínimo para los guards de fidelidad estructural: el Caso-página
+ * siempre lleva uno, así que un test de página debe dárselo. Sin clases de
+ * container/h1/gap, los guards de fidelidad pasan trivialmente; estas pruebas
+ * son de a11y, no de fidelidad.
+ */
+const GOLD_MINIMO = "<main><h1>Título</h1></main>";
+
 const conPagina = (html: string) =>
   grado(
     { artefactos: artefactos(html), transcript: transcript() },
-    { tipo: "caso-pagina", checks: [] },
+    { tipo: "caso-pagina", checks: [], gold: GOLD_MINIMO },
   );
 
 const checkLabels = (): Check => ({

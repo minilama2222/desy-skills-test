@@ -6,6 +6,7 @@ import {
   esColorDelSistema,
   esTokenEspaciado,
   esUtilityArbitraria,
+  esUtilityColor,
   esUtilityTailwindPorDefecto,
   esUtilityTokenValido,
   familiaColor,
@@ -114,6 +115,52 @@ describe("detección de utility válida/arbitraria/por defecto", () => {
     expect(esUtilityTailwindPorDefecto("text-blue-700")).toBe(true);
     expect(esUtilityTailwindPorDefecto("bg-gray-100")).toBe(true);
     expect(esUtilityTailwindPorDefecto("bg-primary-base")).toBe(false);
+  });
+
+  it("no marca los resets a cero: `mb-0` no es un valor de escala inventado", () => {
+    // El Gold oficial usa `mb-0` para quitar el margen que puso el sistema.
+    expect(esUtilityTailwindPorDefecto("mb-0")).toBe(false);
+    expect(esUtilityTailwindPorDefecto("p-0")).toBe(false);
+    expect(esUtilityTokenValido("mb-0")).toBe(true);
+  });
+
+  it("no marca black/white: son neutros del sistema, no familias de Tailwind", () => {
+    // El Gold oficial usa `border-black` en los inputs y `text-black` en botones.
+    expect(esUtilityTailwindPorDefecto("border-black")).toBe(false);
+    expect(esUtilityTailwindPorDefecto("text-white")).toBe(false);
+  });
+
+  it("sí marca la escala numérica real, aunque el Gold la use en el markup", () => {
+    // `mr-2`/`pt-0.5` son escala numérica de Tailwind: el detector las marca. La
+    // tolerancia es aparte (el guard las exime cuando el Gold las usa; ver el
+    // Caso-página). Aquí se comprueba sólo la detección.
+    expect(esUtilityTailwindPorDefecto("mr-2")).toBe(true);
+    expect(esUtilityTailwindPorDefecto("pt-0.5")).toBe(true);
+  });
+
+  it("no confunde modificadores con colores: text-center, border-b, text-sm no son color", () => {
+    // Bug arreglado: `esUtilityColor` trataba `text-center`, `border-b` o
+    // `text-sm` como colores fuera del sistema. Son modificadores (alineación,
+    // lado del borde, tamaño), no paletas.
+    for (const clase of [
+      "text-center",
+      "text-right",
+      "text-sm",
+      "text-base",
+      "border-b",
+      "border-t",
+      "border-r",
+      "border-l",
+    ]) {
+      expect(esUtilityColor(clase)).toBe(false);
+      expect(esUtilityTailwindPorDefecto(clase)).toBe(false);
+    }
+  });
+
+  it("sigue viendo color real donde lo hay", () => {
+    expect(esUtilityColor("text-blue-700")).toBe(true);
+    expect(esUtilityColor("bg-primary-base")).toBe(true);
+    expect(esUtilityColor("border-neutral-dark")).toBe(true);
   });
 
   it("detecta si una utility de color pertenece a una familia del sistema", () => {

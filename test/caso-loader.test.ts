@@ -1,4 +1,4 @@
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -14,10 +14,24 @@ const htmlValidoPagina = (extra = ""): string =>
   [
     "<!doctype html><html><body>",
     '<a class="skip-link" href="#main">Saltar al contenido</a>',
-    '<main id="main"><h1>Título</h1>',
+    '<main id="main" class="container mx-auto"><h1 class="c-h1">Título</h1>',
+    '<div class="grid-cols-2 gap-lg">',
     extra,
-    "</main></body></html>",
+    "</div></main></body></html>",
   ].join("");
+
+/** El Gold-HTML que el Caso-página del test carga en su input/. */
+const GOLD_DEL_TEST = [
+  '<main class="container mx-auto">',
+  '<h1 class="c-h1">Gold</h1>',
+  '<div class="grid-cols-2 gap-lg"></div>',
+  "</main>",
+].join("");
+
+/** El Gold-HTML de un Caso en disco, que el grader espera como texto. */
+function leerGold(caso: ReturnType<typeof cargarCaso>): string | undefined {
+  return caso.tipo === "caso-pagina" ? readFileSync(caso.goldPath, "utf8") : undefined;
+}
 
 function crearCaso(
   root: string,
@@ -219,7 +233,7 @@ describe("cargarCasos", () => {
     };
     const dir = crearCaso(root, "implement-pattern", "pagina", "paso-1", {
       checks,
-      goldHtml: "<html><body><h1>Gold</h1></body></html>",
+      goldHtml: GOLD_DEL_TEST,
     });
 
     const caso = cargarCaso(dir);
@@ -228,7 +242,7 @@ describe("cargarCasos", () => {
         artefactos: { files: { "index.html": htmlValidoPagina("<componentButton>") } },
         transcript: transcript(),
       },
-      { tipo: caso.tipo, checks: caso.checks },
+      { tipo: caso.tipo, checks: caso.checks, gold: leerGold(caso) },
     );
 
     const ids = resultado.detalle.map((d) => d.id);

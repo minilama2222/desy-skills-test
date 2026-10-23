@@ -1,0 +1,49 @@
+{
+  "checks": [
+    {
+      "id": "encadenado-canonico",
+      "severity": "guard",
+      "weight": 0,
+      "assert": {
+        "kind": "flujo_canonico",
+        "pasos": [
+          "preflight-check",
+          "choose-page-template",
+          "implement-*",
+          "design-match",
+          "validate-accessibility"
+        ]
+      }
+    },
+    {
+      "id": "campo-nombre",
+      "severity": "quality",
+      "weight": 1,
+      "assert": { "kind": "contiene_texto", "texto": "Nombre y apellidos" }
+    },
+    {
+      "id": "campo-nif",
+      "severity": "quality",
+      "weight": 1,
+      "assert": { "kind": "contiene_texto", "texto": "NIF o NIE" }
+    },
+    {
+      "id": "checkbox-rgpd",
+      "severity": "quality",
+      "weight": 1,
+      "assert": { "kind": "contiene_texto", "texto": "política de privacidad" }
+    },
+    {
+      "id": "accion-siguiente",
+      "severity": "quality",
+      "weight": 1,
+      "assert": { "kind": "contiene_texto", "texto": "Siguiente paso" }
+    },
+    {
+      "id": "accion-volver",
+      "severity": "quality",
+      "weight": 1,
+      "assert": { "kind": "contiene_texto", "texto": "Volver" }
+    }
+  ]
+}

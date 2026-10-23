@@ -1,6 +1,13 @@
-import type { Assert, Check, TipoCaso } from "./caso.js";
+import type { Assert, Check, HechoEstructural, TipoCaso } from "./caso.js";
 import { parseChecks } from "./caso.js";
 import { propsValidasDeMacro } from "./catalogo.js";
+import {
+  ambitoDeTokens,
+  reproduceContainer,
+  reproduceEscalaH1,
+  reproduceGap,
+  utilidadesDelGold,
+} from "./fidelidad.js";
 import {
   esClaseTipografica,
   esColorDelSistema,
@@ -73,6 +80,24 @@ const FRAMEWORK: Record<TipoCaso, Check[]> = {
       weight: 0,
       assert: { kind: "labels_visibles" },
     },
+    {
+      id: "fidelidad-container",
+      severity: "guard",
+      weight: 0,
+      assert: { kind: "fidelidad_estructural", hecho: "container" },
+    },
+    {
+      id: "fidelidad-escala-h1",
+      severity: "guard",
+      weight: 0,
+      assert: { kind: "fidelidad_estructural", hecho: "escala_h1" },
+    },
+    {
+      id: "fidelidad-gap",
+      severity: "guard",
+      weight: 0,
+      assert: { kind: "fidelidad_estructural", hecho: "gap" },
+    },
     TOKENS_GUARD,
   ],
 };
@@ -127,6 +152,8 @@ function evaluar(
   assert: Assert,
   artefactos: Artefactos,
   transcript: Transcript,
+  gold: string | undefined,
+  utilidadesGold: Set<string>,
 ): boolean {
   const htmlText = html(artefactos);
   switch (assert.kind) {
@@ -153,19 +180,26 @@ function evaluar(
       return i === assert.pasos.length;
     }
     case "sin_utility_por_defecto":
-      return clasesDe(htmlText).every(
-        (clase) => !esUtilityArbitraria(clase) && !esUtilityTailwindPorDefecto(clase),
+      return clasesDe(ambitoDeTokens(htmlText)).every(
+        (clase) =>
+          utilidadesGold.has(clase) ||
+          (!esUtilityArbitraria(clase) && !esUtilityTailwindPorDefecto(clase)),
       );
     case "espaciado_del_sistema":
-      return clasesDe(htmlText).every(
-        (clase) => !esUtilitySpacing(clase) || esUtilityTokenValido(clase),
+      return clasesDe(ambitoDeTokens(htmlText)).every(
+        (clase) =>
+          utilidadesGold.has(clase) || !esUtilitySpacing(clase) || esUtilityTokenValido(clase),
       );
     case "color_del_sistema":
-      return clasesDe(htmlText).every(
-        (clase) => !esUtilityColor(clase) || esColorDelSistema(clase),
+      return clasesDe(ambitoDeTokens(htmlText)).every(
+        (clase) =>
+          utilidadesGold.has(clase) || !esUtilityColor(clase) || esColorDelSistema(clase),
       );
     case "usa_clase_tipografica":
-      return esClaseTipografica(assert.clase) && clasesDe(htmlText).includes(assert.clase);
+      return (
+        esClaseTipografica(assert.clase) &&
+        clasesDe(ambitoDeTokens(htmlText)).includes(assert.clase)
+      );
     case "macro_con_clase":
       return llamadasAMacro(htmlText, assert.macro).some((props) =>
         clasesDeString(props.classes).includes(assert.clase),
@@ -182,6 +216,40 @@ function evaluar(
       return llamadasAMacro(htmlText, assert.macro).every(
         (props) => !clasesDeString(props.classes).includes(assert.clase),
       );
+    case "fidelidad_estructural":
+      return fidelidadEstructural(assert.hecho, htmlText, gold);
+    case "contiene_texto":
+      return normalizarEspacios(htmlText).includes(normalizarEspacios(assert.texto));
+  }
+}
+
+/**
+ * Normaliza espacios en blanco para que el texto buscado case aunque el HTML
+ * venga con saltos de línea o indentación entre palabras (el compilado se
+ * reflowea). No es comparación literal del documento: es «el texto está», que es
+ * el hecho estructural que se mide.
+ */
+function normalizarEspacios(texto: string): string {
+  return texto.replace(/\s+/g, " ").trim();
+}
+
+/**
+ * ¿El artefacto reproduce el hecho estructural que fija el Gold-HTML? Cada hecho
+ * se contrasta sobre el **mismo elemento** que fija el Gold (el `<main>` para el
+ * container, el `h1` para la escala, la rejilla para el gap); ver `src/fidelidad.ts`.
+ */
+function fidelidadEstructural(
+  hecho: HechoEstructural,
+  htmlText: string,
+  gold: string | undefined,
+): boolean {
+  switch (hecho) {
+    case "container":
+      return reproduceContainer(htmlText, gold);
+    case "escala_h1":
+      return reproduceEscalaH1(htmlText, gold);
+    case "gap":
+      return reproduceGap(htmlText, gold);
   }
 }
 
@@ -275,14 +343,24 @@ function stringificarValor(valor: unknown): string {
 
 export function grado(
   evidencia: Evidencia,
-  caso: { tipo: TipoCaso; checks: Check[] },
+  caso: { tipo: TipoCaso; checks: Check[]; gold?: string },
 ): GradeResult {
   const checks = [...frameworkDeChecks(caso.tipo), ...caso.checks];
+
+  // Las utilidades que usa el Gold del Caso: el guard de tokens las exime (un SUT
+  // que reproduce el Gold hereda sus clases legadas; es fidelidad, no invención).
+  const utilidadesGold = utilidadesDelGold(caso.gold);
 
   const detalle: DetalleCheck[] = checks.map((check) => ({
     id: check.id,
     severity: check.severity,
-    passed: evaluar(check.assert, evidencia.artefactos, evidencia.transcript),
+    passed: evaluar(
+      check.assert,
+      evidencia.artefactos,
+      evidencia.transcript,
+      caso.gold,
+      utilidadesGold,
+    ),
   }));
 
   const guardFalla = detalle.some((d) => d.severity === "guard" && !d.passed);
@@ -306,10 +384,11 @@ export function grado(
 
 export function gradoDeEvidencia(
   evidencia: Evidencia,
-  caso: { tipo: TipoCaso; checksJson: string },
+  caso: { tipo: TipoCaso; checksJson: string; gold?: string },
 ): GradeResult {
   return grado(evidencia, {
     tipo: caso.tipo,
     checks: parseChecks(caso.checksJson),
+    gold: caso.gold,
   });
 }

@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Datos personales (paso 1). Título de app. Gobierno de Aragón</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <!-- page.spinner -->
+  <aside aria-labelledby="page-spinner" aria-hidden="true">
+    <p>
+      <span class="c-spinner hidden fixed inset-0 z-50 h-screen text-6xl text-neutral-base" data-module="c-spinner" id="page-spinner">
+        <span class="sr-only" role="alert" aria-live="assertive">
+          Espera por favor, la página se está cargando
+        </span>
+      </span>
+    </p>
+  </aside>
+  <!-- /page.spinner -->
+  <!-- header -->
+  <header class="relative z-40">
+    <div>
+      <nav aria-labelledby="skip-link">
+        <!-- skip-link -->
+        <a href="#content" class="c-skip-link sr-only active:not-sr-only focus:not-sr-only focus:outline-hidden focus:shadow-outline-focus block p-base bg-warning-base text-center text-black underline" id="skip-link">Saltar al contenido principal</a>
+        <!-- /skip-link -->
+      </nav>
+      <div class="bg-neutral-lighter border-b border-neutral-base">
+        <div class="container mx-auto px-base">
+          <div class="flex items-center justify-between min-h-14">
+            <div class="flex flex-wrap items-center">
+              <a href="index.html" class="flex flex-wrap mr-4 text-black focus:outline-hidden focus:shadow-outline-black">
+                <span class="w-8 h-8 inline-block bg-primary-base" aria-label="Ir a la página de inicio de la aplicación" role="img"></span>
+              </a>
+              <div class="hidden lg:flex items-center">
+                <div class="py-2 relative border-r border-l border-neutral-base">
+                  <p class="sr-only">Aplicación actual: </p>
+                  <div data-module="c-dropdown" class=" relative">
+                    <button class="c-dropdown c-dropdown--header" data-module="c-dropdown-button" aria-haspopup="true">
+                      <span class="inline-flex self-center align-middle">Gestor de expedientes</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div class="inline-block lg:hidden max-w-full">
+                <p class="align-middle py-4 text-sm text-black overflow-hidden">Gestor de expedientes</p>
+              </div>
+            </div>
+            <nav data-module="c-menu-navigation" class="hidden lg:block" id="header-nav-item" aria-label="Menú principal">
+              <ul class="flex flex-wrap gap-base c-menu-navigation__list">
+                <li class="relative">
+                  <a id="header-nav-item-1" href="#" class="c-menu-navigation__button c-menu-navigation__button--primary c-menu-navigation__button--has-selection c-menu-navigation__button--header -mr-base" aria-current="page">Inicio</a>
+                </li>
+                <li class="relative">
+                  <a id="header-nav-item-2" href="#" class="c-menu-navigation__button c-menu-navigation__button--header -mr-base">Expedientes</a>
+                </li>
+                <li class="relative">
+                  <a id="header-nav-item-3" href="#" class="c-menu-navigation__button c-menu-navigation__button--header -mr-base">Bandejas</a>
+                </li>
+              </ul>
+            </nav>
+          </div>
+          <div class="ml-4 flex items-center lg:ml-6">
+            <div class="ml-3 relative">
+              <div data-module="c-dropdown" class="hidden lg:block">
+                <button class="c-dropdown c-dropdown--header" data-module="c-dropdown-button" aria-haspopup="true">
+                  <span class="inline-flex self-center align-middle">Ana Pérez</span>
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="-mr-2 flex lg:hidden">
+            <button id="header-offcanvas-button" type="button" tabindex="0" class="inline-flex items-center px-3 py-4 text-sm text-black focus:outline-hidden focus:shadow-outline-black focus:bg-warning-base" aria-haspopup="true">
+              <span id="header-offcanvas-button-text" class="inline-block align-middle text-right">Menú</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+  <!-- /header -->
+  <main id="content" class="relative container mx-auto px-base">
+    <!-- page.notification-header -->
+    <section id="notification-header-container" aria-labelledby="notification-header-heading" class="sticky z-10 top-base w-full" aria-hidden="true">
+      <h2 id="notification-header-heading" class="sr-only">Avisos importantes</h2>
+      <div>
+        <button class="c-button hidden">Mostrar notificación</button>
+        <div id="notification-header" role="alert" aria-live="assertive"></div>
+        <div class="hidden" id="template-notification-header">
+          <div id="type-success" data-module="c-notification" class="c-notification c-notification--success mt-base">
+            <div class="lg:flex flex-1 self-center">
+              <div class="lg:flex-1 lg:self-center">
+                <p id="type-success-title" class="font-bold pr-base focus:outline-hidden focus:underline" tabindex="-1">
+                  El documento se ha cargado correctamente
+                </p>
+              </div>
+              <div class="absolute top-0 right-0 p-sm">
+                <button type="button" class="c-notification-button__close p-sm focus:bg-warning-base focus:border-warning-base focus:shadow-outline-black focus:text-black focus:outline-hidden" aria-label="X: Cerrar notificación"></button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    <!-- /page.notification-header -->
+  <form action="patrones.html">
+    <div class="my-base">
+      <!-- button -->
+      <a href="/" draggable="false" class="c-button c-button--transparent">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 140" class="self-center mr-2" aria-hidden="true" focusable="false" width="1em" height="1em"><path d="M37.93 27.93l-35 35a10 10 0 000 14.14l35 35a10 10 0 1014.14-14.14L38.41 84.27A2.5 2.5 0 0140.18 80H130a10 10 0 000-20H40.18a2.5 2.5 0 01-1.77-4.27l13.66-13.66a10 10 0 00-14.14-14.14z" fill="currentColor"></path></svg>Volver
+      </a>
+      <!-- /button -->
+    </div>
+    <div class="flex flex-col-reverse">
+      <h1 id="page-title-3" class="c-h1 w-full">Datos de identidad</h1>
+      <p class="c-paragraph-base mb-0 text-neutral-dark">Paso 1 de 3</p>
+    </div>
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-lg">
+      <div class="col-span-2 lg:col-span-3">
+        <p class="-mt-base c-paragraph-base lg:c-paragraph-lg">
+          Necesitamos estos datos para enviarte avisos puntuales sobre tus trámites y notificaciones.
+        </p>
+        <fieldset>
+          <legend class="sr-only">Datos de identidad</legend>
+          <!-- input -->
+          <div class="c-form-group">
+            <label class="block" for="input-nombre">Nombre y apellidos (Obligatorio)</label>
+            <input class="c-input block mt-sm border-black rounded-sm font-semibold placeholder-neutral-dark focus:border-black focus:shadow-outline-focus-input focus:ring-4 focus:ring-warning-base disabled:bg-neutral-light disabled:border-neutral-base w-full lg:w-2/5" id="input-nombre" name="nombre" type="text" autocomplete="name">
+          </div>
+          <!-- /input -->
+          <!-- input -->
+          <div class="c-form-group">
+            <label class="block" for="input-nif">NIF o NIE (Obligatorio)</label>
+            <input class="c-input block mt-sm border-black rounded-sm font-semibold placeholder-neutral-dark focus:border-black focus:shadow-outline-focus-input focus:ring-4 focus:ring-warning-base disabled:bg-neutral-light disabled:border-neutral-base" id="input-nif" name="nif" type="text" placeholder="234556789N" size="19">
+          </div>
+          <!-- /input -->
+        </fieldset>
+        <!-- checkboxes -->
+        <div class="c-form-group">
+          <fieldset>
+            <legend class="sr-only">
+              Política de privacidad y protección de datos
+            </legend>
+            <div class="c-checkboxes" data-module="c-checkboxes">
+              <div class=" c-checkboxes__conditional-hidden">
+                <div class="relative flex items-start py-base">
+                  <div class="flex items-center mx-sm">
+                    <input class="w-6 h-6 transition duration-150 ease-in-out border-black focus:border-black focus:outline-black focus:outline-1 focus:outline-offset-2 focus:ring-3 focus:ring-offset-0 focus:ring-warning-base disabled:bg-neutral-base disabled:border-neutral-base text-primary-base" id="politicas-rgpd" name="check-politicas" type="checkbox" value="si">
+                  </div>
+                  <div class="pt-0.5 leading-5">
+                    <label class="block" for="politicas-rgpd">Acepto la <a href="#" class="c-link">política de privacidad y la protección de datos</a> (Obligatorio)</label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </fieldset>
+        </div>
+        <!-- /checkboxes -->
+        <section class="mt-base mb-base lg:mt-0 lg:mb-0" aria-labelledby="acciones-de-pagina-3">
+          <h2 id="acciones-de-pagina-3" class="sr-only">Acciones de página</h2>
+          <ul class="flex flex-wrap gap-sm">
+            <li>
+              <!-- button -->
+              <button type="submit" class="c-button c-button--primary">
+                Siguiente paso
+              </button>
+              <!-- /button -->
+            </li>
+            <li>
+              <!-- button -->
+              <button class="c-button c-button--transparent">
+                Cancelar
+              </button>
+              <!-- /button -->
+            </li>
+          </ul>
+        </section>
+      </div>
+      <div class="col-span-2 lg:col-span-1">
+      </div>
+    </div>
+  </form>
+  </main>
+  <!-- page.footer -->
+  <footer class="py-base bg-neutral-lighter border-t border-neutral-base text-base lg:text-sm text-neutral-dark mt-2xl lg:mt-48" id="contenido-footer">
+    <div class="container mx-auto px-base ">
+      <div class="flex flex-wrap flex-col lg:flex-row justify-between">
+        <div class="mb-base">
+          <h2 class="sr-only">Enlaces de pie de página</h2>
+          <ul class="flex flex-col lg:flex-row lg:flex-wrap mb-base">
+            <li class="mb-sm mr-base"><a class="c-link font-semibold" href="acerca-de-por-que-desy.html">Por qué desy</a></li>
+            <li class="mb-sm mr-base"><a class="c-link font-semibold" href="acerca-de-alcance.html">Alcance</a></li>
+            <li class="mb-sm mr-base"><a class="c-link font-semibold" href="acerca-de-novedades.html">Novedades</a></li>
+            <li class="mb-sm mr-base"><a class="c-link font-semibold" href="acerca-de-soporte.html">Soporte</a></li>
+            <li class="mb-sm mr-base"><a class="c-link font-semibold" href="pagina-accesibilidad.html">Accesibilidad</a></li>
+            <li class="mb-sm mr-base"><a class="c-link font-semibold" href="pagina-mapa-web.html">Mapa web</a></li>
+          </ul>
+          <div class="mb-sm">
+            <p>Creado por <a href="https://sda.aragon.es/" class="c-link c-link--neutral">SDA Servicios Digitales de Aragón</a></p>
+          </div>
+          <div>
+            <p>
+              Todo el contenido bajo
+              <a class="c-link c-link--neutral" href="https://creativecommons.org/licenses/by/4.0/legalcode.es" rel="license">licencia CC BY 4.0</a>
+            </p>
+          </div>
+          <div>
+            <p>
+              <a class="c-link c-link--neutral" href="https://www.aragon.es/">Gobierno de Aragón</a>. Edificio Pignatelli. Paseo María Agustín, 36. 50004 - Zaragoza - Teléfono: <a href="tel:+34976714000" class="c-link c-link--neutral">976 714 000</a>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </footer>
+  <!-- /page.footer -->
+</body>
+</html>
