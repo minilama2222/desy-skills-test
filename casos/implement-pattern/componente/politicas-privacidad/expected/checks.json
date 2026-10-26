@@ -1,0 +1,34 @@
+{
+  "checks": [
+    {
+      "id": "usa-macro-checkboxes",
+      "severity": "guard",
+      "weight": 0,
+      "assert": { "kind": "macro_presente", "macro": "componentCheckboxes" }
+    },
+    {
+      "id": "sin-props-inventados",
+      "severity": "guard",
+      "weight": 0,
+      "assert": { "kind": "sin_props_inventados", "macro": "componentCheckboxes" }
+    },
+    {
+      "id": "legend-sr-only",
+      "severity": "quality",
+      "weight": 1,
+      "assert": { "kind": "contiene_texto", "texto": "sr-only" }
+    },
+    {
+      "id": "texto-politica",
+      "severity": "quality",
+      "weight": 1,
+      "assert": { "kind": "contiene_texto", "texto": "política de privacidad" }
+    },
+    {
+      "id": "espaciado-del-sistema",
+      "severity": "quality",
+      "weight": 2,
+      "assert": { "kind": "espaciado_del_sistema" }
+    }
+  ]
+}

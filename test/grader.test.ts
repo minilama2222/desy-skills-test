@@ -554,6 +554,49 @@ describe("Checks que consultan la librería de tokens DESY", () => {
   });
 });
 
+describe("estructura_grid (hecho estructural de la rejilla)", () => {
+  const conHtml = (html: string) => artefactos({ "index.html": htmlValidoPagina(html) });
+
+  const checkGrid = (columnas: number): Check => ({
+    id: "estructura-grid",
+    severity: "guard",
+    weight: 0,
+    assert: { kind: "estructura_grid", columnas },
+  });
+
+  const pasa = (html: string, columnas: number) =>
+    grado(
+      { artefactos: conHtml(html), transcript: transcript() },
+      { tipo: "caso-componente", checks: [checkGrid(columnas)] },
+    ).detalle.find((d) => d.id === "estructura-grid")?.passed;
+
+  it("pasa con una rejilla responsive de N columnas", () => {
+    expect(
+      pasa('<div class="grid lg:grid-cols-4 gap-base"></div>', 4),
+    ).toBe(true);
+  });
+
+  it("falla si la rejilla no es responsive (columnas fijas en mobile)", () => {
+    expect(pasa('<div class="grid grid-cols-4 gap-base"></div>', 4)).toBe(false);
+  });
+
+  it("falla si el número de columnas no es el esperado", () => {
+    expect(pasa('<div class="grid lg:grid-cols-2 gap-base"></div>', 4)).toBe(false);
+  });
+
+  it("falla si no hay ninguna rejilla", () => {
+    expect(pasa('<div class="flex gap-base"></div>', 4)).toBe(false);
+  });
+
+  it("el hecho se mira en un elemento que es rejilla, no en un `lg:grid-cols-4` suelto", () => {
+    // Un `lg:grid-cols-4` en un div que no es `grid` no es una rejilla: el hecho
+    // se contrasta sobre el mismo elemento (como la fidelidad estructural).
+    expect(
+      pasa('<div class="lg:grid-cols-4 gap-base"></div><div class="grid"></div>', 4),
+    ).toBe(false);
+  });
+});
+
 describe("Contrato de macro: variante y props", () => {
   const conHtml = (html: string) => artefactos({ "index.html": htmlValidoPagina(html) });
 

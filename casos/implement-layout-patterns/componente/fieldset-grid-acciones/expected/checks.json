@@ -1,0 +1,40 @@
+{
+  "checks": [
+    {
+      "id": "fieldset-con-legend",
+      "severity": "guard",
+      "weight": 0,
+      "assert": { "kind": "fieldset_con_legend" }
+    },
+    {
+      "id": "labels-visibles",
+      "severity": "guard",
+      "weight": 0,
+      "assert": { "kind": "labels_visibles" }
+    },
+    {
+      "id": "estructura-grid",
+      "severity": "guard",
+      "weight": 0,
+      "assert": { "kind": "estructura_grid", "columnas": 4 }
+    },
+    {
+      "id": "acciones-en-section",
+      "severity": "quality",
+      "weight": 1,
+      "assert": { "kind": "contiene_texto", "texto": "Acciones de página" }
+    },
+    {
+      "id": "accion-transparente",
+      "severity": "quality",
+      "weight": 1,
+      "assert": { "kind": "contiene_texto", "texto": "c-button--transparent" }
+    },
+    {
+      "id": "espaciado-del-sistema",
+      "severity": "quality",
+      "weight": 2,
+      "assert": { "kind": "espaciado_del_sistema" }
+    }
+  ]
+}

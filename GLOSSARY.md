@@ -58,6 +58,10 @@ páginas»: el guard sigue atrapando lo inventado.
 **Fidelidad estructural**:
 La comprobación determinista de que la página generada reproduce los hechos de estructura que fija el Gold-HTML — el ancho del container, la escala tipográfica del `h1` y el gap/columnas de la rejilla principal. No es comparación de píxeles (eso es la capa nightly, fuera de v1): la verdad la fija el Gold del Caso, no una lista de clases escrita a mano. Ver `src/fidelidad.ts`.
 
+**Estructura de grid**:
+El hecho estructural de que un artefacto declara una **rejilla responsiva**: un elemento con `grid` que lleva `lg:grid-cols-<N>` **en ese mismo elemento** (como en la fidelidad estructural, se mira sobre su elemento, no «en cualquier parte»). Es la regla de `desy-implement-layout-patterns` («Grid responsivo del formulario»: sólo `lg:grid-cols-N`, no columnas fijas en mobile). Se expresa con el assert `estructura_grid` (`columnas` entero ≥ 2), sin anclar la comprobación a una lista literal de clases. Ver `src/grader.ts`.
+_Evita_: confundirlo con la fidelidad estructural (esa compara contra un Gold-HTML; ésta es un hecho del propio artefacto, sin Gold).
+
 **Ejecución**:
 Un run concreto de un Caso por el SUT. Tiene timestamp y hash del pin; queda en `reports/`. Un Caso tiene N Ejecuciones.
 _Avoid_: llamar "caso" a una Ejecución.

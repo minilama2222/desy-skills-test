@@ -77,6 +77,19 @@ export interface AssertFidelidadEstructural {
 }
 
 /**
+ * Hecho estructural de la **rejilla**: el artefacto declara una rejilla
+ * responsive con el número de columnas que fija el patrón de layout de DESY
+ * (`grid lg:grid-cols-<columnas>`). El hecho se mira sobre el **mismo elemento**
+ * que es rejilla (`grid`), no sobre un `lg:grid-cols-N` suelto en otro sitio: un
+ * `lg:grid-cols-4` en un `div` que no es rejilla no layouta nada. Ver
+ * `desy-implement-layout-patterns` → «Grid responsivo del formulario».
+ */
+export interface AssertEstructuraGrid {
+  kind: "estructura_grid";
+  columnas: number;
+}
+
+/**
  * Hecho estructural de contenido: el HTML generado contiene un texto. Para un
  * Caso-página el artefacto es el compilado, donde el macro ya se expandió, así
  * que la forma de comprobar que la página tiene un campo o una acción concreta
@@ -133,6 +146,7 @@ export type Assert =
   | AssertSinPropsInventados
   | AssertMacroSinClase
   | AssertFidelidadEstructural
+  | AssertEstructuraGrid
   | AssertContieneTexto
   | AssertDeclaraDecision
   | AssertNoDeclaraDecision
@@ -228,6 +242,7 @@ const ASSERT_KINDS = new Set([
   "sin_props_inventados",
   "macro_sin_clase",
   "fidelidad_estructural",
+  "estructura_grid",
   "contiene_texto",
   "declara_decision",
   "no_declara_decision",
@@ -304,6 +319,15 @@ function parseAssert(raw: unknown, contexto: string): Assert {
     }
     case "contiene_texto":
       return { kind: "contiene_texto", texto: exigirString(raw, "texto", contexto) };
+    case "estructura_grid": {
+      const columnas = exigirNumero(raw, "columnas", contexto);
+      if (!Number.isInteger(columnas) || columnas < 2) {
+        throw new Error(
+          `${contexto}: "columnas" debe ser un entero ≥ 2 (recibido ${columnas})`,
+        );
+      }
+      return { kind: "estructura_grid", columnas };
+    }
     case "declara_decision":
       return { kind: "declara_decision", valor: exigirString(raw, "valor", contexto) };
     case "no_declara_decision":

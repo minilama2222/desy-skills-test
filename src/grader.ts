@@ -3,6 +3,7 @@ import { parseChecks } from "./caso.js";
 import { propsValidasDeMacro, componenteEnCatalogo, varianteEnCatalogo } from "./catalogo.js";
 import {
   ambitoDeTokens,
+  clasesPorElemento,
   reproduceContainer,
   reproduceEscalaH1,
   reproduceGap,
@@ -222,6 +223,8 @@ function evaluar(
       );
     case "fidelidad_estructural":
       return fidelidadEstructural(assert.hecho, htmlText, gold);
+    case "estructura_grid":
+      return estructuraGrid(htmlText, assert.columnas);
     case "contiene_texto":
       return normalizarEspacios(htmlText).includes(normalizarEspacios(assert.texto));
     case "declara_decision":
@@ -344,6 +347,20 @@ function fidelidadEstructural(
     case "gap":
       return reproduceGap(htmlText, gold);
   }
+}
+
+/**
+ * ¿El artefacto declara una rejilla responsive con el número de columnas
+ * esperado? El hecho se mira sobre el elemento que **es** rejilla (lleva `grid`),
+ * no sobre un `lg:grid-cols-N` suelto: se exige que ambas clases vivan en el
+ * mismo elemento. Ver `desy-implement-layout-patterns` → «Grid responsivo del
+ * formulario» (sólo `lg:grid-cols-N`, no columnas fijas en mobile).
+ */
+function estructuraGrid(htmlText: string, columnas: number): boolean {
+  const objetivo = `lg:grid-cols-${columnas}`;
+  return clasesPorElemento(htmlText).some(
+    (clases) => clases.includes("grid") && clases.includes(objetivo),
+  );
 }
 
 function clasesDeString(clases: string | undefined): string[] {

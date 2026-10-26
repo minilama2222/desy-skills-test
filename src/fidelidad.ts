@@ -51,6 +51,21 @@ function clasesDeTodos(html: string, tag: string): string[][] {
   return resultado;
 }
 
+/**
+ * Las clases de **cada elemento** del HTML que lleva `class`, en orden de
+ * aparición. Es la lectura por elemento que necesitan los hechos estructurales
+ * que se miran «sobre su elemento» (la rejilla…), no la lista plana de `clasesDe`
+ * del grader (esa mezcla todos los elementos en una sola).
+ */
+export function clasesPorElemento(html: string): string[][] {
+  const resultado: string[][] = [];
+  for (const match of html.matchAll(/<[a-z][a-z0-9]*\b([^>]*)>/gi)) {
+    const clases = atributoClase(match[1]!);
+    if (clases.length > 0) resultado.push(clases);
+  }
+  return resultado;
+}
+
 /** ¿`clases` contiene todas las `esperadas`? */
 function contiene(clases: string[], esperadas: string[]): boolean {
   if (esperadas.length === 0) return true;

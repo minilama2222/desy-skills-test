@@ -223,6 +223,30 @@ describe("parseChecks", () => {
     ).toThrow(/clase/i);
   });
 
+  it("parsea estructura_grid y exige columnas (entero ≥ 2)", () => {
+    const checks = parseChecks(
+      JSON.stringify({
+        checks: [
+          {
+            id: "estructura-grid",
+            severity: "guard",
+            weight: 0,
+            assert: { kind: "estructura_grid", columnas: 4 },
+          },
+        ],
+      }),
+    );
+    expect(checks[0]!.assert).toEqual({ kind: "estructura_grid", columnas: 4 });
+
+    expect(() =>
+      parseChecks(
+        JSON.stringify({
+          checks: [{ id: "x", severity: "guard", weight: 0, assert: { kind: "estructura_grid" } }],
+        }),
+      ),
+    ).toThrow(/columnas/i);
+  });
+
   it("exige el campo checks en la raíz", () => {
     expect(() => parseChecks(JSON.stringify({ items: [] }))).toThrow(/checks/i);
   });
