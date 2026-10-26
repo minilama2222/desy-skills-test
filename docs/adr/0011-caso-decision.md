@@ -57,6 +57,14 @@ Un **Caso-decisión**:
   nombrar al rechazarlo va como **Quality**, no como Guard. El Guard
   no-negociable de un Caso-decisión es el **positivo** (`declara_decision` del
   valor correcto): si la decisión es errónea, ese guard cae.
+- En una tarea de **reconocimiento**, el Guard es **el componente**, no su
+  etiqueta de variante. El catálogo es de ejemplos representativos, no
+  exhaustivos, y el linter del skill trata «no documentado» como `WARNING`
+  (decisión humana): exigir una variante documentada como no-negociable
+  suspendería reconocimientos correctos con vocabulario propio. La variante
+  correcta es un **Quality**; su assert (`reconoce_componente … variante`) es
+  **tolerante** — pregunta «¿es esta la variante?» validando contra el catálogo
+  (traduciendo español↔inglés), no «¿coincide el literal?».
 - El `agregarScorecard` no distingue tipos: un Caso-decisión entra en el
   veredicto agregado igual (PASA/SUSPENDE/INDETERMINADO) y su denominador limpio
   es «alcanzó el skill», que para estos skills exige que el SUT lo invocara.

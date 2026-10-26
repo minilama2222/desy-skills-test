@@ -47,9 +47,19 @@ Caso-decisión es el **positivo**. (En el Caso de `component-recognizer` el
 
 | Caso | Guard (hunde el Grade) | Quality |
 |---|---|---|
-| `component-recognizer/decision/reconocimiento-login` | `reconoce-input-group`, `reconoce-header-mini`, `reconoce-accion-primaria` (button + `primario`) | `reconoce-footer`, no inventar `header-advanced` |
+| `component-recognizer/decision/reconocimiento-login` | `reconoce-input-group`, `reconoce-header-mini`, `reconoce-accion-button` (el componente) | `reconoce-accion-primaria` (button + `primario`, peso 2), `reconoce-footer`, no inventar `header-advanced` |
 | `choose-page-template/decision/404-portal-publico` | `familia-portal` (`with-header-advanced`) | `header-advanced`, no inventar plantilla |
 | `choose-library/decision/portal-turistico` | `libreria-desy-html` | `desy-html-starter`, `header-advanced` |
+
+**El Guard es el componente, no su etiqueta de variante** (corrección de la
+review). El hecho no-negociable de la *tarea de reconocimiento* es *«¿acertó qué
+componente es?»*; la variante es un **Quality**. El catálogo es de ejemplos
+**representativos, no exhaustivos**, y el linter del skill marca «no documentado»
+como `WARNING` (decisión humana), no como error: un SUT que acierta el `button`
+pero usa una etiqueta propia (`destacado`) pierde el Quality, **no suspende**. El
+`variante` del assert de Quality sigue siendo **tolerante**: pregunta «¿es la
+variante primaria?» validando contra el catálogo (traduciendo `primario` ≡
+`primary`), no «¿coincide el literal?».
 
 «Contra el catálogo/linter» (criterio 1) se cumple con el assert
 **`reconoce_componente`**: no compara cadenas escritas a mano, sino que consulta
@@ -73,11 +83,16 @@ backend, así que el `mockup.png` commiteado es un **wireframe placeholder váli
 
 ## Tests
 
-- `test/caso-decision.test.ts`: el tipo, los dos asserts de decisión (presencia,
-  ausencia, insensibilidad, pesos), el Framework vacío y el parseo de `checks.json`.
+- `test/caso-decision.test.ts`: el tipo, los tres asserts de decisión (presencia,
+  ausencia, reconocimiento contra el catálogo, insensibilidad, pesos), el Framework
+  vacío y el parseo de `checks.json`.
+- `test/catalogo.test.ts`: `componenteEnCatalogo` y `varianteEnCatalogo` (sinónimos del linter, traducción español↔inglés, rechazo
+  de clase CSS como variante).
 - `test/casos-bloque-a.test.ts`: aceptación de los tres Casos — una decisión
   correcta da EXCELENTE y una decisión claramente errónea da INACEPTABLE; el
-  `header-advanced` mencionado al descartar no hunde el Grade.
+  `header-advanced` mencionado al descartar no hunde el Grade; acertar el
+  componente con variante de vocabulario propio no suspende (la variante es
+  Quality).
 - `test/runner.test.ts`: el artefacto de un Caso-decisión es el texto del SUT, y
   el mockup se adjunta al prompt.
 - `test/caso-loader.test.ts`: un Caso-decisión carga sin Gold ni HTML.

@@ -69,6 +69,38 @@ describe("Bloque A · component-recognizer/reconocimiento-login", () => {
     expect(resultado.grade).toBe("EXCELENTE");
   });
 
+  it("acertar el componente con una variante de vocabulario propio NO suspende (la variante es Quality)", () => {
+    // El hecho no-negociable es el COMPONENTE. Un SUT que identifica bien el
+    // botón pero usa una etiqueta de variante que no está en el catálogo (el
+    // catálogo es de ejemplos representativos, no exhaustivos) pierde el Quality
+    // de variante, pero no se suspende.
+    const conVocabularioPropio = SALIDA_OK.replace(
+      "| button | primary |",
+      "| button | destacado |",
+    );
+    const resultado = gradeDe(SKILL, ID, conVocabularioPropio, ["component-recognizer"]);
+    expect(resultado.detalle.find((d) => d.id === "reconoce-accion-button")?.passed).toBe(
+      true,
+    );
+    expect(resultado.detalle.find((d) => d.id === "reconoce-accion-primaria")?.passed).toBe(
+      false,
+    );
+    expect(resultado.grade).not.toBe("INACEPTABLE");
+    expect(resultado.grade).not.toBe("EXCELENTE");
+  });
+
+  it("no identificar el `button` de la acción sí suspende (el componente es el Guard)", () => {
+    const sinBoton = SALIDA_OK.replace(
+      '| 4 | button | primary | base | main, final del form | "Acceder" |\n',
+      "",
+    );
+    const resultado = gradeDe(SKILL, ID, sinBoton, ["component-recognizer"]);
+    expect(resultado.grade).toBe("INACEPTABLE");
+    expect(resultado.detalle.find((d) => d.id === "reconoce-accion-button")?.passed).toBe(
+      false,
+    );
+  });
+
   it("identificar un `input` suelto en vez de `input-group` es INACEPTABLE", () => {
     const mal = SALIDA_OK.replace(/\| input-group \|/g, "| input |");
     const resultado = gradeDe(SKILL, ID, mal, ["component-recognizer"]);
