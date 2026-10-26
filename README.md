@@ -17,6 +17,7 @@ npm run typecheck # tsc --noEmit
 npm run run -- --skill implement-component --case boton-primario  # ejecuta un Caso por el SUT y emite Evidencia + Grade
 npm run grade     # puntúa un Check sobre Evidencia vacía (herramienta de autoría)
 npm run load -- <ruta>  # carga un Caso desde su carpeta y muestra su JSON
+npm run verificar-casos  # guardarraíl: todos los Casos de casos/ deben ser cargables
 npm run capturar-gold -- --skill <skill> --case <caso>  # genera/valida la Captura de Gold
 npm run capturar-mockup  # genera el mockup (input/mockup.png) de los Casos-decisión
 npm run report    # agrega las Ejecuciones y renderiza el Scorecard (JSON + markdown)
@@ -48,7 +49,14 @@ Hay cinco Casos:
   portal para un 404) y `casos/choose-library/decision/portal-turistico/`
   (recomienda `desy-html` para un portal público). No producen HTML: su artefacto
   es el texto de la decisión del SUT y sus checks son de **decisión**
-  (`declara_decision` / `no_declara_decision`).
+  (`declara_decision` / `no_declara_decision` / `reconoce_componente`).
+
+Las **fixtures de imagen** (el Gold-imagen `input/gold.png` de un Caso-página y el
+mockup `input/mockup.png` de un Caso-decisión) están **commiteadas** y sólo se
+regeneran con `npm run capturar-gold` / `npm run capturar-mockup`, que abren un
+navegador (`agent-browser`). Donde `agent-browser` no esté disponible, la fixture
+commiteada es la que vale; un `mockup.png` de andamiaje es un wireframe válido, no
+un error.
 
 ## Reporte
 

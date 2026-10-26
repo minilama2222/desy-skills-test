@@ -31,9 +31,38 @@ command, not on the command existing. The mechanical half of this rule — a tic
 `done` with an open checkbox — is enforced by `npm run verificar-tracker`; the
 prose half is yours to check against the CLI's own `usage()`.
 
+Two commands lists exist and they are not the same list: `src/cli.ts`'s `usage()`
+covers the CLI **subcommands** (`run`, `report`, `capturar-gold`, `bump-pin`…),
+while the README's `## Uso` block documents the **npm scripts**. A script that is
+not a CLI subcommand (e.g. `capturar-mockup`, `verificar-captura-gold`) belongs
+in the README and *not* in `usage()`; comparing the two for a script is a false
+finding.
+
 ## Domain language comes from the glossary
 
 When the diff names a domain concept, it uses the term as `GLOSSARY.md` defines
 it. A new synonym for an existing term, or a term used in the sense the glossary
 marks `_Avoid_:`, is a finding. If the concept is genuinely missing, the diff
 adds it to the glossary rather than letting the reader infer it.
+
+## A decision-Caso's Guard is the positive decision
+
+In a **Caso-decisión** (see ADR-0011), the no-negociable fact — the thing whose
+absence sinks the Grade — is the **positive declaration of the correct value**:
+the SUT identified this component, chose this template, recommended this
+library. Two patterns must **not** be Guards:
+
+- **A mentionable negative.** A `no_declara_decision` as a Guard sinks a correct
+  answer that *names the forbidden value while rejecting it* ("this is not a
+  `header-advanced`"). When the SUT could legitimately name the value, the
+  negative is a **Quality**.
+- **A vocabulary-dependent label.** In a recognition task the fact is the
+  **component** ("is it a button?"), not its variant label ("is it `primary`?"):
+  the catalog is representative, not exhaustive, and the skill's own linter
+  treats "undocumented" as a warning, not an error. The variant is a **Quality**,
+  and its assert is tolerant (asks "is this the variant?" against the catalog,
+  not "does the literal match?").
+
+The tell: if you cannot say *"a correct answer could never contain this string"*,
+it does not belong in a Guard.
+
