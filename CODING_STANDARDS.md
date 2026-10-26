@@ -91,3 +91,15 @@ actually contains:
 The tell: a token or markup Guard is measurable only if the string it greps for
 is present in the artifact the Caso actually grades.
 
+## A Bloque's Casos get one acceptance test file
+
+Casos added together as a **Bloque** (a group of skills worked in one ticket) share
+one acceptance test file named for the block — `test/casos-bloque-a.test.ts`,
+`test/casos-bloque-b.test.ts` — with a `describe` per Caso. The file fixes that a
+correct artifact gives EXCELENTE and that each specific error sinks it or drops a
+Quality; the golden evidence is transcribed as the SUT produces it, not as a
+restatement of the Gold. A Caso built as a **slice** (a single vertical path, like
+`boton-primario` or `patron-pagina-paso-1`) keeps its own `<caso>.test.ts`. The
+tell: a ticket that adds several Casos for one block wants one block file; a
+ticket that lands one Caso wants one Caso file.
+
