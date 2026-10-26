@@ -11,6 +11,13 @@ import { pathToFileURL } from "node:url";
  */
 export const ANCHO_CAPTURA = 1900;
 
+/**
+ * Ancho canónico de la Captura del mockup de un Caso-decisión (ver ADR-0011):
+ * 1280px reproduce un escritorio típico. El mockup no lleva manifiesto de
+ * caché (a diferencia de la Captura de Gold): es una fixture estática del Caso.
+ */
+export const ANCHO_MOCKUP = 1280;
+
 export interface EntradaCaptura {
   /** Contenido del Gold-HTML descargado de desy.aragon.es. */
   html: string;

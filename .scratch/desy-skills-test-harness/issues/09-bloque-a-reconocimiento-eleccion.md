@@ -47,16 +47,20 @@ Caso-decisión es el **positivo**. (En el Caso de `component-recognizer` el
 
 | Caso | Guard (hunde el Grade) | Quality |
 |---|---|---|
-| `component-recognizer/decision/reconocimiento-login` | `identifica-input-group`, `identifica-header-mini`, `accion-primaria-es-button` | variant `primary`, `footer`, no inventar `header-advanced` |
+| `component-recognizer/decision/reconocimiento-login` | `reconoce-input-group`, `reconoce-header-mini`, `reconoce-accion-primaria` (button + `primario`) | `reconoce-footer`, no inventar `header-advanced` |
 | `choose-page-template/decision/404-portal-publico` | `familia-portal` (`with-header-advanced`) | `header-advanced`, no inventar plantilla |
 | `choose-library/decision/portal-turistico` | `libreria-desy-html` | `desy-html-starter`, `header-advanced` |
 
-«Contra el catálogo/linter» (criterio 1) se cumple por las **decisiones
-esperadas**: son valores del `catalog.json` del Pin (`input-group`, `header-mini`,
-`button`…), no nombres inventados. El grader comprueba el hecho de decisión
-anclado a ese vocabulario; el `linter.py` del skill es una herramienta *del SUT*
-(paso de verificación del propio skill), no del harness, que sólo gradúa la
-salida.
+«Contra el catálogo/linter» (criterio 1) se cumple con el assert
+**`reconoce_componente`**: no compara cadenas escritas a mano, sino que consulta
+`assets/catalog.json` (`componenteEnCatalogo` / `varianteEnCatalogo` en
+`src/catalogo.ts`). El componente declarado ha de existir en el catálogo y, si se
+pide variante, ha de ser un **ejemplo documentado** de ese componente, con la
+normalización español↔inglés del `linter.py` del skill (`primario` ≡ `primary`).
+La fila del componente se lee de la tabla de identificación, así que una variante
+válida asignada a **otro** componente no cuela. El `linter.py` sigue siendo la
+herramienta *del SUT* (su paso de verificación); el harness valida contra la misma
+fuente (el catálogo) sin ejecutar el linter del skill.
 
 ## Mockup del recognizer
 

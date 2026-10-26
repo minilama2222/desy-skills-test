@@ -111,3 +111,71 @@ describe("Caso-decisión: tipo y asserts de decisión", () => {
     expect(() => parseChecks(declarar("x", "guard", 0, { kind: "camina" }))).toThrow();
   });
 });
+
+describe("Caso-decisión: assert `reconoce_componente` contra el catálogo", () => {
+  const TABLA = [
+    "| Nº | Componente | Variante | Tamaño | Ubicación | Notas |",
+    "|:--:|:-----------|:---------|:------:|:----------|:------|",
+    '| 1 | header-mini | - | - | header | logo |',
+    '| 2 | input-group | text | - | main | label "Usuario" |',
+    '| 3 | button | primario | base | main | "Acceder" |',
+    '| 4 | footer | - | - | footer | logos |',
+  ].join("\n");
+
+  it("un componente documentado con su variante en el catálogo es ACEPTABLE", () => {
+    const checks = declarar("reconoce-boton", "guard", 0, {
+      kind: "reconoce_componente",
+      componente: "button",
+      variante: "primario",
+    });
+    const resultado = gradoCon("caso-decision", checks, TABLA);
+    expect(resultado.grade).not.toBe("INACEPTABLE");
+  });
+
+  it("la variante se valida por el catálogo, traduciendo español↔inglés (`primary`)", () => {
+    const checks = declarar("reconoce-boton", "guard", 0, {
+      kind: "reconoce_componente",
+      componente: "button",
+      variante: "primary",
+    });
+    const resultado = gradoCon("caso-decision", checks, TABLA);
+    expect(resultado.grade).not.toBe("INACEPTABLE");
+  });
+
+  it("un componente inventado (no en el catálogo) es INACEPTABLE", () => {
+    const checks = declarar("reconoce-raro", "guard", 0, {
+      kind: "reconoce_componente",
+      componente: "boton-magico",
+    });
+    const resultado = gradoCon("caso-decision", checks, TABLA);
+    expect(resultado.grade).toBe("INACEPTABLE");
+  });
+
+  it("una variante que el catálogo no documenta para ese componente es INACEPTABLE", () => {
+    const checks = declarar("reconoce-boton", "guard", 0, {
+      kind: "reconoce_componente",
+      componente: "button",
+      variante: "fucsia",
+    });
+    const conFucsia = TABLA.replace("| button | primario |", "| button | fucsia |");
+    const resultado = gradoCon("caso-decision", checks, conFucsia);
+    expect(resultado.grade).toBe("INACEPTABLE");
+  });
+
+  it("una variante declarada para OTRO componente no vale (mira la fila del componente)", () => {
+    // `primario` es variante válida de `button`; asignada a `input-group` no.
+    const checks = declarar("reconoce-input", "guard", 0, {
+      kind: "reconoce_componente",
+      componente: "input-group",
+      variante: "primario",
+    });
+    const resultado = gradoCon("caso-decision", checks, TABLA);
+    expect(resultado.grade).toBe("INACEPTABLE");
+  });
+
+  it("rechaza un checks.json de `reconoce_componente` sin componente", () => {
+    expect(() =>
+      parseChecks(declarar("x", "guard", 0, { kind: "reconoce_componente" })),
+    ).toThrow();
+  });
+});

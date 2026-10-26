@@ -1,40 +1,38 @@
 {
   "checks": [
     {
-      "id": "identifica-input-group",
+      "id": "reconoce-input-group",
       "severity": "guard",
       "weight": 0,
-      "assert": { "kind": "declara_decision", "valor": "input-group" }
+      "assert": { "kind": "reconoce_componente", "componente": "input-group" }
     },
     {
-      "id": "identifica-header-mini",
+      "id": "reconoce-header-mini",
       "severity": "guard",
       "weight": 0,
-      "assert": { "kind": "declara_decision", "valor": "header-mini" }
+      "assert": { "kind": "reconoce_componente", "componente": "header-mini" }
+    },
+    {
+      "id": "reconoce-accion-primaria",
+      "severity": "guard",
+      "weight": 0,
+      "assert": {
+        "kind": "reconoce_componente",
+        "componente": "button",
+        "variante": "primario"
+      }
+    },
+    {
+      "id": "reconoce-footer",
+      "severity": "quality",
+      "weight": 1,
+      "assert": { "kind": "reconoce_componente", "componente": "footer" }
     },
     {
       "id": "no-inventa-header-advanced",
       "severity": "quality",
       "weight": 1,
       "assert": { "kind": "no_declara_decision", "valor": "header-advanced" }
-    },
-    {
-      "id": "accion-primaria-es-button",
-      "severity": "guard",
-      "weight": 0,
-      "assert": { "kind": "declara_decision", "valor": "button" }
-    },
-    {
-      "id": "identifica-footer",
-      "severity": "quality",
-      "weight": 1,
-      "assert": { "kind": "declara_decision", "valor": "footer" }
-    },
-    {
-      "id": "accion-primaria-variante",
-      "severity": "quality",
-      "weight": 2,
-      "assert": { "kind": "declara_decision", "valor": "primary" }
     }
   ]
 }

@@ -22,3 +22,10 @@ framework para un sitio que no lo necesita).
 
 No hay HTML: el artefacto es la recomendación del SUT. Se juzga la **librería**
 elegida y, con menos peso, el starter y la cabecera.
+
+El guard `libreria-desy-html` es un assert **positivo**: comprueba que `desy-html`
+aparece como decisión. Es el gate no-negociable (una recomendación de
+`desy-angular` sin `desy-html` lo suspende). Su límite conocido: un output que
+mencione `desy-html` de pasada *y* recomiende `desy-angular` no lo suspende por
+esta vía — cubierto por el propio texto del skill, que exige una recomendación
+única y clara.

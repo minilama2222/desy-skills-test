@@ -1,6 +1,6 @@
 import type { Assert, Check, HechoEstructural, TipoCaso } from "./caso.js";
 import { parseChecks } from "./caso.js";
-import { propsValidasDeMacro } from "./catalogo.js";
+import { propsValidasDeMacro, componenteEnCatalogo, varianteEnCatalogo } from "./catalogo.js";
 import {
   ambitoDeTokens,
   reproduceContainer,
@@ -228,7 +228,62 @@ function evaluar(
       return textoDeclara(htmlText, assert.valor);
     case "no_declara_decision":
       return !textoDeclara(htmlText, assert.valor);
+    case "reconoce_componente":
+      return reconoceComponente(htmlText, assert.componente, assert.variante);
   }
+}
+
+/**
+ * ¿El SUT identificó este componente (que ha de existir en el catálogo) y, si se
+ * pide, le asignó una variante documentada? Se leen las filas de la tabla de
+ * identificación: la fila del componente es la que tiene una celda que resuelve
+ * a él; la variante ha de estar en **esa misma fila** (así `primario` vale para
+ * `button` pero no para `input-group`).
+ */
+function reconoceComponente(
+  texto: string,
+  componente: string,
+  variante: string | undefined,
+): boolean {
+  if (!componenteEnCatalogo(componente)) return false;
+  const filas = texto
+    .split("\n")
+    .filter((linea) => linea.trim().startsWith("|"))
+    .map((linea) =>
+      linea
+        .split("|")
+        .map((celda) => celda.trim())
+        .filter((celda) => celda.length > 0),
+    );
+
+  const filaDelComponente = filas.filter((celdas) =>
+    celdas.some((celda) => celdaNombraComponente(celda, componente)),
+  );
+  if (filaDelComponente.length === 0) return false;
+  if (variante === undefined) return true;
+
+  return filaDelComponente.some((celdas) =>
+    celdas.some(
+      (celda) =>
+        !esCeldaPlaceholder(celda) &&
+        !celdaNombraComponente(celda, componente) &&
+        varianteEnCatalogo(componente, celda),
+    ),
+  );
+}
+
+/**
+ * Celdas de relleno de la tabla de identificación (`-`, `—`): marcan «este
+ * componente no lleva ese dato» (p. ej. el Tamaño de un input-group). No son
+ * variantes, así que no se contrastan contra el catálogo.
+ */
+function esCeldaPlaceholder(celda: string): boolean {
+  return /^[-–—]+$/.test(celda.trim());
+}
+
+/** ¿La celda nombra ese componente? (misma normalización que el resto del grader). */
+function celdaNombraComponente(celda: string, componente: string): boolean {
+  return normalizarTexto(celda) === normalizarTexto(componente);
 }
 
 /**

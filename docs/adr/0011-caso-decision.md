@@ -33,7 +33,9 @@ Un **Caso-decisión**:
   (`salida.md`) en vez de recolectar del `workDir` (`dirArtefactoDeCaso` devuelve
   `null` para este tipo);
 - sus Checks son **de decisión**: `declara_decision` (el SUT declara un valor de
-  dominio) y `no_declara_decision` (el valor prohibido no aparece).
+  dominio), `no_declara_decision` (el valor prohibido no aparece) y
+  `reconoce_componente` (identifica un componente que existe en `catalog.json`,
+  con una variante documentada, traducida español↔inglés como el linter).
 
 ## Alternativas descartadas
 

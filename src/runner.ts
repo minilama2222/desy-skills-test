@@ -190,7 +190,10 @@ export async function runCaso(
   try {
     sandbox.copySkills();
     const imagen = adjuntarImagenDeCaso(caso, sandbox.workDir);
-    const args = buildOpencodeArgs(promptParaSut(prompt, imagen), imagen);
+    const args = buildOpencodeArgs(
+      promptParaSut(prompt, imagen?.tipo, imagen?.nombre),
+      imagen?.path,
+    );
     const { stdout, stderr } = deps.command.run(args, {
       cwd: sandbox.workDir,
       env: { HOME: sandbox.home, XDG_CONFIG_HOME: sandbox.configDir },
@@ -217,17 +220,29 @@ function artefactosToFiles(
   return Object.fromEntries(artefactos.map((a) => [a.path, a.contenido]));
 }
 
+/** Tipo de imagen de referencia que un Caso adjunta al prompt. */
+type ImagenDeReferencia = "gold" | "mockup";
+
+interface ImagenAdjunta {
+  /** Ruta del PNG dentro del workDir del sandbox (lo que consume `--file`). */
+  path: string;
+  /** Qué representa la imagen: determina el texto del prompt, no su nombre. */
+  tipo: ImagenDeReferencia;
+  /** Nombre del fichero adjunto, para nombrarlo en el prompt. */
+  nombre: string;
+}
+
 /**
- * Copia la imagen de referencia del Caso dentro del sandbox y devuelve la ruta
- * **dentro del workDir** para adjuntarla al prompt. La imagen es la Captura de
- * Gold de un Caso-página (`input/gold.png`) o el mockup de un Caso-decisión
- * (`input/mockup.png`); un Caso-componente no lleva imagen y devuelve undefined.
+ * Copia la imagen de referencia del Caso dentro del sandbox y describe el
+ * adjunto. La imagen es la Captura de Gold de un Caso-página (`input/gold.png`)
+ * o el mockup de un Caso-decisión (`input/mockup.png`); un Caso-componente no
+ * lleva imagen y devuelve undefined.
  *
  * Se copia al sandbox (no se adjunta la ruta del repo) para que el adjunto sea
  * la fixture congelada del Caso y no una ruta del harness que el SUT no debería
  * ver.
  */
-function adjuntarImagenDeCaso(caso: Caso, workDir: string): string | undefined {
+function adjuntarImagenDeCaso(caso: Caso, workDir: string): ImagenAdjunta | undefined {
   if (esCasoPagina(caso)) {
     if (!existsSync(caso.goldImagenPath)) {
       throw new Error(
@@ -235,7 +250,7 @@ function adjuntarImagenDeCaso(caso: Caso, workDir: string): string | undefined {
           "Genera la fixture con `npm run capturar-gold` (ver el ticket 06).",
       );
     }
-    return copiarImagen(caso.goldImagenPath, workDir, "gold.png");
+    return { path: copiarImagen(caso.goldImagenPath, workDir, "gold.png"), tipo: "gold", nombre: "gold.png" };
   }
   if (esCasoDecision(caso) && caso.mockupImagenPath !== undefined) {
     if (!existsSync(caso.mockupImagenPath)) {
@@ -243,7 +258,7 @@ function adjuntarImagenDeCaso(caso: Caso, workDir: string): string | undefined {
         `Caso-decisión ${caso.skill}/${caso.id} sin mockup: falta ${caso.mockupImagenPath}.`,
       );
     }
-    return copiarImagen(caso.mockupImagenPath, workDir, "mockup.png");
+    return { path: copiarImagen(caso.mockupImagenPath, workDir, "mockup.png"), tipo: "mockup", nombre: "mockup.png" };
   }
   return undefined;
 }
@@ -259,15 +274,25 @@ function copiarImagen(origen: string, workDir: string, nombre: string): string {
  * explícita al adjunto, porque `--file` adjunta la imagen pero no la nombra: sin
  * la línea, el modelo no sabe que existe ni para qué usarla.
  */
-function promptParaSut(prompt: string, imagen: string | undefined): string {
-  if (imagen === undefined) return prompt;
-  const nombre = imagen.split(/[\\/]/).pop()!;
-  const referencia = nombre.startsWith("mockup")
-    ? `Referencia visual: te adjunto el mockup (\`${nombre}\`), la imagen de la que ` +
-      "debes identificar los componentes."
-    : `Referencia visual: te adjunto la captura del Gold (\`${nombre}\`), la página ` +
-      "oficial a la que debe parecerse. Úsala para la fidelidad visual (anchos, " +
-      "tipografía, márgenes).";
+/**
+ * El prompt que recibe el SUT. Para un Caso con imagen se le añade la referencia
+ * explícita al adjunto, porque `--file` adjunta la imagen pero no la nombra: sin
+ * la línea, el modelo no sabe que existe ni para qué usarla. El texto depende del
+ * **tipo** de imagen (Gold de una página vs mockup a reconocer), no de su nombre.
+ */
+function promptParaSut(
+  prompt: string,
+  tipo: ImagenDeReferencia | undefined,
+  nombre: string | undefined,
+): string {
+  if (tipo === undefined || nombre === undefined) return prompt;
+  const referencia =
+    tipo === "mockup"
+      ? `Referencia visual: te adjunto el mockup (\`${nombre}\`), la imagen de la que ` +
+        "debes identificar los componentes."
+      : `Referencia visual: te adjunto la captura del Gold (\`${nombre}\`), la página ` +
+        "oficial a la que debe parecerse. Úsala para la fidelidad visual (anchos, " +
+        "tipografía, márgenes).";
   return [prompt, "", referencia].join("\n");
 }
 

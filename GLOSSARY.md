@@ -44,7 +44,7 @@ Un Caso cuyo objetivo es una **decisión** del SUT, no maquetar: identificar com
 _Avoid_: confundirlo con un Caso-componente; un Caso-decisión no produce marcado.
 
 **Assert de decisión**:
-Un Check que mira la **decisión** del SUT en su texto: `declara_decision` (el SUT declara un valor de dominio — un componente del catálogo, una plantilla, una librería) y `no_declara_decision` (el valor prohibido **no** aparece). La búsqueda es insensible a mayúsculas/tildes/espacios, pero se ancla por límites de palabra. Un `no_declara_decision` como **Guard** es frágil si el SUT puede *mencionar* el valor al descartarlo: en ese caso úsese como Quality.
+Un Check que mira la **decisión** del SUT en su texto: `declara_decision` (el SUT declara un valor de dominio — un componente del catálogo, una plantilla, una librería), `no_declara_decision` (el valor prohibido **no** aparece) y `reconoce_componente` (identifica un componente que existe en `catalog.json`, y opcionalmente le asigna una variante documentada, normalizada español↔inglés como el linter del skill). La búsqueda es insensible a mayúsculas/tildes/espacios, pero se ancla por límites de palabra. Un `no_declara_decision` como **Guard** es frágil si el SUT puede *mencionar* el valor al descartarlo: en ese caso úsese como Quality.
 _Avoid_: usarlo contra HTML suelto; es para el Artefacto textual de un Caso-decisión.
 
 **Utilidades del Gold**:

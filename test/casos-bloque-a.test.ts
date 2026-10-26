@@ -61,23 +61,32 @@ describe("Bloque A · component-recognizer/reconocimiento-login", () => {
     expect(resultado.grade).toBe("EXCELENTE");
   });
 
+  it("acepta la variante escrita en español (`primario`) como el linter", () => {
+    // El catálogo documenta `primario`; la tabla de ejemplo usa `primary`. La
+    // validación contra el catálogo traduce español↔inglés, así que ambas valen.
+    const enEspanol = SALIDA_OK.replace("| button | primary |", "| button | primario |");
+    const resultado = gradeDe(SKILL, ID, enEspanol, ["component-recognizer"]);
+    expect(resultado.grade).toBe("EXCELENTE");
+  });
+
   it("identificar un `input` suelto en vez de `input-group` es INACEPTABLE", () => {
     const mal = SALIDA_OK.replace(/\| input-group \|/g, "| input |");
     const resultado = gradeDe(SKILL, ID, mal, ["component-recognizer"]);
     expect(resultado.grade).toBe("INACEPTABLE");
     expect(
-      resultado.detalle.find((d) => d.id === "identifica-input-group")?.passed,
+      resultado.detalle.find((d) => d.id === "reconoce-input-group")?.passed,
     ).toBe(false);
   });
 
+  it("identificar un componente inventado (no en el catálogo) es INACEPTABLE", () => {
+    const mal = SALIDA_OK.replaceAll("| input-group |", "| input-field |");
+    const resultado = gradeDe(SKILL, ID, mal, ["component-recognizer"]);
+    expect(resultado.grade).toBe("INACEPTABLE");
+  });
+
   it("declarar `header-advanced` (un portal de 3 bandas) baja el Grade (Quality, no Guard)", () => {
-    // El SUT puede mencionar `header-advanced` al descartarlo; por eso es un
-    // Quality, no un Guard que hunda el Grade. Como decisión elegida, pierde
-    // puntuación.
     const mal = SALIDA_OK.replace("| header-mini |", "| header-advanced |");
     const resultado = gradeDe(SKILL, ID, mal, ["component-recognizer"]);
-    // Al sustituir header-mini por header-advanced cae el guard positivo de
-    // header-mini: la decisión es errónea.
     expect(resultado.grade).toBe("INACEPTABLE");
   });
 

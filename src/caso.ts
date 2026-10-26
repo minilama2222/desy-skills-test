@@ -105,6 +105,19 @@ export interface AssertNoDeclaraDecision {
   valor: string;
 }
 
+/**
+ * Un hecho de reconocimiento **contra el catálogo**: el SUT identifica un
+ * componente que existe en `catalog.json` y, si se da `variante`, le asigna una
+ * variante documentada para ese componente (con la normalización español↔inglés
+ * del linter del skill). Es la validación del `component-recognizer` contra el
+ * catálogo, no a ojo.
+ */
+export interface AssertReconoceComponente {
+  kind: "reconoce_componente";
+  componente: string;
+  variante?: string;
+}
+
 export type Assert =
   | AssertMacroPresente
   | AssertUnSoloH1
@@ -122,7 +135,8 @@ export type Assert =
   | AssertFidelidadEstructural
   | AssertContieneTexto
   | AssertDeclaraDecision
-  | AssertNoDeclaraDecision;
+  | AssertNoDeclaraDecision
+  | AssertReconoceComponente;
 
 export type Severity = "guard" | "quality";
 
@@ -217,6 +231,7 @@ const ASSERT_KINDS = new Set([
   "contiene_texto",
   "declara_decision",
   "no_declara_decision",
+  "reconoce_componente",
 ]);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -293,6 +308,18 @@ function parseAssert(raw: unknown, contexto: string): Assert {
       return { kind: "declara_decision", valor: exigirString(raw, "valor", contexto) };
     case "no_declara_decision":
       return { kind: "no_declara_decision", valor: exigirString(raw, "valor", contexto) };
+    case "reconoce_componente": {
+      const componente = exigirString(raw, "componente", contexto);
+      const variante = raw.variante;
+      if (variante !== undefined && typeof variante !== "string") {
+        throw new Error(`${contexto}: "variante" debe ser un string si se da`);
+      }
+      return {
+        kind: "reconoce_componente",
+        componente,
+        ...(typeof variante === "string" ? { variante } : {}),
+      };
+    }
     case "sin_utility_por_defecto":
       return { kind: "sin_utility_por_defecto" };
     case "espaciado_del_sistema":
