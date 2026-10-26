@@ -28,8 +28,9 @@ numeric rule only survived because the first run contradicted it.
 The same claim lives in the `README.md`'s usage block, and no guardrail can read
 it: whether `npm run report` "aggregates results" depends on the prose next to the
 command, not on the command existing. The mechanical half of this rule — a ticket
-`done` with an open checkbox — is enforced by `npm run verificar-tracker`; the
-prose half is yours to check against the CLI's own `usage()`.
+`done` with an open checkbox — is enforced by `npm run verificar-tracker`, and the
+README's declared Caso count by `npm run verificar-readme`; the prose half is
+yours to check against the CLI's own `usage()`.
 
 Two commands lists exist and they are not the same list: `src/cli.ts`'s `usage()`
 covers the CLI **subcommands** (`run`, `report`, `capturar-gold`, `bump-pin`…),
@@ -65,4 +66,28 @@ library. Two patterns must **not** be Guards:
 
 The tell: if you cannot say *"a correct answer could never contain this string"*,
 it does not belong in a Guard.
+
+## A macro Caso-componente measures the HTML around the macro
+
+A Caso-componente grades the **source** the SUT writes into `src/`, unexpanded
+(ADR-0006). So its tokens and its markup facts come from the HTML the artifact
+actually contains:
+
+- **Tokens of a macro call.** The macro's `classes` is a Nunjucks string
+  (`"classes": "mt-base"`): it is invisible to `tokens-del-sistema` /
+  `espaciado_del_sistema` until the macro expands, which a Caso-componente never
+  does. A token Quality on a macro Caso is only measurable when the artifact also
+  writes **real HTML** with those utilities (a wrapper `<div class="mt-base
+  mb-base">`). If the whole artifact is one macro call, the token checks pass
+  vacuously — a spec-fitting golden, not a measurement. Either require the HTML
+  wrapper in the prompt, or drop the token Quality.
+- **a11y over tags.** `fieldset_con_legend` and `labels_visibles` look for
+  `<fieldset>` / `<label>` **tags**, which do not exist in a macro call's source.
+  These Guards belong to a Caso that writes markup (`caso-pagina`, or a
+  layout Caso whose artifact is HTML) — not to a macro-based Caso-componente. A
+  `sin_props_inventados` on the macro *is* measurable (it reads the props
+  literal), so it stays.
+
+The tell: a token or markup Guard is measurable only if the string it greps for
+is present in the artifact the Caso actually grades.
 

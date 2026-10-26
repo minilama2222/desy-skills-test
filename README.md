@@ -18,6 +18,7 @@ npm run run -- --skill implement-component --case boton-primario  # ejecuta un C
 npm run grade     # puntúa un Check sobre Evidencia vacía (herramienta de autoría)
 npm run load -- <ruta>  # carga un Caso desde su carpeta y muestra su JSON
 npm run verificar-casos  # guardarraíl: todos los Casos de casos/ deben ser cargables
+npm run verificar-readme  # guardarraíl: el conteo de Casos del README coincide con el disco
 npm run verificar-mockup  # valida los mockup.png commiteados (sin navegador; --recapturar sí abre)
 npm run capturar-gold -- --skill <skill> --case <caso>  # genera/valida la Captura de Gold
 npm run capturar-mockup  # genera el mockup (input/mockup.png) de los Casos-decisión
@@ -32,7 +33,7 @@ Los Casos viven en `casos/<skill>/<tipo>/<id>/`, con `input/prompt.md`,
 `decision`) determina el Framework de checks base que el grader combina con los
 checks del Caso.
 
-Hay cinco Casos:
+Hay **7** Casos:
 
 - `casos/implement-component/componente/boton-primario/` (**Caso-componente**,
   Slice 1): un botón primario de tamaño estándar. Sus guards cubren el uso del
@@ -51,6 +52,13 @@ Hay cinco Casos:
   (recomienda `desy-html` para un portal público). No producen HTML: su artefacto
   es el texto de la decisión del SUT y sus checks son de **decisión**
   (`declara_decision` / `no_declara_decision` / `reconoce_componente`).
+- Dos **Casos-componente** (Bloque B — implementación de patrones y layouts):
+  `casos/implement-pattern/componente/politicas-privacidad/` (el patrón atómico
+  «Aceptar políticas de privacidad» con el macro `componentCheckboxes`) y
+  `casos/implement-layout-patterns/componente/fieldset-grid-acciones/`
+  (`fieldset`+`legend` sr-only, rejilla responsive `lg:grid-cols-4` y acciones de
+  página). Gradúan el **fuente** (`src/`) que el SUT escribe: guards de macro y de
+  a11y (structure el layout), y un Quality de fidelidad de tokens.
 
 Las **fixtures de imagen** (el Gold-imagen `input/gold.png` de un Caso-página y el
 mockup `input/mockup.png` de un Caso-decisión) están **commiteadas** y sólo se
