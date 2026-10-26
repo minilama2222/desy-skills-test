@@ -1,7 +1,7 @@
 # Rúbrica — styles-reference / token-espaciado (Caso-decisión, Bloque C)
 
-Petición: «¿qué clases de utilidad para 16 px y 28 px? ¿puedo usar `p-4` y
-`gap-7`?».
+Petición: «¿qué clases de utilidad para 16 px y 28 px (y a qué valor del sistema
+equivalen)?».
 
 `desy-styles-reference` es la **fuente de verdad de los tokens**: su salida es
 una **decisión** (qué clase del sistema corresponde a cada medida), no HTML. Es
@@ -23,12 +23,20 @@ El Guard es la **declaración positiva del token correcto** (ver
 
 ## Quality (puntúan hacia el Grade)
 
-- **no-escala-numerica** (peso 2): no cierra una respuesta *proponiendo* la
-  escala numérica (`gap-7`). Va como **Quality** y no como Guard porque la
-  salida correcta **nombra** `gap-7` al prohibirlo, y un `no_declara_decision`
-  como Guard suspendería una respuesta correcta (ADR-0011).
-- **no-valor-arbitrario** (peso 1): no propone un valor arbitrario
-  (`p-[13px]`), que el skill prohíbe explícitamente.
+- **explica-la-unidad-base** (peso 2): la respuesta declara que la unidad base es
+  `1rem` (el valor del token `base`), no un número de píxel suelto: es el hecho
+  de contenido de la respuesta.
+- **familia-gap-base** (peso 1): nombra la familia del gap (`gap-base`), no sólo
+  el padding: el espaciado de bloques se aplica con `gap-*` además de `p-*`.
+
+## Qué NO se mide
+
+No hay HTML: el artefacto es la respuesta del SUT. Se juzga la **clase de token**
+elegida, no el wording ni el formato de la explicación. **Nota**: la escala
+numérica de Tailwind no se comprueba con un `no_declara_decision` negativo porque
+el prompt **nombra** la escala al preguntar, y una respuesta correcta la repite al
+descartarla; el no-negociable es el token positivo (el Guard).
+
 
 ## Anclaje en `desy-skills`
 

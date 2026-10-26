@@ -401,6 +401,28 @@ const MARCADORES_FALLO = [
 ];
 
 /**
+ * Categorías del skill `desy-design-match` con su emoji canónico (`🔴
+ * bloqueante`, `🟡 afinable`, `🟢 trivial`). Un SUT puede declarar la categoría
+ * sólo con el icono; normalizar el icono a su palabra hace que el veredicto del
+ * informe sea tolerante al **formato** sin aflojar el hecho (la categoría sigue
+ * siendo la exigida). No es una lista de sinónimos: es el mismo valor en su otra
+ * forma documentada.
+ */
+const EMOJI_CATEGORIA: Record<string, string> = {
+  "🔴": "bloqueante",
+  "🟡": "afinable",
+  "🟢": "trivial",
+};
+
+function normalizarVeredicto(linea: string): string {
+  let out = linea;
+  for (const [emoji, palabra] of Object.entries(EMOJI_CATEGORIA)) {
+    out = out.split(emoji).join(` ${palabra} `);
+  }
+  return normalizarTexto(out);
+}
+
+/**
  * ¿El informe declara el **veredicto** del hecho? El hecho y el veredicto han de
  * convivir en la **misma línea** (la fila de tabla o el bullet del checklist):
  * así un «skip-link: OK» no satisface el hecho por culpa de otro check que sí
@@ -408,7 +430,8 @@ const MARCADORES_FALLO = [
  *
  * Sin `veredicto` (el informe de a11y), basta con un **marcador de fallo**
  * cualquiera. Con `veredicto` (la tabla de discrepancias de `design-match`), se
- * exige **ese** veredicto concreto en la línea.
+ * exige **ese** veredicto concreto en la línea, tolerando el formato (el emoji
+ * del skill vale por su palabra).
  */
 function lineaDeclaraFallo(
   texto: string,
@@ -422,7 +445,7 @@ function lineaDeclaraFallo(
   return texto.split("\n").some((linea) => {
     const normalizada = normalizarTexto(linea);
     if (!normalizada.includes(aguja)) return false;
-    if (esperado !== undefined) return normalizada.includes(esperado);
+    if (esperado !== undefined) return normalizarVeredicto(linea).includes(esperado);
     return MARCADORES_FALLO.some((re) => re.test(linea));
   });
 }

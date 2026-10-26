@@ -296,22 +296,44 @@ describe("Bloque C · design-match/afinado-paso-1", () => {
     expect(resultado.grade).toBe("EXCELENTE");
   });
 
-  it("declarar bloqueante la desviación de > 4px en el h1 es el Guard", () => {
+  it("el Guard es reportar la fila del elemento; la categoría es Quality", () => {
     const resultado = gradeDe(DIR, SALIDA_OK);
+    expect(paso(resultado, "reporta-la-fila-h1")).toBe(true);
+    expect(paso(resultado, "reporta-la-fila-lead")).toBe(true);
     expect(paso(resultado, "marca-bloqueante-h1")).toBe(true);
     expect(paso(resultado, "marca-bloqueante-gap")).toBe(true);
   });
 
-  it("clasificar la desviación de 20px del h1 como trivial es INACEPTABLE", () => {
-    // El error del skill: minimizar un salto de 20px. Un Δ > 4px en el h1 es
-    // bloqueante, no trivial.
+  it("clasificar la desviación de 20px del h1 como trivial baja el Grade (Quality)", () => {
+    // El error del skill: minimizar un salto de 20px. La categoría errónea es un
+    // Quality (la etiqueta de categoría es vocabulario del skill, no un Guard).
     const mal = SALIDA_OK.replace(
       "| 1 | h1.mb | 28px | 8px | +20 | 🔴 bloqueante |",
       "| 1 | h1.mb | 28px | 8px | +20 | 🟢 trivial |",
     );
     const resultado = gradeDe(DIR, mal);
-    expect(resultado.grade).toBe("INACEPTABLE");
     expect(paso(resultado, "marca-bloqueante-h1")).toBe(false);
+    expect(resultado.grade).not.toBe("INACEPTABLE");
+    expect(resultado.grade).not.toBe("EXCELENTE");
+  });
+
+  it("declarar la categoría solo con el emoji del skill satisface el Quality", () => {
+    // El skill escribe la categoría como `🔴 bloqueante`; un SUT que emita solo
+    // el emoji declara el mismo hecho. El veredicto tolera el formato.
+    const soloEmoji = SALIDA_OK.replace("🔴 bloqueante", "🔴");
+    const resultado = gradeDe(DIR, soloEmoji);
+    expect(paso(resultado, "marca-bloqueante-h1")).toBe(true);
+  });
+
+  it("no reportar la fila del h1 es INACEPTABLE (el Guard es el hecho)", () => {
+    const sinFila = [
+      "| # | Elemento | Referencia | Implementación | Δ | Categoría |",
+      "|---|---|---|---|---|---|",
+      "| 2 | lead.mb | 28px | 16px | +12 | 🔴 bloqueante |",
+    ].join("\n");
+    const resultado = gradeDe(DIR, sinFila);
+    expect(resultado.grade).toBe("INACEPTABLE");
+    expect(paso(resultado, "reporta-la-fila-h1")).toBe(false);
   });
 
   it("no proponer un valor arbitrario para el fix es un Quality", () => {

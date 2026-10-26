@@ -68,19 +68,42 @@ puede *nombrar* el valor prohibido al descartarlo (`p-4`, `gap-7`, `componentBut
 - **`angular-translator`**: el no-declara del macro `componentButton` es
   **Quality**, no Guard: el artefacto es el fuente, y el SUT puede nombrar el
   macro al explicar la equivalencia. El Guard es el selector `desy-button`.
-- **`design-match`**: el Guard no basta con nombrar el elemento; usa
-  `declara_fallo { hecho, veredicto }` para exigir la **clasificación** (bloqueante)
-  en la fila del elemento.
+- **`design-match`** (corregido en la review): el Guard es **reportar la fila**
+  del elemento (`declara_decision` de `h1.mb` / `lead.mb`); la **categoría**
+  (bloqueante) es un **Quality** con `declara_fallo { hecho, veredicto }`. Un
+  Guard sobre la categoría era **vocabulario-dependiente** (el skill la escribe
+  con emoji, `🔴 bloqueante`), justo lo que `CODING_STANDARDS.md` prohíbe en un
+  Guard. El veredicto tolera el **formato** (el emoji del skill vale por su
+  palabra) sin aflojar el hecho.
 
 ### Verificación
 
-`test/casos-bloque-c.test.ts` (40 tests, un `describe` por Caso, como
+`test/casos-bloque-c.test.ts` (42 tests, un `describe` por Caso, como
 `CODING_STANDARDS.md` manda para un Bloque) fija que cada salida dorada da
 EXCELENTE y que cada error concreto suspende o baja el Grade — incluidas las
 fronteras que distinguen el Guard: «nombrar el check diciendo OK no satisface el
-informe», «mostrar el comando no es ejecutarlo». `test/caso-decision.test.ts`
-(24 tests) cubre los dos asserts nuevos en aislamiento.
+informe», «mostrar el comando no es ejecutarlo», «declarar la categoría solo con
+el emoji del skill satisface el Quality». `test/caso-decision.test.ts` (24
+tests) cubre los dos asserts nuevos en aislamiento.
 
-Suite completa en verde (452 tests), `tsc --noEmit` limpio, y los guardarraíles
+Suite completa en verde (454 tests), `tsc --noEmit` limpio, y los guardarraíles
 (`verificar-casos`, `verificar-readme`, `verificar-tests`, `verificar-tracker`)
 OK. README actualizado a 14 Casos.
+
+### Review (dos ejes)
+
+Pasó `code-review` sobre `10a413e...HEAD` (Standards + Spec, en paralelo). Ambos
+ejes coincidieron en un defecto real, **corregido**:
+
+- **Standards**: el rubric de `styles-reference` describía los Quality originales
+  (`no-escala-numerica` / `no-valor-arbitrario`) que ya no existían en su
+  `checks.json` — violaba «claim only what is built and measured». Reescrito
+  para describir los checks reales.
+- **Spec**: el Guard de `design-match` exigía la **etiqueta** de categoría
+  (`bloqueante`), vocabulario-dependiente. Rehecho: el Guard es reportar la fila;
+  la categoría es Quality y tolera el emoji del skill.
+
+Smells de juicio (Duplicated Code en los dos predicados de línea de `grader.ts`;
+Primitive Obsession en `accion`/`hecho`) evaluados y **dejados**: el repo no los
+prohíbe, el contrato de `declara_decision{valor}` marca el precedente, y extraer
+una abstracción para un `split("\n")` sería Generalidad Especulativa.

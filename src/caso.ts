@@ -134,15 +134,17 @@ export interface AssertNoDeclaraEjecucion {
 }
 
 /**
- * Un hecho de **informe**: el SUT declara el veredicto de un check en la misma
- * línea/fila/bullet que lo nombra. Es el Guard positivo de un Caso cuyo output
- * es un informe (`desy-validate-accessibility`) o una tabla de medición
- * (`desy-design-match`): nombrar el hecho diciendo que está OK no lo satisface.
+ * Un hecho de **decisión** sobre un informe: el SUT declara el veredicto de un
+ * hecho en la misma línea/fila/bullet que lo nombra. Es el Guard positivo de un
+ * Caso cuyo output es un informe (`desy-validate-accessibility`) o una tabla de
+ * medición (`desy-design-match`): nombrar el hecho diciendo que está OK no lo
+ * satisface. Forma parte de los **asserts de decisión** del glosario.
  *
  * - Sin `veredicto`, el hecho se satisface con **cualquier marcador de fallo**
  *   (el uso del informe de a11y: «skip-link: ausente → FALLA»).
  * - Con `veredicto`, exige **ese** veredicto concreto en la línea (la categoría
- *   de una discrepancia: «h1.mb … bloqueante»).
+ *   de una discrepancia: «h1.mb … bloqueante»), tolerando el formato (el emoji
+ *   documentado del skill vale por su palabra).
  */
 export interface AssertDeclaraFallo {
   kind: "declara_fallo";
