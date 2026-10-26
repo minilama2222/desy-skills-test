@@ -33,7 +33,7 @@ Los Casos viven en `casos/<skill>/<tipo>/<id>/`, con `input/prompt.md`,
 `decision`) determina el Framework de checks base que el grader combina con los
 checks del Caso.
 
-Hay **7** Casos:
+Hay **14** Casos:
 
 - `casos/implement-component/componente/boton-primario/` (**Caso-componente**,
   Slice 1): un botón primario de tamaño estándar. Sus guards cubren el uso del
@@ -59,6 +59,20 @@ Hay **7** Casos:
   (`fieldset`+`legend` sr-only, rejilla responsive `lg:grid-cols-4` y acciones de
   página). Gradúan el **fuente** (`src/`) que el SUT escribe: guards de macro y de
   a11y (structure el layout), y un Quality de fidelidad de tokens.
+- Seis Casos del **Bloque C — verificación y orquestación**: cinco
+  **Casos-decisión** para los skills cuyo output no es HTML —
+  `casos/design-match/decision/afinado-paso-1/` (clasifica las discrepancias
+  trivial/afinable/bloqueante), `casos/validate-accessibility/decision/checklist-sin-servidor/`
+  (el checklist de `grep` detecta los cuatro fallos del HTML, con el assert
+  `declara_fallo`), `casos/styles-reference/decision/token-espaciado/` (devuelve
+  el token del sistema y no el de Tailwind),
+  `casos/preflight-check/decision/proyecto-no-existe/` (identifica
+  `PROYECTO_NO_EXISTE` y bifurca al scaffold), `casos/preflight-check/decision/proyecto-ok-libreria-version/`
+  (identifica la librería y la versión del `package.json`) y
+  `casos/scaffold-project/decision/no-scaffoldea-sin-permiso/` (no ejecuta el
+  clone: guard `no_declara_ejecucion`) — y un **Caso-componente** para
+  `casos/angular-translator/componente/boton-primario-angular/` (traduce el macro
+  `componentButton` al selector `<desy-button>`).
 
 Las **fixtures de imagen** (el Gold-imagen `input/gold.png` de un Caso-página y el
 mockup `input/mockup.png` de un Caso-decisión) están **commiteadas** y sólo se

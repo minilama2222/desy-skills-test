@@ -119,6 +119,40 @@ export interface AssertNoDeclaraDecision {
 }
 
 /**
+ * Un hecho de decisión **de no-acción**: el SUT no declara haber **ejecutado**
+ * una acción (clonar el starter, instalar dependencias, scaffoldear). Es el
+ * Guard positivo de un Caso cuyo skill prohíbe actuar sin permiso del usuario
+ * (`desy-scaffold-project`): la respuesta correcta puede **mostrar el comando**
+ * como plantilla que el usuario corre, pero no puede reclamar haberlo corrido.
+ * Falla sólo ante una reclamación en pasado (`he clonado`, `ya cloné`, `I ran`);
+ * mencionar el comando no basta para suspender.
+ */
+export interface AssertNoDeclaraEjecucion {
+  kind: "no_declara_ejecucion";
+  /** La acción cuya ejecución reclamada suspende (`git clone`, `clonar`, `instalar`). */
+  accion: string;
+}
+
+/**
+ * Un hecho de **informe**: el SUT declara el veredicto de un check en la misma
+ * línea/fila/bullet que lo nombra. Es el Guard positivo de un Caso cuyo output
+ * es un informe (`desy-validate-accessibility`) o una tabla de medición
+ * (`desy-design-match`): nombrar el hecho diciendo que está OK no lo satisface.
+ *
+ * - Sin `veredicto`, el hecho se satisface con **cualquier marcador de fallo**
+ *   (el uso del informe de a11y: «skip-link: ausente → FALLA»).
+ * - Con `veredicto`, exige **ese** veredicto concreto en la línea (la categoría
+ *   de una discrepancia: «h1.mb … bloqueante»).
+ */
+export interface AssertDeclaraFallo {
+  kind: "declara_fallo";
+  /** El hecho/check/fila que el informe declara (`skip-link`, `h1.mb`). */
+  hecho: string;
+  /** El veredicto exacto exigido (`bloqueante`); si falta, basta un fallo. */
+  veredicto?: string;
+}
+
+/**
  * Un hecho de reconocimiento **contra el catálogo**: el SUT identifica un
  * componente que existe en `catalog.json` y, si se da `variante`, le asigna una
  * variante documentada para ese componente (con la normalización español↔inglés
@@ -150,6 +184,8 @@ export type Assert =
   | AssertContieneTexto
   | AssertDeclaraDecision
   | AssertNoDeclaraDecision
+  | AssertNoDeclaraEjecucion
+  | AssertDeclaraFallo
   | AssertReconoceComponente;
 
 export type Severity = "guard" | "quality";
@@ -246,6 +282,8 @@ const ASSERT_KINDS = new Set([
   "contiene_texto",
   "declara_decision",
   "no_declara_decision",
+  "no_declara_ejecucion",
+  "declara_fallo",
   "reconoce_componente",
 ]);
 
@@ -332,6 +370,20 @@ function parseAssert(raw: unknown, contexto: string): Assert {
       return { kind: "declara_decision", valor: exigirString(raw, "valor", contexto) };
     case "no_declara_decision":
       return { kind: "no_declara_decision", valor: exigirString(raw, "valor", contexto) };
+    case "no_declara_ejecucion":
+      return { kind: "no_declara_ejecucion", accion: exigirString(raw, "accion", contexto) };
+    case "declara_fallo": {
+      const hecho = exigirString(raw, "hecho", contexto);
+      const veredicto = raw.veredicto;
+      if (veredicto !== undefined && typeof veredicto !== "string") {
+        throw new Error(`${contexto}: "veredicto" debe ser un string si se da`);
+      }
+      return {
+        kind: "declara_fallo",
+        hecho,
+        ...(typeof veredicto === "string" ? { veredicto } : {}),
+      };
+    }
     case "reconoce_componente": {
       const componente = exigirString(raw, "componente", contexto);
       const variante = raw.variante;

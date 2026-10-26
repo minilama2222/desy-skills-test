@@ -231,6 +231,10 @@ function evaluar(
       return textoDeclara(htmlText, assert.valor);
     case "no_declara_decision":
       return !textoDeclara(htmlText, assert.valor);
+    case "no_declara_ejecucion":
+      return !textoReclamaEjecucion(htmlText, assert.accion);
+    case "declara_fallo":
+      return lineaDeclaraFallo(htmlText, assert.hecho, assert.veredicto);
     case "reconoce_componente":
       return reconoceComponente(htmlText, assert.componente, assert.variante);
   }
@@ -317,6 +321,110 @@ function normalizarTexto(texto: string): string {
     .toLowerCase()
     .replace(/[\s\-_]+/g, " ")
     .trim();
+}
+
+/**
+ * Formas en pasado con las que un SUT **reclama haber ejecutado** una acción.
+ * Es el vocabulario del propio skill (`desy-scaffold-project`: «no ejecutes
+ * estos bloques»): una respuesta que sólo **muestra** un comando como plantilla
+ * no reclama nada; una que dice «he clonado» sí.
+ *
+ * Matices que evitan falsos positivos: la primera persona del pretérito de estos
+ * verbos lleva tilde (`cloné`, `instalé`), y el imperativo/infinitivo no
+ * (`clone`, `clone`); por eso las formas españolas sin tilde no se aceptan (el
+ * texto normalizado perdería la distinción). Se buscan sobre el texto **crudo**.
+ */
+const RECLAMACIONES_EJECUCION = [
+  /\bhe\s+\w+(ado|ido|to)\b/i, // "he clonado", "he ejecutado"
+  /\bya\s+(lo\s+)?\S*(é|í|ó)(?![a-záéíóúñ])/i, // "ya cloné", "ya lo instalé"
+  /\b(ejecuté|cloné|instalé|scaffoldeé|corrí|creé|añadí)(?![a-záéíóúñ])/i,
+  /\b(i\s+(ran|cloned|installed|executed|scaffolded|created)|done|completed|finished)\b/i,
+];
+
+/**
+ * ¿El artefacto declara haber **ejecutado** la acción? Sólo cuenta una
+ * reclamación en pasado sobre esa acción (y su sustantivo: `git clone` →
+ * `clonar`), no la mera mención del comando como plantilla. Es el hecho del
+ * Guard `no_declara_ejecucion`.
+ */
+function textoReclamaEjecucion(texto: string, accion: string): boolean {
+  const objetivo = normalizarTexto(accion);
+  if (objetivo.length === 0) return false;
+  const raices = raicesDeAccion(objetivo);
+  return texto
+    .split("\n")
+    .some(
+      (linea) =>
+        raices.some((raiz) => normalizarTexto(linea).includes(raiz)) &&
+        RECLAMACIONES_EJECUCION.some((re) => re.test(linea)),
+    );
+}
+
+/**
+ * Raíces con las que la acción puede aparecer conjugada: `git clone` → `clone`,
+ * `clonar` → `clon`, `npm install` → `install`/`instal`. Se buscan como
+ * subcadenas para cubrir la flexión verbal sin enumerarla.
+ */
+function raicesDeAccion(accion: string): string[] {
+  const palabras = accion.split(" ").filter((p) => p.length > 0);
+  const ultima = palabras[palabras.length - 1]!;
+  const raices = new Set<string>([ultima]);
+  // `clone`/`clonar` → `clon`; `install`/`instalar` → `instal`; `ejecutar` → `ejecut`.
+  for (const sufijo of ["ar", "er", "ir", "e", "ed"]) {
+    if (ultima.endsWith(sufijo) && ultima.length > sufijo.length) {
+      raices.add(ultima.slice(0, -sufijo.length));
+    }
+  }
+  return [...raices];
+}
+
+/**
+ * Marcadores de fallo de un informe: el veredicto NO conforme de un check. No
+ * son las palabras del skill, son los signos con que cualquier informe declara
+ * que algo incumple.
+ */
+const MARCADORES_FALLO = [
+  /\bfalla\b/i,
+  /\bfalla(s|do|ron)?\b/i,
+  /\bno\s+cumple\b/i,
+  /\bincumple\b/i,
+  /\berror\b/i,
+  /\bausente\b/i,
+  /\bfalta\b/i,
+  /\bko\b/i,
+  /\bno\s+conform/i,
+  /\bfail(ed|s)?\b/i,
+  /[✗✘❌]/,
+  // Un cero como **conteo** del hallazgo ("2 fieldset / 0 legend", ": 0"): un
+  // informe puede declarar el fallo con el número, sin palabra.
+  /[/:]\s*0\b/,
+];
+
+/**
+ * ¿El informe declara el **veredicto** del hecho? El hecho y el veredicto han de
+ * convivir en la **misma línea** (la fila de tabla o el bullet del checklist):
+ * así un «skip-link: OK» no satisface el hecho por culpa de otro check que sí
+ * falla en otra línea.
+ *
+ * Sin `veredicto` (el informe de a11y), basta con un **marcador de fallo**
+ * cualquiera. Con `veredicto` (la tabla de discrepancias de `design-match`), se
+ * exige **ese** veredicto concreto en la línea.
+ */
+function lineaDeclaraFallo(
+  texto: string,
+  hecho: string,
+  veredicto: string | undefined,
+): boolean {
+  const aguja = normalizarTexto(hecho);
+  if (aguja.length === 0) return false;
+  const esperado =
+    veredicto === undefined ? undefined : normalizarTexto(veredicto);
+  return texto.split("\n").some((linea) => {
+    const normalizada = normalizarTexto(linea);
+    if (!normalizada.includes(aguja)) return false;
+    if (esperado !== undefined) return normalizada.includes(esperado);
+    return MARCADORES_FALLO.some((re) => re.test(linea));
+  });
 }
 
 /**

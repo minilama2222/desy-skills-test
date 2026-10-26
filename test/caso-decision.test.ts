@@ -112,6 +112,104 @@ describe("Caso-decisión: tipo y asserts de decisión", () => {
   });
 });
 
+describe("Caso-decisión: assert `no_declara_ejecucion` (no actuó)", () => {
+  const checks = (accion: string) =>
+    declarar("no-actua", "guard", 0, { kind: "no_declara_ejecucion", accion });
+
+  it("una respuesta que solo muestra el comando como plantilla NO suspende", () => {
+    // El skill de scaffold prohíbe ejecutar: la respuesta correcta le da al
+    // usuario los comandos y le pide que los corra él. Mencionar `git clone`
+    // como plantilla no es haberlo ejecutado.
+    const salida = [
+      "No puedo scaffoldear sin tu permiso. Ejecuta tú estos comandos:",
+      "```bash",
+      "git clone https://bitbucket.org/sdaragon/desy-html-starter.git mi-proyecto",
+      "npm install",
+      "```",
+    ].join("\n");
+    const resultado = gradoCon("caso-decision", checks("git clone"), salida);
+    expect(resultado.grade).not.toBe("INACEPTABLE");
+  });
+
+  it("reclamar haber ejecutado la acción en pasado SÍ suspende", () => {
+    const salida = "He clonado el starter y ya instalé las dependencias. Listo.";
+    const resultado = gradoCon("caso-decision", checks("git clone"), salida);
+    expect(resultado.grade).toBe("INACEPTABLE");
+  });
+
+  it("reclamar la ejecución en cualquier forma de pasado suspende (`ya cloné`, `I ran`)", () => {
+    for (const reclamacion of [
+      "Ya cloné el starter en mi-proyecto.",
+      "I cloned the starter already.",
+    ]) {
+      const resultado = gradoCon("caso-decision", checks("clonar"), reclamacion);
+      expect(resultado.grade).toBe("INACEPTABLE");
+    }
+  });
+
+  it("una respuesta que no menciona la acción pasa (no hay reclamación)", () => {
+    const resultado = gradoCon(
+      "caso-decision",
+      checks("git clone"),
+      "¿Quieres que scaffoldee el starter oficial? Dime y sigo.",
+    );
+    expect(resultado.grade).not.toBe("INACEPTABLE");
+  });
+
+  it("rechaza un checks.json de `no_declara_ejecucion` sin acción", () => {
+    expect(() =>
+      parseChecks(declarar("x", "guard", 0, { kind: "no_declara_ejecucion" })),
+    ).toThrow();
+  });
+});
+
+describe("Caso-decisión: assert `declara_fallo` (el informe declara que algo falla)", () => {
+  const checks = (hecho: string) =>
+    declarar("detecta-fallo", "guard", 0, { kind: "declara_fallo", hecho });
+
+  it("declarar el hecho con su marcador de fallo en la misma línea pasa", () => {
+    const informe = [
+      "## Checklist sin servidor",
+      "- [x] un-solo-h1: 1 → OK",
+      "- [ ] skip-link (`c-skip-link`): ausente → FALLA",
+    ].join("\n");
+    const resultado = gradoCon("caso-decision", checks("skip-link"), informe);
+    expect(resultado.grade).not.toBe("INACEPTABLE");
+  });
+
+  it("nombrar el hecho diciendo que está OK NO satisface el guard", () => {
+    // El error real: el informe nombra el check pero no declara que falle.
+    const informe = "- [x] skip-link (`c-skip-link`): presente → OK";
+    const resultado = gradoCon("caso-decision", checks("skip-link"), informe);
+    expect(resultado.grade).toBe("INACEPTABLE");
+  });
+
+  it("el hecho y el marcador han de convivir en la misma línea, no en líneas distintas", () => {
+    const informe = [
+      "- [x] skip-link (`c-skip-link`): presente → OK",
+      "- [ ] labels-visibles: falta el `for` del input `correo` → FALLA",
+    ].join("\n");
+    const resultado = gradoCon("caso-decision", checks("skip-link"), informe);
+    expect(resultado.grade).toBe("INACEPTABLE");
+  });
+
+  it("reconoce los marcadores de fallo del informe (`no cumple`, `error`, `0`)", () => {
+    for (const linea of [
+      "fieldset-con-legend: no cumple (2 fieldset, 1 legend)",
+      "un-solo-h1: error, hay 2 h1 en la página",
+      "fieldset-con-legend: 2 fieldset / 0 legend",
+    ]) {
+      const hecho = linea.split(":")[0]!;
+      const resultado = gradoCon("caso-decision", checks(hecho), linea);
+      expect(resultado.grade).not.toBe("INACEPTABLE");
+    }
+  });
+
+  it("rechaza un checks.json de `declara_fallo` sin hecho", () => {
+    expect(() => parseChecks(declarar("x", "guard", 0, { kind: "declara_fallo" }))).toThrow();
+  });
+});
+
 describe("Caso-decisión: assert `reconoce_componente` contra el catálogo", () => {
   const TABLA = [
     "| Nº | Componente | Variante | Tamaño | Ubicación | Notas |",

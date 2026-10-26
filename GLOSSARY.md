@@ -44,8 +44,20 @@ Un Caso cuyo objetivo es una **decisión** del SUT, no maquetar: identificar com
 _Avoid_: confundirlo con un Caso-componente; un Caso-decisión no produce marcado.
 
 **Assert de decisión**:
-Un Check que mira la **decisión** del SUT en su texto: `declara_decision` (el SUT declara un valor de dominio — un componente del catálogo, una plantilla, una librería), `no_declara_decision` (el valor prohibido **no** aparece) y `reconoce_componente` (identifica un componente que existe en `catalog.json`, y opcionalmente le asigna una variante documentada, normalizada español↔inglés como el linter del skill). La búsqueda es insensible a mayúsculas/tildes/espacios, pero se ancla por límites de palabra. Un `no_declara_decision` como **Guard** es frágil si el SUT puede *mencionar* el valor al descartarlo: en ese caso úsese como Quality.
+Un Check que mira la **decisión** del SUT en su texto: `declara_decision` (el SUT declara un valor de dominio — un componente del catálogo, una plantilla, una librería), `no_declara_decision` (el valor prohibido **no** aparece), `declara_fallo` (el SUT declara el **veredicto** de un hecho — un check que falla en un informe, o la categoría de una discrepancia — en la misma línea que lo nombra) y `reconoce_componente` (identifica un componente que existe en `catalog.json`, y opcionalmente le asigna una variante documentada, normalizada español↔inglés como el linter del skill). La búsqueda es insensible a mayúsculas/tildes/espacios, pero se ancla por límites de palabra. Un `no_declara_decision` como **Guard** es frágil si el SUT puede *mencionar* el valor al descartarlo: en ese caso úsese como Quality.
 _Avoid_: usarlo contra HTML suelto; es para el Artefacto textual de un Caso-decisión.
+
+**Assert de no-acción**:
+Un Check que mira que el SUT **no declara haber ejecutado** una acción:
+`no_declara_ejecucion` (la acción — `git clone`, `scaffoldear` — no aparece
+reclamada en pasado). Es el Guard positivo de un Caso cuyo skill prohíbe actuar
+sin permiso (`desy-scaffold-project`): la respuesta correcta puede **mostrar el
+comando** como plantilla, pero no reclamar haberlo corrido. Falla sólo ante una
+reclamación en pasado (`he clonado`, `ya cloné`, `I ran`), no ante la mera
+mención del comando.
+_Evita_: usar un `no_declara_decision` genérico para esto: no distingue la
+plantilla de la ejecución y suspendería una respuesta correcta. Ver ADR-0011 y el
+Bloque C.
 
 **Utilidades del Gold**:
 Las clases que usa el Gold-HTML de un Caso. En un Caso-página, el guard de tokens

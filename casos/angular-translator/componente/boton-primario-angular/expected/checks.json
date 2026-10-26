@@ -1,0 +1,28 @@
+{
+  "checks": [
+    {
+      "id": "usa-selector-desy-button",
+      "severity": "guard",
+      "weight": 0,
+      "assert": { "kind": "macro_presente", "macro": "desy-button" }
+    },
+    {
+      "id": "conserva-la-variante-primaria",
+      "severity": "quality",
+      "weight": 2,
+      "assert": { "kind": "contiene_texto", "texto": "c-button--primary" }
+    },
+    {
+      "id": "traduce-el-binding-de-texto",
+      "severity": "quality",
+      "weight": 1,
+      "assert": { "kind": "contiene_texto", "texto": "[text]" }
+    },
+    {
+      "id": "no-deja-el-macro-nunjucks",
+      "severity": "quality",
+      "weight": 1,
+      "assert": { "kind": "no_declara_decision", "valor": "componentButton" }
+    }
+  ]
+}
