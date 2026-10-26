@@ -1,4 +1,4 @@
-export type TipoCaso = "caso-componente" | "caso-pagina";
+export type TipoCaso = "caso-componente" | "caso-pagina" | "caso-decision";
 
 export interface AssertMacroPresente {
   kind: "macro_presente";
@@ -87,6 +87,24 @@ export interface AssertContieneTexto {
   texto: string;
 }
 
+/**
+ * Un hecho de **decisión**: el SUT eligió/identificó un valor de dominio (un
+ * componente del catálogo, una plantilla, una librería). No hay HTML que mirar:
+ * la decisión vive en el texto que el SUT emitió (ver `caso-decision`). El valor
+ * es un identificador de dominio (`input-group`, `logged-selector`, `desy-html`)
+ * que se busca como hecho estructural, no como prosa literal.
+ */
+export interface AssertDeclaraDecision {
+  kind: "declara_decision";
+  valor: string;
+}
+
+/** Un hecho de decisión **prohibido**: si aparece, la decisión es errónea. */
+export interface AssertNoDeclaraDecision {
+  kind: "no_declara_decision";
+  valor: string;
+}
+
 export type Assert =
   | AssertMacroPresente
   | AssertUnSoloH1
@@ -102,7 +120,9 @@ export type Assert =
   | AssertSinPropsInventados
   | AssertMacroSinClase
   | AssertFidelidadEstructural
-  | AssertContieneTexto;
+  | AssertContieneTexto
+  | AssertDeclaraDecision
+  | AssertNoDeclaraDecision;
 
 export type Severity = "guard" | "quality";
 
@@ -132,22 +152,49 @@ export interface CasoPagina {
   goldImagenPath: string;
 }
 
-export type Caso = CasoComponente | CasoPagina;
+/**
+ * Un Caso cuyo SUT **decide**, no maqueta: identifica componentes, elige
+ * plantilla o recomienda librería. El Artefacto es el texto que el SUT emitió
+ * (su tabla/decisión), y los checks son de decisión (`declara_decision` /
+ * `no_declara_decision`). No lleva Gold ni HTML.
+ */
+export interface CasoDecision {
+  tipo: "caso-decision";
+  skill: string;
+  id: string;
+  prompt: string;
+  checks: Check[];
+  /**
+   * Mockup de entrada (input/mockup.png), si el Caso decide a partir de una
+   * imagen (p. ej. `component-recognizer`). Se adjunta al prompt del SUT.
+   */
+  mockupImagenPath?: string;
+}
+
+export type Caso = CasoComponente | CasoPagina | CasoDecision;
 
 /** ¿El Caso es un Caso-página? (el único tipo que lleva Gold). */
 export function esCasoPagina(caso: Caso): caso is CasoPagina {
   return caso.tipo === "caso-pagina";
 }
 
+/** ¿El Caso es un Caso-decisión? (el único tipo cuyo artefacto es texto, no HTML). */
+export function esCasoDecision(caso: Caso): caso is CasoDecision {
+  return caso.tipo === "caso-decision";
+}
+
 const CARPETAS: Record<string, TipoCaso> = {
   componente: "caso-componente",
   pagina: "caso-pagina",
+  decision: "caso-decision",
 };
 
 export function tipoDeCarpeta(carpeta: string): TipoCaso {
   const tipo = CARPETAS[carpeta];
   if (!tipo) {
-    throw new Error(`Tipo de Caso desconocido: "${carpeta}" (esperado: componente o pagina)`);
+    throw new Error(
+      `Tipo de Caso desconocido: "${carpeta}" (esperado: componente, pagina o decision)`,
+    );
   }
   return tipo;
 }
@@ -168,6 +215,8 @@ const ASSERT_KINDS = new Set([
   "macro_sin_clase",
   "fidelidad_estructural",
   "contiene_texto",
+  "declara_decision",
+  "no_declara_decision",
 ]);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -240,6 +289,10 @@ function parseAssert(raw: unknown, contexto: string): Assert {
     }
     case "contiene_texto":
       return { kind: "contiene_texto", texto: exigirString(raw, "texto", contexto) };
+    case "declara_decision":
+      return { kind: "declara_decision", valor: exigirString(raw, "valor", contexto) };
+    case "no_declara_decision":
+      return { kind: "no_declara_decision", valor: exigirString(raw, "valor", contexto) };
     case "sin_utility_por_defecto":
       return { kind: "sin_utility_por_defecto" };
     case "espaciado_del_sistema":

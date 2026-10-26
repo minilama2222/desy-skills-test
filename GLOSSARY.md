@@ -39,6 +39,14 @@ Un Caso cuyo objetivo es el contrato de un componente aislado. No lleva Gold; va
 Un Caso cuyo objetivo es una página completa a partir de un Gold. Lleva el Gold (Gold-HTML y Gold-imagen) y añade a los guards base el encadenado, la a11y de página y la fidelidad estructural contra el Gold-HTML.
 _Avoid_: mezclar los dos tipos; el tipo determina qué checks aplican.
 
+**Caso-decisión**:
+Un Caso cuyo objetivo es una **decisión** del SUT, no maquetar: identificar componentes (`component-recognizer`), elegir plantilla (`choose-page-template`) o recomendar librería (`choose-library`). No lleva Gold ni HTML: su Artefacto es el **texto** que el SUT emitió (su tabla/recomendación) y sus Checks son de decisión (`declara_decision` / `no_declara_decision`). Su Framework de checks es vacío: no hay guards comunes de a11y ni de tokens que aplicar.
+_Avoid_: confundirlo con un Caso-componente; un Caso-decisión no produce marcado.
+
+**Assert de decisión**:
+Un Check que mira la **decisión** del SUT en su texto: `declara_decision` (el SUT declara un valor de dominio — un componente del catálogo, una plantilla, una librería) y `no_declara_decision` (el valor prohibido **no** aparece). La búsqueda es insensible a mayúsculas/tildes/espacios, pero se ancla por límites de palabra. Un `no_declara_decision` como **Guard** es frágil si el SUT puede *mencionar* el valor al descartarlo: en ese caso úsese como Quality.
+_Avoid_: usarlo contra HTML suelto; es para el Artefacto textual de un Caso-decisión.
+
 **Utilidades del Gold**:
 Las clases que usa el Gold-HTML de un Caso. En un Caso-página, el guard de tokens
 (`tokens-del-sistema`) **las exime**: un SUT que reproduce el Gold hereda sus
@@ -60,6 +68,9 @@ El conjunto base de Checks que aplica a un tipo de Caso (Caso-componente o Caso-
 **Artefacto** (de una Ejecución):
 El fichero que el SUT escribió en el sandbox y sobre el que se pasa el Grade. De qué fichero se trata **depende del tipo de Caso**: el fuente (`src/`) para el Caso-componente, el compilado (`dist/`) para el Caso-página. En el Caso-página el Artefacto es **la página que el SUT escribió** (el `dist/X.html` cuya fuente `src/X.html` cambió), no el `dist/` entero del build. Ver ADR-0006 y ADR-0009.
 _Avoid_: llamar "artefacto" al `SKILL.md` (eso es el Skill) en el contexto de una Ejecución; confundir el artefacto con el `dist/` entero del starter.
+
+**Artefacto de un Caso-decisión**:
+El **texto** que el SUT emitió (su tabla de identificación, su recomendación: la prosa de stdout más las invocaciones de stderr). No vive en el `workDir` (un Caso-decisión no escribe ficheros): lo captura el runner del transcript. Ver ADR-0011.
 
 **Entrega**:
 Qué produjo una Ejecución: `con-artefacto` (hay al menos un Artefacto que graduar) o `sin-artefacto` (no produjo ninguno). Es un eje **distinto** del Grade: `sin-artefacto` no es «lo hizo mal», es «no hubo nada que juzgar» — el skill ni llegó a producir. El scorecard agrega las Ejecuciones `sin-artefacto` aparte, para no contarlas como fallos del skill. Ver el ticket 15.

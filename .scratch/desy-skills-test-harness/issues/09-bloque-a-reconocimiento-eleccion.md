@@ -4,11 +4,76 @@
 
 **Blocked by:** 05, 08
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Caso de `component-recognizer` que valida las identificaciones contra el catálogo/linter
-- [ ] Caso de `choose-page-template` que valida la plantilla elegida por familia, no por cabecera visible
-- [ ] Caso de `choose-library` que valida la recomendación de librería según caso de uso
-- [ ] Cada Caso declara sus guards y quality en `checks.json`
-- [ ] Hay al menos un guard por Caso que hunda el Grade si la decisión es claramente errónea
+- [x] Caso de `component-recognizer` que valida las identificaciones contra el catálogo/linter
+- [x] Caso de `choose-page-template` que valida la plantilla elegida por familia, no por cabecera visible
+- [x] Caso de `choose-library` que valida la recomendación de librería según caso de uso
+- [x] Cada Caso declara sus guards y quality en `checks.json`
+- [x] Hay al menos un guard por Caso que hunda el Grade si la decisión es claramente errónea
 
+## Cómo quedó
+
+Los tres skills de este bloque **no producen HTML**: su salida es una decisión en
+texto (una tabla de componentes, una plantilla, una recomendación de librería). El
+harness de v1 sólo graduaba HTML, así que este ticket añade un **tercer tipo de
+Caso** (ver ADR-0011).
+
+**Caso-decisión** (`src/caso.ts`, `src/caso-loader.ts`, `src/grader.ts`): sin
+Gold ni HTML, Framework de checks **vacío** (no hay guards comunes de a11y ni de
+tokens que aplicar), y dos asserts **de decisión** nuevos:
+
+- `declara_decision` — el SUT declara un valor de dominio (un componente del
+  catálogo, una plantilla, una librería).
+- `no_declara_decision` — el valor prohibido **no** aparece.
+
+La búsqueda normaliza mayúsculas, tildes y espacios (`logged-selector` ==
+`LOGGED-SELECTOR`) y se ancla por límites de palabra (para que `alert` no case
+dentro de `alerting`). Es un hecho de decisión, no comparación literal de prosa.
+
+**Artefacto de un Caso-decisión**: el **texto** que emitió el SUT (prosa de
+`stdout` + Invocaciones de `stderr`). El runner lo captura como `salida.md`
+(`dirArtefactoDeCaso` devuelve `null`); antes la prosa se descartaba. Un Caso con
+mockup (`component-recognizer`) adjunta `input/mockup.png` al prompt con `--file`,
+igual que la Captura de Gold de un Caso-página.
+
+**Convención de robustez**: un `no_declara_decision` que el SUT pueda *mencionar*
+al descartarlo («no es un `header-advanced`») va como **Quality**, no como Guard:
+si fuera Guard hundiría un output correcto. El Guard no-negociable de un
+Caso-decisión es el **positivo**. (En el Caso de `component-recognizer` el
+`header-advanced` quedó como Quality por esto; hay un test que lo fija.)
+
+## Los tres Casos
+
+| Caso | Guard (hunde el Grade) | Quality |
+|---|---|---|
+| `component-recognizer/decision/reconocimiento-login` | `identifica-input-group`, `identifica-header-mini`, `accion-primaria-es-button` | variant `primary`, `footer`, no inventar `header-advanced` |
+| `choose-page-template/decision/404-portal-publico` | `familia-portal` (`with-header-advanced`) | `header-advanced`, no inventar plantilla |
+| `choose-library/decision/portal-turistico` | `libreria-desy-html` | `desy-html-starter`, `header-advanced` |
+
+«Contra el catálogo/linter» (criterio 1) se cumple por las **decisiones
+esperadas**: son valores del `catalog.json` del Pin (`input-group`, `header-mini`,
+`button`…), no nombres inventados. El grader comprueba el hecho de decisión
+anclado a ese vocabulario; el `linter.py` del skill es una herramienta *del SUT*
+(paso de verificación del propio skill), no del harness, que sólo gradúa la
+salida.
+
+## Mockup del recognizer
+
+El mockup es una **fixture versionada**: vive como `input/mockup.png` y su fuente
+`input/mockup.html`. Se regenera con `npm run capturar-mockup` (misma mecánica que
+la Captura de Gold, ADR-0008). En este entorno `agent-browser` no alcanzó su
+backend, así que el `mockup.png` commiteado es un **wireframe placeholder válido**
+(1280×900, generado sin navegador); el PNG real se genera con el script donde
+`agent-browser` funcione.
+
+## Tests
+
+- `test/caso-decision.test.ts`: el tipo, los dos asserts de decisión (presencia,
+  ausencia, insensibilidad, pesos), el Framework vacío y el parseo de `checks.json`.
+- `test/casos-bloque-a.test.ts`: aceptación de los tres Casos — una decisión
+  correcta da EXCELENTE y una decisión claramente errónea da INACEPTABLE; el
+  `header-advanced` mencionado al descartar no hunde el Grade.
+- `test/runner.test.ts`: el artefacto de un Caso-decisión es el texto del SUT, y
+  el mockup se adjunta al prompt.
+- `test/caso-loader.test.ts`: un Caso-decisión carga sin Gold ni HTML.

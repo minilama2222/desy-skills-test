@@ -16,6 +16,7 @@
     "grade": "tsx src/cli.ts grade",
     "load": "tsx src/cli.ts load",
     "capturar-gold": "tsx src/cli.ts capturar-gold",
+    "capturar-mockup": "tsx scripts/capturar-mockup.ts",
     "verificar-captura-gold": "tsx scripts/verificar-captura-gold.ts",
     "report": "tsx src/cli.ts report",
     "bump-pin": "tsx src/cli.ts bump-pin"

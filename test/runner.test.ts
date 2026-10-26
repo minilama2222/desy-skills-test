@@ -76,6 +76,10 @@ describe("dirArtefactoDeCaso", () => {
   it("el Caso-página se mide sobre el compilado (dist/): el HTML y la a11y sólo existen ahí", () => {
     expect(dirArtefactoDeCaso("caso-pagina")).toBe("dist");
   });
+
+  it("el Caso-decisión no tiene directorio de artefacto: su salida es la prosa del SUT", () => {
+    expect(dirArtefactoDeCaso("caso-decision")).toBeNull();
+  });
 });
 
 describe("runCaso", () => {
@@ -388,6 +392,92 @@ describe("runCaso", () => {
     );
 
     expect(veredicto.detalle.find((d) => d.id === "flujo")?.passed).toBe(true);
+  });
+
+  it("un Caso-decisión toma como artefacto la prosa que el SUT emitió por stdout", async () => {
+    // Un Caso-decisión no escribe ficheros: lo que se gradúa es su decisión, y
+    // la decisión vive en el texto que imprimió. El artefacto es ese texto.
+    const sandbox = fakeSandbox();
+    const command: CommandRunner = {
+      run: () => ({
+        stdout:
+          "| Nº | Componente | Variante |\n| 1 | input-group | text |\n",
+        stderr: '→ Skill "desy-component-recognizer"\n',
+        code: 0,
+      }),
+    };
+    const decision = {
+      tipo: "caso-decision" as const,
+      skill: "component-recognizer",
+      id: "login",
+      prompt: "¿Qué componentes tiene esta imagen?",
+      checks: [],
+    };
+
+    const resultado = await runCaso(decision, pin, {
+      sandbox: factoryOf(sandbox),
+      command,
+    });
+
+    expect(sandbox.listArtefactos).not.toHaveBeenCalled();
+    expect(Object.values(resultado.artefactos.files).join("\n")).toContain("input-group");
+    expect(resultado.transcript.invocaciones).toEqual(["component-recognizer"]);
+  });
+
+  it("el artefacto de un Caso-decisión son los dos streams del SUT (prosa + invocaciones)", async () => {
+    const sandbox = fakeSandbox();
+    const command: CommandRunner = {
+      run: () => ({
+        stdout: "Recomiendo desy-angular (Angular 19).\n",
+        stderr: '→ Skill "desy-choose-library"\n',
+        code: 0,
+      }),
+    };
+    const decision = {
+      tipo: "caso-decision" as const,
+      skill: "choose-library",
+      id: "webapp-gestion",
+      prompt: "¿Qué librería uso?",
+      checks: [],
+    };
+
+    const resultado = await runCaso(decision, pin, {
+      sandbox: factoryOf(sandbox),
+      command,
+    });
+
+    const texto = Object.values(resultado.artefactos.files).join("\n");
+    expect(texto).toContain("desy-angular");
+  });
+
+  it("un Caso-decisión adjunta su mockup (input/mockup.png) al prompt", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "runner-mockup-"));
+    const casoDir = mkdtempSync(join(tmpdir(), "runner-caso-"));
+    try {
+      const mockup = join(casoDir, "mockup.png");
+      writeFileSync(mockup, "PNG");
+      const sandbox = { ...fakeSandbox(), workDir: dir };
+      const run = vi.fn(() => ({ stdout: "", stderr: "", code: 0 }));
+      const decision = {
+        tipo: "caso-decision" as const,
+        skill: "component-recognizer",
+        id: "login",
+        prompt: "¿Qué componentes tiene esta imagen?",
+        checks: [],
+        mockupImagenPath: mockup,
+      };
+
+      await runCaso(decision, pin, { sandbox: factoryOf(sandbox), command: { run } });
+
+      const [args] = run.mock.calls[0] as unknown as [string[]];
+      expect(args).toContain("--file");
+      const i = args.indexOf("--file");
+      expect(args[i + 1]).toBe(join(dir, "mockup.png"));
+      expect(args[args.length - 1]).toContain("mockup.png");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+      rmSync(casoDir, { recursive: true, force: true });
+    }
   });
 
   it("limpia el sandbox incluso si el SUT falla", async () => {

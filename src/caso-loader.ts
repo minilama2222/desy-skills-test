@@ -1,6 +1,6 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import type { Caso, CasoComponente, CasoPagina, Check } from "./caso.js";
+import type { Caso, CasoComponente, CasoDecision, CasoPagina, Check } from "./caso.js";
 import { parseChecks, tipoDeCarpeta } from "./caso.js";
 import { REPO_ROOT } from "./repo.js";
 
@@ -14,6 +14,7 @@ const PROMPT = join("input", "prompt.md");
 const CHECKS = join("expected", "checks.json");
 const GOLD = join("input", "gold.html");
 const GOLD_IMAGEN = join("input", "gold.png");
+const MOCKUP = join("input", "mockup.png");
 
 function leer(path: string, descripcion: string): string {
   if (!existsSync(path)) {
@@ -67,6 +68,19 @@ export function cargarCaso(dir: string): Caso {
       checks,
       goldPath,
       goldImagenPath: join(dir, GOLD_IMAGEN),
+    };
+    return caso;
+  }
+
+  if (tipo === "caso-decision") {
+    const mockupImagenPath = join(dir, MOCKUP);
+    const caso: CasoDecision = {
+      tipo,
+      skill,
+      id,
+      prompt,
+      checks,
+      ...(existsSync(mockupImagenPath) ? { mockupImagenPath } : {}),
     };
     return caso;
   }

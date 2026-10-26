@@ -1,0 +1,22 @@
+{
+  "checks": [
+    {
+      "id": "familia-portal",
+      "severity": "guard",
+      "weight": 0,
+      "assert": { "kind": "declara_decision", "valor": "with-header-advanced" }
+    },
+    {
+      "id": "cabecera-advanced",
+      "severity": "quality",
+      "weight": 1,
+      "assert": { "kind": "declara_decision", "valor": "header-advanced" }
+    },
+    {
+      "id": "no-inventa-plantilla",
+      "severity": "quality",
+      "weight": 1,
+      "assert": { "kind": "no_declara_decision", "valor": "not-found-layout" }
+    }
+  ]
+}

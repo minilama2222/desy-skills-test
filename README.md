@@ -18,6 +18,7 @@ npm run run -- --skill implement-component --case boton-primario  # ejecuta un C
 npm run grade     # puntúa un Check sobre Evidencia vacía (herramienta de autoría)
 npm run load -- <ruta>  # carga un Caso desde su carpeta y muestra su JSON
 npm run capturar-gold -- --skill <skill> --case <caso>  # genera/valida la Captura de Gold
+npm run capturar-mockup  # genera el mockup (input/mockup.png) de los Casos-decisión
 npm run report    # agrega las Ejecuciones y renderiza el Scorecard (JSON + markdown)
 npm run bump-pin <ref>  # actualiza vendor/ + pin.json al ref dado
 ```
@@ -25,10 +26,11 @@ npm run bump-pin <ref>  # actualiza vendor/ + pin.json al ref dado
 ## Casos
 
 Los Casos viven en `casos/<skill>/<tipo>/<id>/`, con `input/prompt.md`,
-`expected/checks.json` y `rubric.md`. El tipo (`componente` | `pagina`) determina
-el Framework de checks base que el grader combina con los checks del Caso.
+`expected/checks.json` y `rubric.md`. El tipo (`componente` | `pagina` |
+`decision`) determina el Framework de checks base que el grader combina con los
+checks del Caso.
 
-Hay dos Casos, uno por tipo:
+Hay cinco Casos:
 
 - `casos/implement-component/componente/boton-primario/` (**Caso-componente**,
   Slice 1): un botón primario de tamaño estándar. Sus guards cubren el uso del
@@ -39,6 +41,14 @@ Hay dos Casos, uno por tipo:
   Gold oficial (`input/gold.html` + `input/gold.png`). A los guards de a11y y de
   tokens se suman los de **fidelidad estructural** (container, escala del `h1`,
   gap de la rejilla, contra el Gold) y el del **encadenado** de skills.
+- Tres **Casos-decisión** (Slice 3, Bloque A — reconocimiento y elección):
+  `casos/component-recognizer/decision/reconocimiento-login/` (identifica los
+  componentes de un login DESY contra el catálogo),
+  `casos/choose-page-template/decision/404-portal-publico/` (elige la familia
+  portal para un 404) y `casos/choose-library/decision/portal-turistico/`
+  (recomienda `desy-html` para un portal público). No producen HTML: su artefacto
+  es el texto de la decisión del SUT y sus checks son de **decisión**
+  (`declara_decision` / `no_declara_decision`).
 
 ## Reporte
 

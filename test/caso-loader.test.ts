@@ -136,6 +136,33 @@ describe("cargarCaso", () => {
     expect(caso.goldImagenPath).toBe(join(dir, "input", "gold.png"));
   });
 
+  it("carga un Caso-decisión sin Gold ni HTML (su salida es texto)", () => {
+    root = mkdtempSync(join(tmpdir(), "casos-"));
+    const checks = {
+      checks: [
+        {
+          id: "libreria-correcta",
+          severity: "guard",
+          weight: 0,
+          assert: { kind: "declara_decision", valor: "desy-html" },
+        },
+      ],
+    };
+    const dir = crearCaso(root, "choose-library", "decision", "portal-turistico", {
+      prompt: "¿Qué librería uso para un portal público con SEO crítico?",
+      checks,
+    });
+
+    const caso = cargarCaso(dir);
+
+    expect(caso.tipo).toBe("caso-decision");
+    expect(caso.skill).toBe("choose-library");
+    expect(caso.checks[0]!.assert).toEqual({
+      kind: "declara_decision",
+      valor: "desy-html",
+    });
+  });
+
   it("propaga un error claro si falta rubric.md", () => {
     root = mkdtempSync(join(tmpdir(), "casos-"));
     const dir = crearCaso(root, "implement-component", "componente", "sin-rubric", {
@@ -186,7 +213,7 @@ describe("cargarCaso", () => {
     mkdirSync(join(root, "implement-component", "otro", "x", "input"), { recursive: true });
 
     expect(() => cargarCaso(join(root!, "implement-component", "otro", "x"))).toThrow(
-      /componente|pagina/i,
+      /componente|pagina|decision/i,
     );
   });
 });

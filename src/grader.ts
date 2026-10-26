@@ -100,6 +100,10 @@ const FRAMEWORK: Record<TipoCaso, Check[]> = {
     },
     TOKENS_GUARD,
   ],
+  // Un Caso-decisión no produce HTML: no hay guards comunes de a11y ni de
+  // tokens que aplicar. Su Framework es vacío; todo lo que se juzga son los
+  // checks de decisión propios del Caso.
+  "caso-decision": [],
 };
 
 export function frameworkDeChecks(tipo: TipoCaso): Check[] {
@@ -220,7 +224,41 @@ function evaluar(
       return fidelidadEstructural(assert.hecho, htmlText, gold);
     case "contiene_texto":
       return normalizarEspacios(htmlText).includes(normalizarEspacios(assert.texto));
+    case "declara_decision":
+      return textoDeclara(htmlText, assert.valor);
+    case "no_declara_decision":
+      return !textoDeclara(htmlText, assert.valor);
   }
+}
+
+/**
+ * ¿El texto que emitió el SUT declara esta decisión de dominio? La búsqueda es
+ * insensible a mayúsculas y a los espacios de la prosa (`LOGGED-SELECTOR`,
+ * `logged-selector` y `logged selector` son el mismo hecho), pero anclada por
+ * límites de palabra para que `alert` no case dentro de `alerting`. El valor es
+ * un identificador de dominio, no una frase: se busca como hecho, no como texto
+ * literal.
+ */
+function textoDeclara(texto: string, valor: string): boolean {
+  const aguja = normalizarTexto(valor);
+  if (aguja.length === 0) return false;
+  const patron = aguja
+    .split(" ")
+    .map((palabra) => palabra.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+    .join("[\\s\\-_]+");
+  return new RegExp(`(^|[^\\w-])${patron}([^\\w-]|$)`, "i").test(
+    normalizarTexto(texto),
+  );
+}
+
+/** Minúsculas, sin tildes, y espacios/guiones/guiones_bajos unificados a un espacio. */
+function normalizarTexto(texto: string): string {
+  return texto
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[\s\-_]+/g, " ")
+    .trim();
 }
 
 /**

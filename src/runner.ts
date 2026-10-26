@@ -11,7 +11,7 @@ import {
 import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
 import type { Caso } from "./caso.js";
-import { esCasoPagina } from "./caso.js";
+import { esCasoDecision, esCasoPagina } from "./caso.js";
 import type { Pin } from "./pin.js";
 import { REPO_ROOT } from "./repo.js";
 
@@ -150,7 +150,8 @@ export function buildOpencodeArgs(prompt: string, imagen?: string): string[] {
 
 /**
  * Directorio del `workDir` que contiene el artefacto que se gradúa, según el
- * tipo de Caso. No es lo mismo para los dos tipos (ver ADR-0006):
+ * tipo de Caso. No es lo mismo para los dos tipos que sí producen ficheros (ver
+ * ADR-0006):
  *
  * - **Caso-componente** → `src/`: lo que se juzga es el contrato del componente,
  *   y el contrato es la *llamada al macro*, que sólo existe en el fuente. Al
@@ -158,11 +159,15 @@ export function buildOpencodeArgs(prompt: string, imagen?: string): string[] {
  *   pierden), así que el `dist/` no sirve para medirlo.
  * - **Caso-página** → `dist/`: lo que se juzga es la página renderizada (HTML y
  *   a11y), y eso sólo existe compilado.
+ * - **Caso-decisión** → `null`: no produce ficheros. Su artefacto es el texto que
+ *   el SUT emitió (su decisión), que no vive en el `workDir` sino en el
+ *   transcript.
  *
  * El SUT escribe el fuente en `src/` como `.html` (convención del propio skill),
  * así que el Caso-componente no necesita compilar nada.
  */
-export function dirArtefactoDeCaso(tipo: Caso["tipo"]): string {
+export function dirArtefactoDeCaso(tipo: Caso["tipo"]): string | null {
+  if (tipo === "caso-decision") return null;
   return tipo === "caso-componente" ? "src" : "dist";
 }
 
@@ -184,17 +189,22 @@ export async function runCaso(
   const sandbox = deps.sandbox.create();
   try {
     sandbox.copySkills();
-    const imagen = adjuntarGoldImagen(caso, sandbox.workDir);
+    const imagen = adjuntarImagenDeCaso(caso, sandbox.workDir);
     const args = buildOpencodeArgs(promptParaSut(prompt, imagen), imagen);
     const { stdout, stderr } = deps.command.run(args, {
       cwd: sandbox.workDir,
       env: { HOME: sandbox.home, XDG_CONFIG_HOME: sandbox.configDir },
     });
+    const transcript = mergeTranscript(stdout, stderr);
+    const dir = dirArtefactoDeCaso(caso.tipo);
     return {
       artefactos: {
-        files: artefactosToFiles(sandbox.listArtefactos(dirArtefactoDeCaso(caso.tipo))),
+        files:
+          dir === null
+            ? { "salida.md": transcript }
+            : artefactosToFiles(sandbox.listArtefactos(dir)),
       },
-      transcript: { invocaciones: parseInvocaciones(mergeTranscript(stdout, stderr)) },
+      transcript: { invocaciones: parseInvocaciones(transcript) },
     };
   } finally {
     sandbox.cleanup();
@@ -208,42 +218,57 @@ function artefactosToFiles(
 }
 
 /**
- * Copia la Captura de Gold del Caso dentro del sandbox y devuelve la ruta
- * **dentro del workDir** para adjuntarla al prompt. Un Caso-componente no lleva
- * Gold-imagen, así que devuelve undefined y el prompt va sin adjunto.
+ * Copia la imagen de referencia del Caso dentro del sandbox y devuelve la ruta
+ * **dentro del workDir** para adjuntarla al prompt. La imagen es la Captura de
+ * Gold de un Caso-página (`input/gold.png`) o el mockup de un Caso-decisión
+ * (`input/mockup.png`); un Caso-componente no lleva imagen y devuelve undefined.
  *
  * Se copia al sandbox (no se adjunta la ruta del repo) para que el adjunto sea
  * la fixture congelada del Caso y no una ruta del harness que el SUT no debería
  * ver.
  */
-function adjuntarGoldImagen(caso: Caso, workDir: string): string | undefined {
-  if (!esCasoPagina(caso)) return undefined;
-  if (!existsSync(caso.goldImagenPath)) {
-    throw new Error(
-      `Caso-página ${caso.skill}/${caso.id} sin Captura de Gold: falta ${caso.goldImagenPath}. ` +
-        "Genera la fixture con `npm run capturar-gold` (ver el ticket 06).",
-    );
+function adjuntarImagenDeCaso(caso: Caso, workDir: string): string | undefined {
+  if (esCasoPagina(caso)) {
+    if (!existsSync(caso.goldImagenPath)) {
+      throw new Error(
+        `Caso-página ${caso.skill}/${caso.id} sin Captura de Gold: falta ${caso.goldImagenPath}. ` +
+          "Genera la fixture con `npm run capturar-gold` (ver el ticket 06).",
+      );
+    }
+    return copiarImagen(caso.goldImagenPath, workDir, "gold.png");
   }
-  const destino = join(workDir, "gold.png");
-  cpSync(caso.goldImagenPath, destino);
+  if (esCasoDecision(caso) && caso.mockupImagenPath !== undefined) {
+    if (!existsSync(caso.mockupImagenPath)) {
+      throw new Error(
+        `Caso-decisión ${caso.skill}/${caso.id} sin mockup: falta ${caso.mockupImagenPath}.`,
+      );
+    }
+    return copiarImagen(caso.mockupImagenPath, workDir, "mockup.png");
+  }
+  return undefined;
+}
+
+function copiarImagen(origen: string, workDir: string, nombre: string): string {
+  const destino = join(workDir, nombre);
+  cpSync(origen, destino);
   return destino;
 }
 
 /**
- * El prompt que recibe el SUT. Para un Caso-página se le añade la referencia
- * explícita a la Captura de Gold adjunta, porque `--file` adjunta la imagen pero
- * no la nombra: sin la línea, el modelo no sabe que existe ni para qué usarla.
+ * El prompt que recibe el SUT. Para un Caso con imagen se le añade la referencia
+ * explícita al adjunto, porque `--file` adjunta la imagen pero no la nombra: sin
+ * la línea, el modelo no sabe que existe ni para qué usarla.
  */
 function promptParaSut(prompt: string, imagen: string | undefined): string {
   if (imagen === undefined) return prompt;
   const nombre = imagen.split(/[\\/]/).pop()!;
-  return [
-    prompt,
-    "",
-    `Referencia visual: te adjunto la captura del Gold (\`${nombre}\`), la página ` +
+  const referencia = nombre.startsWith("mockup")
+    ? `Referencia visual: te adjunto el mockup (\`${nombre}\`), la imagen de la que ` +
+      "debes identificar los componentes."
+    : `Referencia visual: te adjunto la captura del Gold (\`${nombre}\`), la página ` +
       "oficial a la que debe parecerse. Úsala para la fidelidad visual (anchos, " +
-      "tipografía, márgenes).",
-  ].join("\n");
+      "tipografía, márgenes).";
+  return [prompt, "", referencia].join("\n");
 }
 
 const INVOCACION_RES = [
