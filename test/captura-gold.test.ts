@@ -7,9 +7,62 @@ import {
   asegurarCaptura,
   capturaVigente,
   claveDeCaptura,
+  dimensionesDePng,
   leerManifiestoCaptura,
+  problemaDePng,
   type ManifiestoCaptura,
 } from "../src/captura-gold.js";
+
+/** PNG mínimo: firma + IHDR con las dimensiones dadas (basta para leerlas). */
+function pngConDimensiones(ancho: number, alto: number): Buffer {
+  const firma = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
+  const ihdr = Buffer.alloc(25); // longitud + "IHDR" + 13 bytes de datos + crc
+  ihdr.writeUInt32BE(13, 0);
+  ihdr.write("IHDR", 4, "ascii");
+  ihdr.writeUInt32BE(ancho, 8);
+  ihdr.writeUInt32BE(alto, 12);
+  return Buffer.concat([firma, ihdr]);
+}
+
+describe("dimensionesDePng", () => {
+  it("lee ancho y alto de un PNG por su cabecera IHDR", () => {
+    const dims = dimensionesDePng(pngConDimensiones(1280, 900));
+    expect(dims).toEqual({ firma: "PNG", ancho: 1280, alto: 900 });
+  });
+
+  it("rechaza un fichero que no es PNG", () => {
+    const noPng = Buffer.from("no soy un png, soy texto plano y bastante largo");
+    expect(dimensionesDePng(noPng)).toBeUndefined();
+  });
+
+  it("rechaza un buffer demasiado corto para llevar cabecera", () => {
+    expect(dimensionesDePng(Buffer.from([137, 80, 78]))).toBeUndefined();
+  });
+});
+
+describe("problemaDePng", () => {
+  it("no hay problema si es un PNG con el ancho esperado", () => {
+    expect(problemaDePng(pngConDimensiones(1280, 900), 1280)).toBeUndefined();
+  });
+
+  it("señala un fichero que no es PNG", () => {
+    const problema = problemaDePng(Buffer.from("texto plano largo largo largo"), 1280);
+    expect(problema).toMatch(/PNG/i);
+  });
+
+  it("señala un ancho distinto del esperado", () => {
+    const problema = problemaDePng(pngConDimensiones(800, 900), 1280);
+    expect(problema).toMatch(/ancho/i);
+    expect(problema).toContain("800");
+    expect(problema).toContain("1280");
+  });
+
+  it("sin ancho esperado, sólo exige que sea un PNG", () => {
+    expect(problemaDePng(pngConDimensiones(640, 480))).toBeUndefined();
+  });
+});
+
+
 
 describe("claveDeCaptura", () => {
   it("es estable: el mismo Gold-HTML y el mismo ancho dan la misma clave", () => {

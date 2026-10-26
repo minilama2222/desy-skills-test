@@ -18,6 +18,7 @@ npm run run -- --skill implement-component --case boton-primario  # ejecuta un C
 npm run grade     # puntúa un Check sobre Evidencia vacía (herramienta de autoría)
 npm run load -- <ruta>  # carga un Caso desde su carpeta y muestra su JSON
 npm run verificar-casos  # guardarraíl: todos los Casos de casos/ deben ser cargables
+npm run verificar-mockup  # valida los mockup.png commiteados (sin navegador; --recapturar sí abre)
 npm run capturar-gold -- --skill <skill> --case <caso>  # genera/valida la Captura de Gold
 npm run capturar-mockup  # genera el mockup (input/mockup.png) de los Casos-decisión
 npm run report    # agrega las Ejecuciones y renderiza el Scorecard (JSON + markdown)

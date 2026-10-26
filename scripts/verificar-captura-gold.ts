@@ -1,7 +1,13 @@
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { ANCHO_CAPTURA, asegurarCaptura, capturarConAgentBrowser } from "../src/captura-gold.js";
+import {
+  ANCHO_CAPTURA,
+  asegurarCaptura,
+  capturarConAgentBrowser,
+  dimensionesDePng,
+  problemaDePng,
+} from "../src/captura-gold.js";
 
 /**
  * Verifica el adaptador real de la Captura de Gold (ver ADR-0008): abre un
@@ -27,18 +33,16 @@ try {
   });
 
   const bytes = readFileSync(png);
-  const firma = bytes.subarray(1, 4).toString("ascii");
-  const ancho = bytes.readUInt32BE(16);
-  const alto = bytes.readUInt32BE(20);
-
+  const dims = dimensionesDePng(bytes);
   console.log(`PNG: ${png}`);
-  console.log(`  firma: ${firma}, ${ancho}x${alto}, ${bytes.length} bytes`);
+  console.log(
+    `  firma: ${dims?.firma ?? "?"}, ${dims?.ancho ?? "?"}x${dims?.alto ?? "?"}, ` +
+      `${bytes.length} bytes`,
+  );
 
-  if (firma !== "PNG") {
-    throw new Error("el fichero generado no es un PNG");
-  }
-  if (ancho !== ANCHO_CAPTURA) {
-    throw new Error(`ancho inesperado: ${ancho} (esperado ${ANCHO_CAPTURA})`);
+  const problema = problemaDePng(bytes, ANCHO_CAPTURA);
+  if (problema !== undefined) {
+    throw new Error(problema);
   }
   console.log("\nOK: la Captura de Gold mide el ancho canónico.");
 } finally {

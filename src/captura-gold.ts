@@ -135,6 +135,38 @@ export function capturarConAgentBrowser(
   };
 }
 
+/**
+ * Lee las dimensiones de un PNG por su cabecera IHDR (firma de 8 bytes + IHDR:
+ * longitud en 4, "IHDR" en 4, ancho en 4, alto en 4). Devuelve `undefined` si el
+ * buffer no es un PNG válido o es demasiado corto — así un verificador puede
+ * rechazar la fixture sin lanzar. Es pura: comprobable sin navegador.
+ */
+export function dimensionesDePng(
+  bytes: Buffer,
+): { firma: string; ancho: number; alto: number } | undefined {
+  if (bytes.length < 24) return undefined;
+  const firma = bytes.subarray(1, 4).toString("ascii");
+  if (firma !== "PNG") return undefined;
+  return { firma, ancho: bytes.readUInt32BE(16), alto: bytes.readUInt32BE(20) };
+}
+
+/**
+ * ¿Tiene esta fixture PNG algún problema? Devuelve `undefined` si es válida, o
+ * una descripción si no lo es. Con `anchoEsperado`, además exige ese ancho (el
+ * de la captura canónica). Es la regla que comparten los verificadores de la
+ * Captura de Gold y del mockup, para no repetir el chequeo y testearlo aparte.
+ */
+export function problemaDePng(bytes: Buffer, anchoEsperado?: number): string | undefined {
+  const dims = dimensionesDePng(bytes);
+  if (dims === undefined) {
+    return "el fichero generado no es un PNG válido";
+  }
+  if (anchoEsperado !== undefined && dims.ancho !== anchoEsperado) {
+    return `ancho inesperado: ${dims.ancho} (esperado ${anchoEsperado})`;
+  }
+  return undefined;
+}
+
 function correr(...args: string[]): void {
   // En Windows `agent-browser` se instala como shim .cmd/.ps1, no como .exe, y
   // spawnSync no lo resuelve para subcomandos (da ENOENT o cuelga). Vía
