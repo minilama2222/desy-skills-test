@@ -457,8 +457,30 @@ function esperar(ms: number): void {
   Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
 }
 
-/** Copia el contenido de `origen` dentro de `destino` (no el directorio en sí). */
+/**
+ * Copia el contenido de `origen` dentro de `destino` (no el directorio en sí).
+ *
+ * En Windows `cpSync` recorre y copia los ~5.200 ficheros del `node_modules` del
+ * starter uno a uno: medí ~15 s por sandbox, y son ~3 s de `robocopy` con hilos.
+ * Como cada Ejecución paga esta copia, en Windows se usa `robocopy` (que viene
+ * con el sistema); el código de salida de `robocopy` no es el de un comando:
+ * **< 8 es éxito** (1 = copió, 3 = copió y borró), ≥ 8 es error.
+ */
 function copiarContenido(origen: string, destino: string): void {
+  if (process.platform === "win32") {
+    const r = spawnSync(
+      "robocopy",
+      [origen, destino, "/E", "/NFL", "/NDL", "/NJH", "/NJS", "/NC", "/MT:8"],
+      { encoding: "utf8" },
+    );
+    if (r.error || (r.status ?? 1) >= 8) {
+      throw new Error(
+        `No se pudo copiar el scaffold a ${destino}: ` +
+          `${r.error?.message ?? r.stdout ?? "error desconocido"}`,
+      );
+    }
+    return;
+  }
   for (const entry of readdirSync(origen, { withFileTypes: true })) {
     cpSync(join(origen, entry.name), join(destino, entry.name), { recursive: true });
   }

@@ -1,4 +1,11 @@
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { dirname, join, relative } from "node:path";
 import type { ResultadoEjecucion } from "./ejecutar.js";
 import { REPO_ROOT } from "./repo.js";
@@ -18,6 +25,33 @@ export const EJECUCIONES_DIR = join(REPO_ROOT, "reports", "ejecuciones");
  */
 export const SCORECARD_JSON_PATH = join(REPO_ROOT, "reports", "scorecard.json");
 export const SCORECARD_MD_PATH = join(REPO_ROOT, "reports", "scorecard.md");
+
+/**
+ * La suite (`npm run suite`) escribe en su propio árbol para que su reporte
+ * describa **sólo** sus Ejecuciones: si compartiera `reports/ejecuciones/` con
+ * las corridas sueltas de `npm run run`, el veredicto de un Caso mezclaría
+ * Ejecuciones de distinta fecha y el exit code de CI dependería de la historia
+ * local. El adaptador del CLI resuelve el árbol desde `--reports`.
+ */
+export function rutasDeReporte(reportsDir: string): {
+  ejecuciones: string;
+  scorecardJson: string;
+  scorecardMd: string;
+} {
+  return {
+    ejecuciones: join(reportsDir, "ejecuciones"),
+    scorecardJson: join(reportsDir, "scorecard.json"),
+    scorecardMd: join(reportsDir, "scorecard.md"),
+  };
+}
+
+/**
+ * Vacía el árbol de Ejecuciones de una corrida: la suite persiste sus propias
+ * Ejecuciones desde cero, para que dos suites seguidas no sumen veredictos.
+ */
+export function vaciarEjecuciones(dir: string): void {
+  rmSync(dir, { recursive: true, force: true });
+}
 
 /**
  * Guarda una Ejecución como fichero JSON. El nombre es la cuenta de ficheros ya
@@ -72,10 +106,18 @@ export function rutaRelativa(path: string): string {
 /**
  * Escribe las dos formas del reporte: el JSON (fuente de verdad, lo que consume
  * CI) y el Scorecard legible. El trazado de `reports/` es de este módulo, no del
- * CLI; el CLI sólo pide «escribe el Scorecard» y anuncia dónde quedó.
+ * CLI; el CLI sólo pide «escribe el Scorecard» y anuncia dónde quedó. Por defecto
+ * en las rutas del repo; la suite pasa las suyas (`rutasDeReporte`).
  */
-export function escribirScorecard(json: string, markdown: string): void {
-  mkdirSync(dirname(SCORECARD_JSON_PATH), { recursive: true });
-  writeFileSync(SCORECARD_JSON_PATH, json, "utf8");
-  writeFileSync(SCORECARD_MD_PATH, markdown, "utf8");
+export function escribirScorecard(
+  json: string,
+  markdown: string,
+  rutas: { scorecardJson: string; scorecardMd: string } = {
+    scorecardJson: SCORECARD_JSON_PATH,
+    scorecardMd: SCORECARD_MD_PATH,
+  },
+): void {
+  mkdirSync(dirname(rutas.scorecardJson), { recursive: true });
+  writeFileSync(rutas.scorecardJson, json, "utf8");
+  writeFileSync(rutas.scorecardMd, markdown, "utf8");
 }

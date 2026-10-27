@@ -97,7 +97,7 @@ Un proyecto separado, `desy-skills-test`, que evalúa los 12 skills mediante **t
 - **axe-core / servidor** en el bucle estable de v1 (nightly).
 - **Matriz de modelos**: v1 usa un único modelo fijado; la robustez multi-modelo es fase futura.
 - **Scaffold real de proyectos DESY** (clonar starters de Bitbucket, `npm install`) — los Casos de `scaffold-project` se gradúan por guards de decisión, no ejecutando el scaffold completo.
-- **CI remoto / GitHub Actions**: v1 produce salida apta para CI, pero el pipeline concreto se define aparte.
+- **CI remoto / GitHub Actions**: v1 produce salida apta para CI (`npm run suite`: JSON + exit code), pero el pipeline concreto se define aparte.
 - **Migrar a issue tracker remoto** (GitHub/GitLab): se usa local markdown.
 
 ## Further Notes

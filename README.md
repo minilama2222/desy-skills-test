@@ -12,8 +12,10 @@ Cada **Caso** alimenta al SUT (agente `opencode run` headless) con una entrada y
 
 ```bash
 npm install
-npm test          # corre los tests unitarios (vitest)
+npm test          # corre los tests unitarios del harness (vitest)
 npm run typecheck # tsc --noEmit
+npm run suite     # corre TODOS los Casos por el SUT y emite JSON + Scorecard (comando de CI)
+npm run suite -- --skill implement-component --case boton-primario --n 1  # un subconjunto
 npm run run -- --skill implement-component --case boton-primario  # ejecuta un Caso por el SUT y emite Evidencia + Grade
 npm run grade     # puntúa un Check sobre Evidencia vacía (herramienta de autoría)
 npm run load -- <ruta>  # carga un Caso desde su carpeta y muestra su JSON
@@ -22,9 +24,13 @@ npm run verificar-readme  # guardarraíl: el conteo de Casos del README coincide
 npm run verificar-mockup  # valida los mockup.png commiteados (sin navegador; --recapturar sí abre)
 npm run capturar-gold -- --skill <skill> --case <caso>  # genera/valida la Captura de Gold
 npm run capturar-mockup  # genera el mockup (input/mockup.png) de los Casos-decisión
-npm run report    # agrega las Ejecuciones y renderiza el Scorecard (JSON + markdown)
+npm run report    # agrega las Ejecuciones de `run` y renderiza el Scorecard (JSON + markdown)
 npm run bump-pin <ref>  # actualiza vendor/ + pin.json al ref dado
 ```
+
+`npm test` y `npm run suite` no son lo mismo: `npm test` valida el harness
+(grader, runner, agregado) sin modelo ni red; `npm run suite` ejercita los skills
+a través del SUT y tarda ~1 min por Ejecución. Ver [Correr la suite](#correr-la-suite).
 
 ## Casos
 
@@ -80,6 +86,54 @@ regeneran con `npm run capturar-gold` / `npm run capturar-mockup`, que abren un
 navegador (`agent-browser`). Donde `agent-browser` no esté disponible, la fixture
 commiteada es la que vale; un `mockup.png` de andamiaje es un wireframe válido, no
 un error.
+
+## Correr la suite
+
+`npm run suite` es el comando que corre la **suite entera** y sirve para CI:
+
+```bash
+npm run suite                                        # todos los Casos, 3 Ejecuciones cada uno
+npm run suite -- --skill implement-component         # un skill
+npm run suite -- --skill implement-component --case boton-primario   # un Caso
+npm run suite -- --n 1                               # N Ejecuciones por Caso (por defecto 3)
+npm run suite -- --reports reports/mi-corrida        # árbol de salida (por defecto reports/suite)
+```
+
+Qué necesitas para que corra de verdad:
+
+- el binario **`opencode`** en el `PATH` (el SUT, ver ADR-0001) y acceso al modelo
+  fijado (`deepinfra/deepseek-ai/DeepSeek-V4.1-Flash`);
+- el **scaffold cacheado** en `.scaffold-cache/desy-html-starter` (se prepara con
+  `powershell -File scripts/preparar-scaffold.ps1`, ver ADR-0005);
+- la **Captura de Gold** de cada Caso-página (`npm run capturar-gold`), aunque la
+  fixture commiteada ya está en el repo.
+
+Qué deja y qué devuelve:
+
+- **`reports/suite/scorecard.json`** — la fuente de verdad para CI: el **Pin
+  testeado** (`ref`, `commit`, `fecha`, `repo`) y, por Skill, el veredicto de cada
+  Caso.
+- **`reports/suite/scorecard.md`** — el Scorecard legible (también por stdout;
+  las rutas y el progreso, por stderr).
+- Las N Ejecuciones persistidas en `reports/suite/ejecuciones/<skill>/<caso>/<n>.json`.
+
+El **exit code** es la señal que bloquea el merge:
+
+| Situación | Exit code |
+|---|---|
+| Todos los Casos **PASA** | `0` |
+| Algún Caso **SUSPENDE** (alcanzó el skill, ninguna Ejecución correcta) | `1` |
+| Sólo Casos **INDETERMINADO** (el SUT no alcanzó el skill: no es suspenso, ADR-0007) | `0`, con aviso por stderr |
+| Filtro que no casa con ningún Caso, o error de uso | `1` |
+
+Un Caso INDETERMINADO no bloquea porque no mide el skill, pero el Scorecard lo
+dice y la suite avisa por stderr: un verde de un Caso que el agente ni arrancó no
+es un verde del skill. Y una suite vacía (filtro que no casa) sale con `1`: un
+CI verde sin haber evaluado nada es peor que un rojo.
+
+Cada `npm run suite` escribe en su propio árbol y vacía el anterior, así que el
+veredicto no mezcla Ejecuciones de corridas distintas. Las corridas sueltas de
+`npm run run` siguen en `reports/ejecuciones/` y su reporte es `npm run report`.
 
 ## Reporte
 
