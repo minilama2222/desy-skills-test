@@ -62,10 +62,23 @@ library. Two patterns must **not** be Guards:
   the catalog is representative, not exhaustive, and the skill's own linter
   treats "undocumented" as a warning, not an error. The variant is a **Quality**,
   and its assert is tolerant (asks "is this the variant?" against the catalog,
-  not "does the literal match?").
+  not "does the literal match?"). The same holds for a label that is **not a
+  component variant**: the category of a discrepancy (`bloqueante`, which
+  `desy-design-match` writes as `🔴 bloqueante`), the name of a size, the wording
+  of a verdict. The non-negociable fact is the **thing** — the row is reported,
+  the check is named — and the label is the Quality.
 
 The tell: if you cannot say *"a correct answer could never contain this string"*,
 it does not belong in a Guard.
+
+**Anchoring Spanish with accents.** The grader normalises text without accents
+(`normalizarTexto`), so a value it searches for loses `é`/`í`/`ó`. Where the form
+matters — the pretérito `cloné` versus the imperative `clone`, which only the
+tilde distinguishes — search the **raw** text. There, `\b` does not work: `\w` is
+`[A-Za-z0-9_]`, so an accented vowel is not a word character and `\b` after it is
+no boundary (`/\bcloné\b/` never matches `cloné`). Anchor with a lookahead
+instead: `clon[ée](?![a-záéíóúñ])`. See `RECLAMACIONES_EJECUCION` in
+`src/grader.ts`.
 
 ## A macro Caso-componente measures the HTML around the macro
 
