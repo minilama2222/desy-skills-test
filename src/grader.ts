@@ -119,9 +119,26 @@ function contar(html: string, re: RegExp): number {
   return (html.match(re) ?? []).length;
 }
 
+/**
+ * Quita los comentarios Nunjucks `{# … #}` antes de leer un artefacto.
+ *
+ * Un Caso-componente gradúa el **fuente** que el SUT escribió (ADR-0006), y en
+ * un fuente Nunjucks lo comentado es material **que no se renderiza**: el
+ * fichero de ejemplo del starter trae un componente de prueba entero comentado
+ * (`p-2`, `border-gray-200`…). Leerlo hacía que un SUT que ampliaba ese fichero
+ * suspendiera por utilidades que nadie iba a ver (hallazgo
+ * `HALLAZGO-tokens-fichero-de-ejemplo.md`).
+ *
+ * Se aplica sólo donde se leen **clases**, no a los guards de estructura
+ * (`h1`, `fieldset`, `label`), que trabajan sobre HTML ya renderizado.
+ */
+export function sinComentariosNunjucks(html: string): string {
+  return html.replace(/\{#[\s\S]*?#\}/g, "");
+}
+
 function clasesDe(html: string): string[] {
   const clases: string[] = [];
-  for (const match of html.matchAll(/class="([^"]*)"/gi)) {
+  for (const match of sinComentariosNunjucks(html).matchAll(/class="([^"]*)"/gi)) {
     for (const clase of match[1]!.split(/\s+/)) {
       if (clase.length > 0) clases.push(clase);
     }

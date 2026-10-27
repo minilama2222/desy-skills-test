@@ -751,3 +751,43 @@ describe("Contrato de macro: variante y props", () => {
     });
   });
 });
+
+/**
+ * Hallazgo `HALLAZGO-tokens-fichero-de-ejemplo.md`: el guard de tokens leía las
+ * clases dentro de los **comentarios Nunjucks** `{# … #}`, así que el SUT que
+ * editaba el fichero de ejemplo del starter (que trae un componente comentado
+ * con `p-2`, `border-gray-200`…) suspendía una entrega correcta.
+ */
+describe("el Guard de tokens ignora el material comentado", () => {
+  const evidencia = (html: string): { artefactos: Artefactos; transcript: Transcript } => ({
+    artefactos: { files: { "index.html": html } },
+    transcript: { invocaciones: [] },
+  });
+
+  const passedTokens = (html: string): boolean | undefined =>
+    grado(evidencia(html), { tipo: "caso-componente", checks: [] }).detalle.find(
+      (d) => d.id === "tokens-del-sistema",
+    )?.passed;
+
+  it("una utility prohibida dentro de un comentario Nunjucks no cuenta", () => {
+    expect(passedTokens('<div class="p-base">ok</div>\n{# <div class="p-2">ejemplo</div> #}')).toBe(
+      true,
+    );
+  });
+
+  it("una utility prohibida fuera del comentario sigue contando", () => {
+    expect(passedTokens('<div class="p-2">mal</div>')).toBe(false);
+  });
+
+  it("un comentario de varias líneas tampoco cuenta", () => {
+    const html = [
+      '<div class="p-base">ok</div>',
+      "{#",
+      '  {% call componentTest({ "caller": "<div class=\\" p-2 border-gray-200 \\"></div>" }) %}',
+      "  {% endcall %}",
+      "#}",
+    ].join("\n");
+
+    expect(passedTokens(html)).toBe(true);
+  });
+});
