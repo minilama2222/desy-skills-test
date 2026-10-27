@@ -103,8 +103,9 @@ Qué necesitas para que corra de verdad:
 
 - el binario **`opencode`** en el `PATH` (el SUT, ver ADR-0001) y acceso al modelo
   fijado (`deepinfra/deepseek-ai/DeepSeek-V4.1-Flash`);
-- el **scaffold cacheado** en `.scaffold-cache/desy-html-starter` (se prepara con
-  `powershell -File scripts/preparar-scaffold.ps1`, ver ADR-0005);
+- el **scaffold cacheado** en `.scaffold-cache/desy-html-starter` (ver ADR-0005):
+  `powershell -File scripts/preparar-scaffold.ps1` en Windows, o
+  `sh scripts/preparar-scaffold.sh` en macOS/Linux;
 - la **Captura de Gold** de cada Caso-página (`npm run capturar-gold`), aunque la
   fixture commiteada ya está en el repo.
 

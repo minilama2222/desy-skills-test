@@ -29,10 +29,15 @@ if (Test-Path $destino) {
 New-Item -ItemType Directory -Force -Path (Split-Path -Parent $destino) | Out-Null
 
 Write-Host "Clonando $Repo ($Ref) en $destino ..."
-git clone --depth 1 --branch $Ref $Repo $destino
+# El ref es un SHA corto por defecto (`37748bd`), y `git clone --branch` no
+# acepta SHAs: sólo ramas y tags. Se clona el repo y se hace checkout del ref, que
+# sirve para los tres casos. `--depth 1` no vale aquí, porque el checkout de un
+# SHA arbitrario necesita tenerlo en el historial.
+git clone --quiet $Repo $destino
 
 Push-Location $destino
 try {
+  git checkout --quiet $Ref
   Write-Host "Instalando dependencias del starter ..."
   npm install
 }

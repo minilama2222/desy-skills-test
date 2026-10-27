@@ -403,7 +403,8 @@ export function createSandbox(opciones: string | SandboxOptions = {}): Sandbox {
           "artefactos (ver ADR-0005). Problemas:\n" +
           problemas.map((p) => `  - ${p}`).join("\n") +
           "\nArréglalo regenerando la caché: bórrala y corre " +
-          "`powershell -File scripts/preparar-scaffold.ps1`.",
+          "`powershell -File scripts/preparar-scaffold.ps1` (Windows) o " +
+          "`sh scripts/preparar-scaffold.sh` (macOS/Linux).",
       );
     }
     copiarContenido(opts.scaffoldDir, workDir);

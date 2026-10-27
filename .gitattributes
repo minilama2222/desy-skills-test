@@ -1,0 +1,8 @@
+# Un `sh` con CRLF no arranca (`\r: command not found`), y `core.autocrlf=true`
+# en Windows convertiría al hacer checkout los ficheros que deben quedarse en LF.
+# Esto fija el final de línea en git, independientemente de la máquina que clone.
+*.sh          text eol=lf
+*.ps1         text eol=crlf
+
+# Los scripts del SUT (fixtures de test) también se ejecutan directamente.
+test/**/*.sh  text eol=lf
