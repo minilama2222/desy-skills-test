@@ -72,6 +72,9 @@ describe("seleccionarCasos: el subconjunto de la suite", () => {
       "implement-component",
       "implement-pattern",
     ]);
+    // No elige uno "a dedo": corre **todos** los que casan, para que el reporte
+    // no dependa de cuál salió antes en el árbol.
+    expect(elegidos).toHaveLength(2);
   });
 
   it("--skill y --case juntos anclan el Caso a su skill", () => {

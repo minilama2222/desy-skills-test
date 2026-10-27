@@ -51,7 +51,7 @@ export function seleccionarCasos(casos: Caso[], seleccion: Seleccion): Caso[] {
     throw new Error(
       `No hay Caso "${seleccion.caso}"` +
         (seleccion.skill === undefined ? "" : ` para el skill "${seleccion.skill}"`) +
-        `. Casos disponibles: ${delSkill.map((c) => c.id).join(", ")}`,
+        `. Casos disponibles: ${[...new Set(delSkill.map((c) => c.id))].join(", ")}`,
     );
   }
   return delCaso;

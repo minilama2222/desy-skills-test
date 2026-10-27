@@ -6,14 +6,12 @@ import { ejecutarCaso, type ResultadoEjecucion } from "./ejecutar.js";
 import { grado } from "./grader.js";
 import { readPin } from "./pin.js";
 import {
-  EJECUCIONES_DIR,
   escribirScorecard,
   guardarEjecucion,
   leerEjecuciones,
+  REPORTS_DIR,
   rutasDeReporte,
   rutaRelativa,
-  SCORECARD_JSON_PATH,
-  SCORECARD_MD_PATH,
   vaciarEjecuciones,
 } from "./reportes.js";
 import { createSandbox, realCommand, SCAFFOLD_CACHE_DIR } from "./runner.js";
@@ -129,7 +127,7 @@ async function runCasos(args: string[]): Promise<void> {
   const pin = readPin(PIN_PATH);
   const resultados = await correrCaso(caso, pin, leerN(args, 1));
   for (const resultado of resultados) {
-    const guardado = guardarEjecucion(EJECUCIONES_DIR, resultado);
+    const guardado = guardarEjecucion(rutasDeReporte(REPORTS_DIR).ejecuciones, resultado);
     console.error(`Ejecución guardada: ${rutaRelativa(guardado)}`);
   }
   console.log(JSON.stringify(resultados.length === 1 ? resultados[0] : resultados, null, 2));
@@ -237,14 +235,7 @@ function runLoad([ruta = ""]: string[]): void {
  */
 function runReport(args: string[]): void {
   const reports = opcion(args, "--reports");
-  const rutas =
-    reports === undefined
-      ? {
-          ejecuciones: EJECUCIONES_DIR,
-          scorecardJson: SCORECARD_JSON_PATH,
-          scorecardMd: SCORECARD_MD_PATH,
-        }
-      : rutasDeReporte(resolve(reports));
+  const rutas = rutasDeReporte(reports === undefined ? REPORTS_DIR : resolve(reports));
 
   const pin = readPin(PIN_PATH);
   const ejecuciones = leerEjecuciones(rutas.ejecuciones);

@@ -27,6 +27,13 @@ export const SCORECARD_JSON_PATH = join(REPO_ROOT, "reports", "scorecard.json");
 export const SCORECARD_MD_PATH = join(REPO_ROOT, "reports", "scorecard.md");
 
 /**
+ * El árbol de `reports/` **del repo**: la raíz de las corridas sueltas de `run`.
+ * Es la única base que produce las dos rutas de arriba (`rutasDeReporte(REPORTS_DIR)`),
+ * para que el trazado no viva en dos sitios.
+ */
+export const REPORTS_DIR = join(REPO_ROOT, "reports");
+
+/**
  * La suite (`npm run suite`) escribe en su propio árbol para que su reporte
  * describa **sólo** sus Ejecuciones: si compartiera `reports/ejecuciones/` con
  * las corridas sueltas de `npm run run`, el veredicto de un Caso mezclaría
