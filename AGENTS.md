@@ -26,3 +26,7 @@ On Windows, `npm test` / `npm run precommit` and `git commit` can exit 1 because
 vitest writes to stderr, which PowerShell reads as `NativeCommandError`. The work
 succeeded; confirm with `git log` / `git status`, don't re-run to "fix" it.
 
+PowerShell has no heredoc: `git commit -F -` with a `<<'EOF'` body fails to parse,
+and the retry mangles the accents. Write the message to a file and pass
+`git commit -F <ruta>`.
+

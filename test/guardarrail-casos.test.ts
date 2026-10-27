@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  idsDeChecksCitadosEnRubric,
   problemasDelArbolDeCasos,
   type CasoEnDisco as CasoParaValidar,
 } from "../src/guardarrail-casos.js";
@@ -84,5 +85,127 @@ describe("problemasDelArbolDeCasos", () => {
     ]);
     expect(hallazgos).toHaveLength(1);
     expect(hallazgos[0]).toMatch(/checks\.json/i);
+  });
+});
+
+describe("coherencia rúbrica ↔ checks.json", () => {
+  const conChecks = (ids: string[]): CasoParaValidar =>
+    casoOk({ idsDeChecks: ids });
+
+  it("no señala nada si la rúbrica nombra exactamente los checks del Caso", () => {
+    const caso = conChecks(["token-base-16px", "token-lg-28px"]);
+    const rubric = [
+      "## Guards",
+      "- **token-base-16px**: el token de 16 px.",
+      "- **token-lg-28px**: el token de 28 px.",
+    ].join("\n");
+    expect(problemasDelArbolDeCasos([{ ...caso, textoRubric: rubric }])).toEqual([]);
+  });
+
+  it("señala un check del Caso que la rúbrica no documenta", () => {
+    // Es el fallo de esta sesión: el checks.json cambió y la rúbrica se quedó
+    // describiendo los ids anteriores. Se señalan las dos direcciones: los que
+    // faltan y el que sobra.
+    const caso = conChecks(["token-base-16px", "familia-gap-base"]);
+    const otro: CasoParaValidar = {
+      ...conChecks(["token-lg-28px"]),
+      ruta: "casos/otro-skill/decision/otro-caso",
+    };
+    const rubric = [
+      "## Quality",
+      "- **token-base-16px**: el token de 16 px.",
+      "- **token-lg-28px**: el token de 28 px.",
+    ].join("\n");
+    const hallazgos = problemasDelArbolDeCasos([
+      { ...caso, textoRubric: rubric },
+      otro,
+    ]);
+
+    expect(hallazgos).toHaveLength(2);
+    const sinDocumentar = hallazgos.find((h) => /no documenta/.test(h))!;
+    expect(sinDocumentar).toContain("familia-gap-base");
+    const sobrante = hallazgos.find((h) => /ya no tiene/.test(h))!;
+    expect(sobrante).toContain("token-lg-28px");
+  });
+
+  it("señala un id obsoleto que otro Caso del árbol sigue declarando", () => {
+    // `token-lg-28px` vive en otro Caso: es lo que permite saber que el de la
+    // rúbrica **es** un id, y por tanto que sobra en este.
+    const caso = conChecks(["token-base-16px"]);
+    const otro: CasoParaValidar = {
+      ...conChecks(["token-lg-28px"]),
+      ruta: "casos/otro-skill/decision/otro-caso",
+    };
+    const rubric = [
+      "- **token-base-16px**: ok.",
+      "- **token-lg-28px**: obsoleto en este Caso.",
+    ].join("\n");
+    const hallazgos = problemasDelArbolDeCasos([
+      { ...caso, textoRubric: rubric },
+      otro,
+    ]);
+
+    expect(hallazgos).toHaveLength(1);
+    expect(hallazgos[0]).toContain("token-lg-28px");
+  });
+
+  it("un valor de dominio en negrita no es un id de check", () => {
+    // `**desy-html**` es una librería, no un id: sólo los ids del Caso y los del
+    // Framework se juzgan. Era un falso positivo real en `choose-library`.
+    const caso = conChecks(["libreria-desy-html"]);
+    const rubric = [
+      "- **libreria-desy-html**: la recomendación es **desy-html**.",
+      "**desy-angular** sería la decisión errónea.",
+    ].join("\n");
+    expect(problemasDelArbolDeCasos([{ ...caso, textoRubric: rubric }])).toEqual([]);
+  });
+
+  it("un id del Framework documentado en la rúbrica no se señala", () => {
+    // El Framework añade `tokens-del-sistema` por tipo de Caso: documentarlo
+    // está bien aunque no viva en el checks.json del Caso.
+    const caso = conChecks(["token-base-16px"]);
+    const rubric = [
+      "- **token-base-16px**: ok.",
+      "- **tokens-del-sistema**: ni escala numérica ni valores arbitrarios.",
+    ].join("\n");
+    expect(problemasDelArbolDeCasos([{ ...caso, textoRubric: rubric }])).toEqual([]);
+  });
+
+  it("una rúbrica en prosa que no nombra ids no se señala", () => {
+    // Muchas rúbricas explican la idea sin citar el id del check: eso es prosa
+    // válida, no una incoherencia.
+    const caso = conChecks(["token-base-16px"]);
+    const rubric = "## Guards\n- El SUT declara el token base para los 16 px.";
+    expect(problemasDelArbolDeCasos([{ ...caso, textoRubric: rubric }])).toEqual([]);
+  });
+
+  it("con ids del Caso y sin texto de rúbrica no se señala (el loader ya avisa de lo que falta)", () => {
+    expect(problemasDelArbolDeCasos([conChecks(["token-base-16px"])])).toEqual([]);
+  });
+});
+
+describe("idsDeChecksCitadosEnRubric", () => {
+  it("extrae los ids en negrita, ignorando la prosa en negrita", () => {
+    const rubric = [
+      "## Guards (su fallo ⇒ INACEPTABLE)",
+      "- **token-base-16px**: el token de 16 px.",
+      "- **no-escala-numerica** (peso 2): sin `gap-7`.",
+      "**Nota**: la escala numérica no se comprueba con un negativo.",
+    ].join("\n");
+
+    expect(idsDeChecksCitadosEnRubric(rubric)).toEqual([
+      "token-base-16px",
+      "no-escala-numerica",
+    ]);
+  });
+
+  it("no confunde los títulos en negrita con ids de check", () => {
+    const rubric = [
+      "**Status:** ok.",
+      "**Rúbrica — styles-reference / token-espaciado**",
+      "- **token-base-16px**: el token.",
+    ].join("\n");
+
+    expect(idsDeChecksCitadosEnRubric(rubric)).toEqual(["token-base-16px"]);
   });
 });

@@ -1,4 +1,4 @@
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { CASOS_DIR, cargarCaso } from "../src/caso-loader.js";
 import {
@@ -53,13 +53,24 @@ function describirCaso(
     tieneChecks: existsSync(join(dir, "expected", "checks.json")),
     tieneRubric: existsSync(join(dir, "rubric.md")),
     tieneGold: existsSync(join(dir, "input", "gold.html")),
+    ...leerRubric(dir),
   };
   try {
-    cargarCaso(dir);
-    return base;
+    const caso = cargarCaso(dir);
+    return { ...base, idsDeChecks: caso.checks.map((c) => c.id) };
   } catch (error) {
     return { ...base, errorDeCarga: (error as Error).message };
   }
+}
+
+/**
+ * El texto de la rúbrica, para contrastarla con los Checks del Caso (ver
+ * `problemasDeRubric`). Si el fichero no existe, no se lee nada: la falta ya la
+ * señala `tieneRubric`.
+ */
+function leerRubric(dir: string): Pick<CasoEnDisco, "textoRubric"> {
+  const path = join(dir, "rubric.md");
+  return existsSync(path) ? { textoRubric: readFileSync(path, "utf8") } : {};
 }
 
 const hallazgos = problemasDelArbolDeCasos(describirArbol());

@@ -19,11 +19,13 @@ Petición: «Genera un botón primario de tamaño estándar con el texto "Enviar
 
 ## Quality (puntúan hacia el Grade)
 
-- **tamano-base / tamano-base-no-grande**: el tamaño «estándar» del botón es el
-  tamaño base, y el tamaño base de `componentButton` **no lleva clase de
-  tamaño** — las clases `c-button--sm` y `c-button--lg` cambiarían la altura
-  (~30 px y ~54 px frente a ~42 px). Que el botón sea base se comprueba, por
-  tanto, como ausencia de esas dos clases. Peso 2 cada una.
+- **tamano-base**: el tamaño «estándar» del botón es el tamaño base, y el tamaño
+  base de `componentButton` **no lleva clase de tamaño** — `c-button--sm`
+  cambiaría la altura (~30 px frente a ~42 px). Que el botón sea base se
+  comprueba, por tanto, como ausencia de esa clase. Peso 2.
+- **tamano-base-no-grande**: por la misma razón, la llamada no lleva
+  `c-button--lg` (~54 px frente a ~42 px). Es la otra mitad del mismo hecho:
+  ausencia de las dos clases que no son el tamaño base. Peso 2.
 
 ## Anclaje en `desy-skills`
 
