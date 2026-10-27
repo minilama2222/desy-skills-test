@@ -107,6 +107,8 @@ interface Corrida {
   code: number;
   stdout: string;
   stderr: string;
+  /** Cuánto tardó el proceso de la suite, en segundos (presupuesto del test). */
+  segundos: number;
   /** La entrega que el guion recibió en cada Ejecución (probado en los tests). */
   vistas: string[];
   scorecard?: Scorecard;
@@ -131,6 +133,7 @@ async function correrSuite(args: string[], entregas: string[] = ["bueno"]): Prom
     );
 
     const reports = join(dir, "reports");
+    const inicio = Date.now();
     const r = spawnSync(
       process.execPath,
       [TSX, "src/cli.ts", "suite", ...args, "--reports", reports],
@@ -145,6 +148,7 @@ async function correrSuite(args: string[], entregas: string[] = ["bueno"]): Prom
         },
       },
     );
+    const segundos = Math.round((Date.now() - inicio) / 1000);
 
     const json = join(reports, "scorecard.json");
     const md = join(reports, "scorecard.md");
@@ -156,6 +160,7 @@ async function correrSuite(args: string[], entregas: string[] = ["bueno"]): Prom
       code: r.status ?? -1,
       stdout: r.stdout ?? "",
       stderr: r.stderr ?? "",
+      segundos,
       vistas,
       ...(existsSync(json) ? { scorecard: JSON.parse(readFileSync(json, "utf8")) as Scorecard } : {}),
       ...(existsSync(md) ? { markdown: readFileSync(md, "utf8") } : {}),
@@ -168,6 +173,23 @@ async function correrSuite(args: string[], entregas: string[] = ["bueno"]): Prom
 const pin = readPin(join(REPO_ROOT, "pin.json"));
 const BOTON = ["--skill", "implement-component", "--case", "boton-primario"];
 
+/**
+ * Presupuesto de tiempo por Ejecución. No es un adorno: la copia del starter al
+ * sandbox (~85 MB / 5.260 ficheros, ver `SandboxOptions.scaffoldDir`) domina el
+ * coste, y una regresión ahí infla el CI en silencio — pasó en la primera
+ * versión de este test, que tardaba 4× más y nadie lo notaba. Medido: ~19 s por
+ * Ejecución con `robocopy` (antes ~66 s con `cpSync`). El techo deja aire para
+ * una máquina cargada, pero no para volver al `cpSync`.
+ */
+const SEGUNDOS_POR_EJECUCION = 35;
+
+function expectDentroDelPresupuesto(corrida: Corrida, ejecuciones: number): void {
+  const techo = SEGUNDOS_POR_EJECUCION * ejecuciones;
+  expect(corrida.segundos, `la suite tardó ${corrida.segundos}s (techo ${techo}s)`).toBeLessThan(
+    techo,
+  );
+}
+
 describe("suite (comando de CI, ticket 13)", () => {
   it(
     "corre el subconjunto por Caso, emite JSON + Scorecard y sale con 0 si pasa",
@@ -176,6 +198,7 @@ describe("suite (comando de CI, ticket 13)", () => {
 
       // El guion corrió de verdad: sin esta marca, el verde sería del test.
       expect(corrida.vistas).toEqual(["bueno"]);
+      expectDentroDelPresupuesto(corrida, 1);
       expect(corrida.code).toBe(0);
       // El JSON es la fuente de verdad y declara siempre el Pin testeado.
       expect(corrida.scorecard?.pin.commit).toBe(pin.commit);
@@ -195,6 +218,7 @@ describe("suite (comando de CI, ticket 13)", () => {
       const corrida = await correrSuite([...BOTON, "--n", "3"], ["malo", "malo", "malo"]);
 
       expect(corrida.vistas).toEqual(["malo", "malo", "malo"]);
+      expectDentroDelPresupuesto(corrida, 3);
       expect(corrida.code).not.toBe(0);
       expect(corrida.scorecard?.skills[0]?.casos[0]?.veredicto).toBe("SUSPENDE");
       expect(corrida.stderr).toContain("SUSPENDIDO");
@@ -208,6 +232,7 @@ describe("suite (comando de CI, ticket 13)", () => {
       const corrida = await correrSuite([...BOTON, "--n", "3"], ["malo", "bueno", "nada"]);
 
       expect(corrida.vistas).toEqual(["malo", "bueno", "nada"]);
+      expectDentroDelPresupuesto(corrida, 3);
       expect(corrida.code).toBe(0);
       const caso = corrida.scorecard?.skills[0]?.casos[0];
       expect(caso?.veredicto).toBe("PASA");

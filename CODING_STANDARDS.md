@@ -116,3 +116,17 @@ restatement of the Gold. A Caso built as a **slice** (a single vertical path, li
 tell: a ticket that adds several Casos for one block wants one block file; a
 ticket that lands one Caso wants one Caso file.
 
+## A test that drives a real process carries its own time budget
+
+A test that spawns the CLI, or copies the scaffold, pays a cost that grows with
+the size of the fixture, not with the logic it asserts. A test costing 60 s per
+run reads as "integration tests are slow" and stays that way: nothing fails, the
+CI just gets heavier. So such a test asserts **its own duration** against a
+stated ceiling (`SEGUNDOS_POR_EJECUCION` in `test/suite-cli.test.ts`), with the
+measured baseline in the comment. The tell: if you cannot say what the number is
+and why, you do not know whether a change made it worse.
+
+The fixture that dominates this repo is the scaffold copy in `createSandbox`
+(~85 MB / 5.260 files per sandbox), so a regression there shows up here first.
+When a test's budget trips, profile the fixture before raising the ceiling.
+

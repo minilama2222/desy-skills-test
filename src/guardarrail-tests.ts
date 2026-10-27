@@ -1,14 +1,22 @@
 /**
- * Guardarraíl de los tests: la suite debe ser determinista, así que **ningún
- * test abre un navegador**. Un adaptador que lanza un navegador vive en
- * `scripts/` (ver `scripts/verificar-captura-gold.ts` y ADR-0008): dentro de la
- * suite deja procesos vivos y la cuelga, y el pre-commit corre `npm test` en
- * cada commit.
+ * Guardarraíl de los tests: la suite debe ser **determinista**, así que ningún
+ * test abre un navegador **ni lanza un binario externo** sin declararlo.
  *
- * Esta regla es pura: recibe los ficheros a inspeccionar y devuelve los que
- * referencian un navegador. (El proceso externo rápido y legítimo —`git` en
- * `scaffold.test.ts`— no cuenta.)
+ * Nace del retro del ticket 06 en su primera mitad (nada de navegadores) y del
+ * retro del ticket 13 en la segunda. En el 13, `test/suite-cli.test.ts` lanzaba
+ * un `opencode` **real** con `spawnSync` y el guardarraíl no decía nada, porque
+ * sólo miraba marcadores de navegador: un test que dependía del binario de la
+ * máquina pasó en verde sin que nadie lo notara, y encima en Windows el
+ * `spawn` ignoraba el `PATH` inyectado y respondía el `opencode` de verdad
+ * (falso verde). El género del fallo es el del ticket 06 —un proceso externo
+ * dentro de la suite— y la regla se generaliza a «ningún binario externo sin
+ * una razón escrita».
+ *
+ * La regla es **pura**: recibe los ficheros a inspeccionar y devuelve un hallazgo
+ * por fichero. Las excepciones se declaran en el recolector
+ * (`scripts/verificar-tests.ts`), no aquí: este módulo sólo conoce los patrones.
  */
+
 export interface FicheroDeTest {
   /** Ruta del fichero, para el mensaje. */
   path: string;
@@ -28,21 +36,99 @@ const MARCADORES_DE_NAVEGADOR = [
 ];
 
 /**
- * Devuelve una descripción por fichero de test que abre un navegador, o vacío si
- * la suite está limpia.
+ * Binarios externos que un test **no** debe lanzar por su cuenta: son el SUT
+ * (`opencode`), o herramientas de red/nube. Un test que los invoca depende de la
+ * máquina y de la red, y además tarda minutos.
+ */
+const BINARIOS_PROHIBIDOS = ["opencode"];
+
+/**
+ * Y **el doble que los suplanta también cuenta**. Un test que inyecta un preludio
+ * (`NODE_OPTIONS=--require`) o sustituye `child_process` para fingir un binario
+ * está haciendo precisamente el trabajo que la allowlist tiene que ver: el test
+ * que originó esta regla (`test/suite-cli.test.ts`) no escribía
+ * `spawnSync("opencode")` —lo escribe el **producto**, y el preludio lo
+ * intercepta—, así que un patrón sobre la llamada literal no lo cazaba y el
+ * guardarraíl daba verde con el agujero abierto. Se caza la **capacidad**, no la
+ * cadena.
+ */
+const MARCADORES_DE_DOBLE = [
+  "NODE_OPTIONS",
+  "opencode-falso",
+  "preludio",
+  "child_process\\.spawn",
+];
+
+/**
+ * Procesos externos que sí son legítimos en un test, porque son rápidos, locales
+ * y no dependen de nada instalado aparte: `git` (lo usa `scaffold.test.ts` para
+ * montar una caché) y `robocopy` (la copia del scaffold en Windows). Están aquí
+ * para que la regla no los marque, no para bendecir cualquier `spawnSync`.
+ */
+const BINARIOS_PERMITIDOS = ["git", "robocopy"];
+
+/** ¿El fichero lanza un proceso externo con `spawn`/`exec`/`fork`? */
+function lanzaProcesoExterno(contenido: string): boolean {
+  return /\b(?:spawn|spawnSync|exec|execSync|execFile|execFileSync|fork)\s*\(/.test(
+    contenido,
+  );
+}
+
+/** ¿El contenido nombra el binario como primer argumento de un lanzamiento? */
+function lanzaBinario(contenido: string, binario: string): boolean {
+  const re = new RegExp(
+    `\\b(?:spawn|spawnSync|exec|execSync|execFile|execFileSync)\\s*\\(\\s*["'\`]${binario}["'\`]`,
+    "i",
+  );
+  return re.test(contenido);
+}
+
+/**
+ * Devuelve una descripción por fichero de test que abre un navegador o lanza un
+ * binario externo no declarado, o vacío si la suite está limpia.
+ *
+ * El orden de comprobación importa: un navegador se reporta como tal (es el
+ * hallazgo original del ticket 06) antes de la regla general de binarios.
  */
 export function pruebasConNavegador(ficheros: FicheroDeTest[]): string[] {
   const hallazgos: string[] = [];
   for (const fichero of ficheros) {
-    for (const marcador of MARCADORES_DE_NAVEGADOR) {
-      if (fichero.contenido.includes(marcador)) {
-        hallazgos.push(
-          `${fichero.path}: referencia "${marcador}"; un test no debe abrir un navegador ` +
-            "(usa un capturador inyectado o un script de verificación)",
-        );
-        break;
-      }
+    const navegador = MARCADORES_DE_NAVEGADOR.find((marcador) =>
+      fichero.contenido.includes(marcador),
+    );
+    if (navegador !== undefined) {
+      hallazgos.push(
+        `${fichero.path}: referencia "${navegador}"; un test no debe abrir un navegador ` +
+          "(usa un capturador inyectado o un script de verificación)",
+      );
+      continue;
     }
+
+    if (!lanzaProcesoExterno(fichero.contenido)) continue;
+
+    // El doble que suplanta un binario prohibido cuenta igual que la llamada
+    // directa: es la capacidad de depender de él lo que la allowlist debe ver.
+    const doble = MARCADORES_DE_DOBLE.find((marcador) =>
+      new RegExp(marcador, "i").test(fichero.contenido),
+    );
+    const prohibido = BINARIOS_PROHIBIDOS.find((binario) =>
+      lanzaBinario(fichero.contenido, binario),
+    );
+    if (prohibido === undefined && doble === undefined) continue;
+    if (BINARIOS_PERMITIDOS.some((binario) => lanzaBinario(fichero.contenido, binario))) {
+      continue;
+    }
+
+    hallazgos.push(
+      `${fichero.path}: ${
+        prohibido !== undefined
+          ? `lanza el binario externo "${prohibido}"`
+          : `inyecta un doble de un binario externo ("${doble}")`
+      }; un test de la suite no puede depender de un binario instalado ni de la red ` +
+        "(y en Windows `spawn` ignora un `PATH` inyectado, así que puede acabar " +
+        "llamando al real). Sustitúyelo por un doble inyectado de verdad o declara " +
+        "la excepción con motivo en scripts/verificar-tests.ts",
+    );
   }
   return hallazgos;
 }

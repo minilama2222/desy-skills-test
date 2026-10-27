@@ -365,6 +365,14 @@ export interface SandboxOptions {
   /**
    * Starter DESY ya scaffoldeado y cacheado que se copia al `workDir` antes de
    * lanzar el SUT. Ver ADR-0005. Si se omite, el `workDir` queda vacío.
+   *
+   * **Este es el coste fijo de cada Ejecución**: el starter son ~85 MB / 5.260
+   * ficheros (casi todo `node_modules/`) y se copia **entero** por sandbox, porque
+   * cada Ejecución necesita su propio `workDir` aislado (ADR-0001). Medido en esta
+   * máquina: ~15 s con `cpSync` y ~3-6 s con `robocopy /MT` en Windows (ver
+   * `copiarContenido`). No es opcional ni cacheable más allá de la caché de
+   * origen: es el suelo que paga cada Caso de la suite y explica por qué `npm run
+   * suite` tarda minutos y no segundos.
    */
   scaffoldDir?: string;
 }

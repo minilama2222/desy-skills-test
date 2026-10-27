@@ -26,7 +26,24 @@ On Windows, `npm test` / `npm run precommit` and `git commit` can exit 1 because
 vitest writes to stderr, which PowerShell reads as `NativeCommandError`. The work
 succeeded; confirm with `git log` / `git status`, don't re-run to "fix" it.
 
+That only holds for **noise**: an exit 1 with no `FAIL` / `Test Files … failed`
+line is the stderr false alarm. A `failed` count is a **real failure** — read it
+and fix it; do not write it off as the noise case. (The framing above once nearly
+had a real red dismissed as noise.)
+
 PowerShell has no heredoc: `git commit -F -` with a `<<'EOF'` body fails to parse,
 and the retry mangles the accents. Write the message to a file and pass
 `git commit -F <ruta>`.
+
+### Substituting an external binary in a test
+
+Yes, when a test must drive a real process (e.g. measuring a CLI's exit code).
+Don't reach for `PATH`: on Windows `spawn` reads only the `Path` key (an injected
+`PATH` is ignored in silence and the **real** binary answers), a sibling `.exe`
+beats a `.cmd`, and a `.cmd` by absolute path isn't launched without `shell`.
+Inject a prelude instead — a file run via `NODE_OPTIONS=--require` that wraps
+`child_process.spawn`, keyed on the command name — and have the double leave a
+per-run mark the test asserts on, so a fake that never ran fails instead of
+passing green. The working fixture is `test/suite-cli.test.ts`; the guardrail that
+enforces the allowlist is `npm run verificar-tests`.
 
