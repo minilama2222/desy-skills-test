@@ -52,6 +52,7 @@ Un proyecto separado, `desy-skills-test`, que evalúa los 12 skills mediante **t
 
 ### Aislamiento y pinning (ver ADR-0001, ADR-0003)
 - Cada run crea un sandbox: `HOME`/config temporal con los skills del Pin copiados, y un working dir limpio.
+- El repo canónico de los skills es `https://bitbucket.org/sdaragon/desy-skills` (antes en GitHub; mismo historial, mismo commit pinneado).
 - `vendor/desy-skills/` es una **copia** del commit pinneado (no submódulo); el Pin efectivo se registra en `pin.json`.
 - `npm run bump-pin <ref>` actualiza vendor + pin.json manualmente; el reporte incluye siempre el commit.
 

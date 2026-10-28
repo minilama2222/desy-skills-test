@@ -7,7 +7,7 @@ describe("parsePin", () => {
       ref: "main",
       commit: "b523ca7df8594532f5fd47376894c16bc8f1b5df",
       fecha: "2026-10-20",
-      repo: "https://github.com/minilama2222/desy-skills",
+      repo: "https://bitbucket.org/sdaragon/desy-skills",
     });
 
     expect(pin.commit).toBe("b523ca7df8594532f5fd47376894c16bc8f1b5df");
@@ -31,7 +31,7 @@ describe("parsePin", () => {
         ref: "main",
         commit: "no-es-un-sha",
         fecha: "2026-10-20",
-        repo: "https://github.com/minilama2222/desy-skills",
+        repo: "https://bitbucket.org/sdaragon/desy-skills",
       }),
     ).toThrow(/commit/i);
   });
@@ -41,7 +41,7 @@ describe("parsePin", () => {
       parsePin({
         ref: "main",
         commit: "b523ca7df8594532f5fd47376894c16bc8f1b5df",
-        repo: "https://github.com/minilama2222/desy-skills",
+        repo: "https://bitbucket.org/sdaragon/desy-skills",
       }),
     ).toThrow(/fecha/i);
   });

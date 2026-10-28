@@ -7,7 +7,7 @@ export interface Pin {
   repo?: string;
 }
 
-export const DEFAULT_REPO = "https://github.com/minilama2222/desy-skills";
+export const DEFAULT_REPO = "https://bitbucket.org/sdaragon/desy-skills";
 
 const SHA_RE = /^[0-9a-f]{7,40}$/i;
 
