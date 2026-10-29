@@ -29,13 +29,20 @@ Petición: «Genera un botón primario de tamaño estándar con el texto "Enviar
 
 ## Anclaje en `desy-skills`
 
-- Macros y props: `desy-implement-component` → «Mapeo de componentes» y
-  `_examples.button.njk`.
-- Clases de variante y tamaño: `desy-styles-reference` → «Componentes con
-  `c-*`» (`c-button`, `c-button--primary`, `c-button--secondary`,
-  `c-button--alert`, `c-button--sm/base/lg`).
-- Reglas de tamaño: `desy-implement-component` → tabla «Tamaños: cada
-  componente con su propia clase».
+Por cada Check, el skill y la sección de su `SKILL.md` donde vive la regla. El
+informe por Caso cita esa sección **por título**, no por número de línea, y
+`npm run verificar-casos` comprueba que el título existe en el `SKILL.md`.
+
+- usa-macro-boton: desy-implement-component → «Ejemplo 1: Botón "Enviar" en desy-angular»
+- variante-primaria: desy-styles-reference → «Componentes con `c-*` (bloques UI completos)»
+- sin-props-inventados: desy-implement-component → «Mapeo de componentes (subset crítico)»
+- tamano-base: desy-implement-component → «Tamaños: cada componente con su propia clase»
+- tamano-base-no-grande: desy-implement-component → «Tamaños: cada componente con su propia clase»
+
+Prosa de apoyo: los macros y props están en «Macros compuestos» y
+`_examples.button.njk`; las clases de variante y tamaño, en «Componentes con
+`c-*`» (`c-button`, `c-button--primary`, `c-button--secondary`,
+`c-button--alert`, `c-button--sm/base/lg`).
 
 ## Fuera de alcance de este Caso
 

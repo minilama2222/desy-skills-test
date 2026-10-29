@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  anclajesDeRubric,
   parseChecks,
   tipoDeCarpeta,
   type Caso,
@@ -7,6 +8,61 @@ import {
   type CasoPagina,
   type TipoCaso,
 } from "../src/caso.js";
+
+describe("anclajesDeRubric: la sección del skill que el Caso nombra (ticket 06)", () => {
+  const rubric = (epigrafe: string, lineas: string[]): string =>
+    ["# Rúbrica", "", epigrafe, "", ...lineas, "", "## Fuera de alcance", "- otra: x → «no cuenta»"].join("\n");
+
+  it("lee id, skill y título de la sección en cada línea del epígrafe", () => {
+    const anclajes = anclajesDeRubric(
+      rubric("## Anclaje en `desy-skills`", [
+        "- usa-macro: desy-implement-component → «Ejemplo 1: Botón \"Enviar\" en desy-angular»",
+        "- tamano-base: desy-implement-component → «Tamaños: cada componente con su propia clase»",
+      ]),
+    );
+
+    expect([...anclajes]).toEqual([
+      ["usa-macro", { skill: "desy-implement-component", seccion: 'Ejemplo 1: Botón "Enviar" en desy-angular' }],
+      ["tamano-base", { skill: "desy-implement-component", seccion: "Tamaños: cada componente con su propia clase" }],
+    ]);
+  });
+
+  it("el epígrafe se reconoce con y sin backticks en el título", () => {
+    const con = anclajesDeRubric(rubric("## Anclaje en desy-skills", ["- a-b: s-x → «Sección»"]));
+    const sin = anclajesDeRubric(rubric("## Anclaje en `desy-skills`", ["- a-b: s-x → «Sección»"]));
+
+    expect(con.get("a-b")).toEqual({ skill: "s-x", seccion: "Sección" });
+    expect(sin.get("a-b")).toEqual(con.get("a-b"));
+  });
+
+  it("sólo cuenta las líneas de su epígrafe, no otra prosa con flechas", () => {
+    const anclajes = anclajesDeRubric(
+      rubric("### Anclaje en desy-skills", ["- a-b: s-x → «Sección»"]),
+    );
+
+    expect(anclajes.has("otra")).toBe(false);
+    expect(anclajes.size).toBe(1);
+  });
+
+  it("acepta el skill entre backticks, como lo escribe la prosa del repo", () => {
+    const anclajes = anclajesDeRubric(
+      rubric("## Anclaje en desy-skills", ["- `a-b`: `s-x` → «Sección»"]),
+    );
+
+    expect(anclajes.get("a-b")).toEqual({ skill: "s-x", seccion: "Sección" });
+  });
+
+  it("una línea que no sigue la forma no se lee como ancla", () => {
+    const anclajes = anclajesDeRubric(
+      rubric("## Anclaje en desy-skills", [
+        "Prosa: `usa-macro` vive en desy-implement-component.",
+        "- sin flecha: desy-implement-component",
+      ]),
+    );
+
+    expect(anclajes.size).toBe(0);
+  });
+});
 
 describe("TipoCaso", () => {
   it("usa el vocabulario del glosario para los dos tipos de Caso", () => {

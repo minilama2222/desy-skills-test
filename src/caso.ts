@@ -197,6 +197,92 @@ export interface Check {
   severity: Severity;
   weight: number;
   assert: Assert;
+  /**
+   * La sección del skill de la que el Caso hace depender este Check (ticket 06),
+   * leída de la `rubric.md` por el loader. Sin ella —un guard del Framework, o un
+   * Caso que no la declara— el informe dice que no hay sección que citar.
+   */
+  ancla?: AnclaDeSkill;
+}
+
+/**
+ * La **sección del skill** de la que depende un Check (ticket 06 del bucle de
+ * refinamiento): el skill y el título de la sección de su `SKILL.md` que el Caso
+ * nombra como fuente de la regla. El informe la cita por **texto**, no por número
+ * de línea: un skill se edita y las líneas se mueven, pero el título de la
+ * sección es el nombre con el que el autor del skill la reconoce.
+ *
+ * Un Caso declara esto en su `rubric.md` con la línea
+ * `- <id-del-check>: <skill> → «<título de la sección>»`, bajo el epígrafe
+ * `## Anclaje en desy-skills`. Un Check sin ancla —un guard del Framework, que
+ * el Caso no declara— no tiene sección que citar, y el informe lo dice.
+ */
+export interface AnclaDeSkill {
+  /** El Skill al que pertenece la sección (`desy-implement-component`). */
+  skill: string;
+  /** El título de la sección de su `SKILL.md`, sin los `#`. */
+  seccion: string;
+}
+
+/** El epígrafe de `rubric.md` bajo el que el Caso ancla sus Checks al skill. */
+export const EPIGRAFE_ANCLAJE = "Anclaje en desy-skills";
+
+/**
+ * El título de un epígrafe, comparado sin la decoración de markdown: la rúbrica
+ * del repo escribe `## Anclaje en \`desy-skills\`` con backticks, y el epígrafe
+ * canónico no los lleva. Que un backtick cambie el sentido de un título sería
+ * un detalle de formato decidiendo una regla.
+ */
+function tituloPlano(titulo: string): string {
+  return titulo.replace(/`/g, "").replace(/\s+/g, " ").trim();
+}
+
+/**
+ * Una línea de anclaje en `rubric.md`:
+ * `- usa-macro-boton: desy-implement-component → «Ejemplo 1: Botón "Enviar" en desy-angular»`
+ *
+ * El id va antes de los dos puntos; el skill es la primera palabra; la sección va
+ * entre comillas angulares (`«…»`) —o dobles, que un editor también produce— y
+ * puede llevar comillas simples dentro, porque los títulos de los skills las
+ * usan. Un skill en backticks (`` `desy-implement-component` ``) también vale:
+ * es como la prosa del repo lo escribe.
+ */
+const LINEA_ANCLAJE = /^\s*[-*]\s+`?([a-z][a-z0-9-]+)`?\s*:\s*`?([a-z][a-z0-9-]+)`?\s*→\s*[«"“](.+?)[»"”]\s*$/;
+
+/**
+ * Lee los anclajes de skill que declara una `rubric.md` bajo el epígrafe
+ * `## Anclaje en desy-skills`. Sólo cuentan las líneas de **ese** epígrafe (hasta
+ * el siguiente título del mismo o menor nivel): la rúbrica de un Caso tiene más
+ * prosa con flechas, y una de ellas no es un ancla.
+ *
+ * Devuelve un `Map` id → ancla, con la **primera** declaración de cada id: dos
+ * anclas para el mismo Check son una contradicción, y la primera es la que el
+ * autor escribió. Un id con anclas contradictorias lo caza
+ * `problemasDelArbolDeCasos`, no esta función.
+ */
+export function anclajesDeRubric(texto: string): Map<string, AnclaDeSkill> {
+  const anclajes = new Map<string, AnclaDeSkill>();
+  let dentro = false;
+  let nivelDelEpigrafe = 0;
+
+  for (const linea of texto.split(/\r?\n/)) {
+    const titulo = /^(#{1,6})\s+(.*?)\s*$/.exec(linea);
+    if (titulo) {
+      const nivel = titulo[1]!.length;
+      if (dentro && nivel <= nivelDelEpigrafe) dentro = false;
+      if (tituloPlano(titulo[2]!) === EPIGRAFE_ANCLAJE) {
+        dentro = true;
+        nivelDelEpigrafe = nivel;
+      }
+      continue;
+    }
+    if (!dentro) continue;
+    const match = LINEA_ANCLAJE.exec(linea);
+    if (!match) continue;
+    const [, id, skill, seccion] = match;
+    if (!anclajes.has(id!)) anclajes.set(id!, { skill: skill!, seccion: seccion! });
+  }
+  return anclajes;
 }
 
 export interface CasoComponente {

@@ -150,6 +150,25 @@ El agregado de Grades por Skill, renderizado a partir del JSON de resultados. Es
 el consumidor de la política de N (ADR-0007): da el Veredicto de un Caso y separa
 las Ejecuciones «no entregó» de «entregó mal». Ver `src/scorecard.ts`.
 
+**Informe por Caso**:
+El documento legible que `npm run suite` y `npm run report` escriben en
+`reports/informe/<skill>/<caso>.md`: por cada Check fallido, su aserción, la línea
+del Artefacto que la tumba (o dónde debería estar, si falla por ausencia) y la
+sección del Skill de la que el Caso dice depender, citada por título. **Presenta,
+no adivina**: no emite veredicto de «culpa del skill» o «culpa del check»; eso lo
+decide quien lo lee. Ver `src/informe.ts` y el ticket 06 del bucle de refinamiento.
+_Avoid_: llamarlo «scorecard» (el Scorecard es el agregado por Skill, no el
+detalle por Check); leerlo como un juicio del Skill.
+
+**Ancla de skill**:
+La sección concreta de un `SKILL.md` de la que un Caso declara depender para un
+Check, escrita en su `rubric.md` bajo `## Anclaje en desy-skills` como
+`- <id-del-check>: <skill> → «<título de la sección>»`. Se cita por **texto**
+(el título de la sección), nunca por número de línea, para que sobreviva a las
+ediciones del Skill. `npm run verificar-casos` comprueba que la sección existe.
+_Avoid_: anclar por número de línea o por ruta de fichero; inventar el ancla
+cuando el Check no la declara.
+
 ### Referencias DESY
 
 **Gold**:

@@ -1,13 +1,16 @@
 import { bumpPin, currentRepo, realGit, PIN_PATH } from "./bump.js";
 import { ANCHO_CAPTURA, asegurarCaptura, capturarConAgentBrowser } from "./captura-gold.js";
 import { CASOS_DIR, cargarCaso, cargarCasos } from "./caso-loader.js";
-import type { Assert, Check, TipoCaso } from "./caso.js";
+import type { AnclaDeSkill, Assert, Check, TipoCaso } from "./caso.js";
 import { ejecutarCaso, type ResultadoEjecucion } from "./ejecutar.js";
 import { grado } from "./grader.js";
 import { problemasDeArbolLocalSucio, problemasDeVendorSucio } from "./guardarrail-pin.js";
+import type { ContextoDelCaso } from "./informe.js";
+import { renderInformeCaso } from "./informe.js";
 import type { Pin } from "./pin.js";
 import { LOCAL, pinLocal, readPin, rutaEnElRepo } from "./pin.js";
 import {
+  escribirInformes,
   escribirScorecard,
   guardarEjecucion,
   leerEjecuciones,
@@ -17,8 +20,15 @@ import {
   vaciarEjecuciones,
 } from "./reportes.js";
 import { REPO_ROOT } from "./repo.js";
-import { createSandbox, realCommand, SCAFFOLD_CACHE_DIR, skillsDirDeConfig } from "./runner.js";
+import {
+  createSandbox,
+  realCommand,
+  SCAFFOLD_CACHE_DIR,
+  skillsDirDeConfig,
+  VENDOR_SKILLS_DIR,
+} from "./runner.js";
 import { agregarScorecard, etiquetaDelPin, renderScorecard } from "./scorecard.js";
+import { lectorDeSecciones } from "./seccion-skill.js";
 import {
   exitCodeDe,
   N_POR_DEFECTO,
@@ -77,6 +87,113 @@ function localizarCaso(skill: string, id: string): string {
   throw new Error(
     `No se encontró el Caso "${id}" para el skill "${skill}" bajo ${skillDir}`,
   );
+}
+
+/**
+ * La carpeta de un Caso del árbol canónico, si sigue ahí. El informe por Caso se
+ * puede pedir sobre Ejecuciones que nombran un Caso ya movido o borrado: entonces
+ * no hay prompt ni anclas, y el informe lo dice en vez de fallar entero.
+ */
+function carpetaDeCaso(skill: string, caso: string): string | undefined {
+  try {
+    return localizarCaso(skill, caso);
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Dónde viven los skills de los que el informe citará secciones (ticket 06).
+ * Sale del **Pin** de la corrida, no del estado de hoy:
+ *
+ * - Pin remoto: el `vendor/` versionado, que es lo que la corrida copió.
+ * - Pin local: `<repo del Pin>/skills`, donde `repo` lleva la ruta del checkout
+ *   (relativa al repo o absoluta; `pinLocal` la pone ahí). Un árbol local puede
+ *   estar borrado —el informe tardío no debe morir por eso—: si no existe, no hay
+ *   árbol y el informe dice que no pudo leer la sección.
+ */
+function arbolDeSkillsDe(ejecuciones: ResultadoEjecucion[]): string | undefined {
+  const declarada = ejecuciones[0];
+  if (declarada === undefined) return undefined;
+  if (declarada.pin !== LOCAL) return VENDOR_SKILLS_DIR;
+  const ruta = declarada.pinRepo;
+  if (ruta === undefined) return undefined;
+  const skills = join(resolve(REPO_ROOT, ruta), "skills");
+  return existsSync(skills) ? skills : undefined;
+}
+
+/**
+ * Lo que el informe necesita de cada Caso: su prompt, sus anclas y el lector de
+ * secciones. Un Caso ausente del árbol no rompe el informe: se presenta con lo
+ * que la Ejecución trae (`DetalleCheck.ancla`, `assert`) y el prompt se marca
+ * como no disponible.
+ */
+function contextosPorCaso(
+  ejecuciones: ResultadoEjecucion[],
+  arbol: string | undefined,
+): Map<string, ContextoDelCaso> {
+  const contextos = new Map<string, ContextoDelCaso>();
+  const leerSeccion = arbol === undefined ? undefined : lectorDeSecciones(arbol);
+  for (const ejecucion of ejecuciones) {
+    const clave = `${ejecucion.skill}/${ejecucion.caso}`;
+    if (contextos.has(clave)) continue;
+    const carpeta = carpetaDeCaso(ejecucion.skill, ejecucion.caso);
+    let prompt: string | undefined;
+    let anclas: Map<string, AnclaDeSkill> | undefined;
+    if (carpeta !== undefined) {
+      try {
+        const caso = cargarCaso(carpeta);
+        prompt = caso.prompt;
+        anclas = new Map(
+          caso.checks.flatMap((check) =>
+            check.ancla === undefined ? [] : [[check.id, check.ancla] as const],
+          ),
+        );
+      } catch {
+        // Un Caso que no carga ya lo caza `verificar-casos`; el informe no es el
+        // sitio para repetirlo, así que se presenta lo que la Ejecución trae.
+      }
+    }
+    contextos.set(clave, {
+      caso: ejecucion.caso,
+      ...(prompt === undefined ? {} : { prompt }),
+      ...(anclas === undefined || anclas.size === 0 ? {} : { anclas }),
+      ...(leerSeccion === undefined ? {} : { leerSeccion }),
+    });
+  }
+  return contextos;
+}
+
+/**
+ * Escribe el informe legible de cada Caso bajo `<reports>/informe/<skill>/<caso>.md`
+ * y dice por stderr dónde quedó. Es el documento que el ticket 06 pide: con él y
+ * sin el resto del harness se decide si tocar el skill o el check.
+ */
+function escribirInformesPorCaso(
+  ejecuciones: ResultadoEjecucion[],
+  rutas: { informes: string },
+): string[] {
+  const porCaso = new Map<string, ResultadoEjecucion[]>();
+  for (const ejecucion of ejecuciones) {
+    const clave = `${ejecucion.skill}/${ejecucion.caso}`;
+    const grupo = porCaso.get(clave);
+    if (grupo === undefined) porCaso.set(clave, [ejecucion]);
+    else grupo.push(ejecucion);
+  }
+
+  const contextos = contextosPorCaso(ejecuciones, arbolDeSkillsDe(ejecuciones));
+  const informes = [...porCaso].map(([clave, delCaso]) => {
+    const primero = delCaso[0]!;
+    const contexto = contextos.get(clave)!;
+    return {
+      skill: primero.skill,
+      caso: primero.caso,
+      markdown: renderInformeCaso(delCaso, contexto) + "\n",
+    };
+  });
+  const escritos = escribirInformes(rutas.informes, informes);
+  for (const path of escritos) console.error(`Informe: ${rutaRelativa(path)}`);
+  return escritos;
 }
 
 /**
@@ -215,6 +332,7 @@ async function runSuite(args: string[]): Promise<number> {
   const scorecard = agregarScorecard(ejecuciones, pin, hashComun(ejecuciones));
   const markdown = renderScorecard(scorecard) + "\n";
   escribirScorecard(JSON.stringify(scorecard, null, 2) + "\n", markdown, rutas);
+  escribirInformesPorCaso(ejecuciones, rutas);
 
   const r = resumen(scorecard, ejecuciones);
   console.error(
@@ -319,6 +437,7 @@ function runReport(args: string[]): void {
   const markdown = renderScorecard(scorecard) + "\n";
 
   escribirScorecard(JSON.stringify(scorecard, null, 2) + "\n", markdown, rutas);
+  escribirInformesPorCaso(ejecuciones, rutas);
 
   console.error(
     `Scorecard: ${ejecuciones.length} Ejecución/es → ` +

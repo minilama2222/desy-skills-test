@@ -3,6 +3,7 @@ import { esCasoPagina } from "./caso.js";
 import type { DetalleCheck, Grade } from "./grader.js";
 import { grado, pasoCoincide } from "./grader.js";
 import type { Pin } from "./pin.js";
+import { esPinLocal } from "./pin.js";
 import type { RunDeps } from "./runner.js";
 import { runCaso } from "./runner.js";
 import { readFileSync } from "node:fs";
@@ -12,6 +13,13 @@ export interface ResultadoEjecucion {
   caso: string;
   tipo: Caso["tipo"];
   pin: string;
+  /**
+   * La ruta del checkout, sólo cuando el Pin es local (ticket 05: va en `repo`
+   * del Pin). El informe por Caso (ticket 06) la necesita para citar las
+   * secciones del **árbol que se midió** en vez de las de `vendor/`, que no es lo
+   * que se copió al sandbox. En un Pin remoto no existe.
+   */
+  pinRepo?: string;
   /**
    * La fecha del Pin con el que se midió. Va en la Ejecución, no se toma de
    * `pin.json` al reportar: re-etiquetar una corrida con el Pin de hoy es la
@@ -105,6 +113,7 @@ export async function ejecutarCaso(
     caso: caso.id,
     tipo: caso.tipo,
     pin: pin.commit,
+    ...(esPinLocal(pin) && pin.repo !== undefined ? { pinRepo: pin.repo } : {}),
     fecha: pin.fecha,
     grade,
     detalle,

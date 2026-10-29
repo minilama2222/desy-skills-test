@@ -66,7 +66,7 @@ describe("Grade", () => {
 });
 
 describe("detalle por Check", () => {
-  it("emite un DetalleCheck por cada Check con id, severidad y pasado/fallado", () => {
+  it("emite un DetalleCheck por cada Check con id, severidad, pasado/fallado y la aserción evaluada", () => {
     const checks: Check[] = [
       checkGuard({ id: "guard-uno" }),
       checkQuality("quality-uno", 1, "componentAviso"),
@@ -81,16 +81,24 @@ describe("detalle por Check", () => {
       { tipo: "caso-componente", checks },
     );
 
-    expect(resultado.detalle).toContainEqual({
-      id: "guard-uno",
-      severity: "guard",
-      passed: true,
-    });
-    expect(resultado.detalle).toContainEqual({
-      id: "quality-uno",
-      severity: "quality",
-      passed: true,
-    });
+    // La aserción viaja en la Ejecución (ticket 06): el informe cita el texto del
+    // Check que falla sin volver a leer el Caso, que pudo cambiar desde entonces.
+    expect(resultado.detalle).toContainEqual(
+      expect.objectContaining({
+        id: "guard-uno",
+        severity: "guard",
+        passed: true,
+        assert: checks[0]!.assert,
+      }),
+    );
+    expect(resultado.detalle).toContainEqual(
+      expect.objectContaining({
+        id: "quality-uno",
+        severity: "quality",
+        passed: true,
+        assert: { kind: "macro_presente", macro: "componentAviso" },
+      }),
+    );
   });
 
   it("marca como fallado el Check cuya aserción no se cumple", () => {
@@ -102,11 +110,14 @@ describe("detalle por Check", () => {
       { tipo: "caso-componente", checks: [checkQuality("q1", 1, "componentAviso")] },
     );
 
-    expect(resultado.detalle).toContainEqual({
-      id: "q1",
-      severity: "quality",
-      passed: false,
-    });
+    expect(resultado.detalle).toContainEqual(
+      expect.objectContaining({
+        id: "q1",
+        severity: "quality",
+        passed: false,
+        assert: { kind: "macro_presente", macro: "componentAviso" },
+      }),
+    );
   });
 });
 

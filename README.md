@@ -120,6 +120,9 @@ Qué deja y qué devuelve:
   Caso.
 - **`reports/suite/scorecard.md`** — el Scorecard legible (también por stdout;
   las rutas y el progreso, por stderr).
+- **`reports/suite/informe/<skill>/<caso>.md`** — el **informe por Caso**: por cada
+  Check fallido, la aserción, la línea del artefacto que la tumba y la sección del
+  skill de la que el Caso dice depender (ver [Informe por Caso](#informe-por-caso)).
 - Las N Ejecuciones persistidas en `reports/suite/ejecuciones/<skill>/<caso>/<n>.json`.
 
 El **exit code** es la señal que bloquea el merge:
@@ -169,6 +172,7 @@ Skill y Caso y escribe:
   testeado y, por Skill, el veredicto de cada Caso.
 - `reports/scorecard.md` — el Scorecard legible: una tabla por Skill con casos,
   veredicto, Grades y qué Check falló.
+- `reports/informe/<skill>/<caso>.md` — el informe por Caso (ver abajo).
 
 El veredicto de un Caso aplica el **ADR-0007** y el **ADR-0014**: se descartan las
 Ejecuciones que no alcanzaron el skill (`flujoAlcanzoSkill: false`) y también las
@@ -177,6 +181,33 @@ que una de las que entregaron sea correcta. Si ninguna entregó, el Caso queda
 **INDETERMINADO** (no es un suspenso): no hay nada que graduar. El Scorecard separa
 además «no entregó» de «entregó mal», y declara el `arbolHash` de los skills
 medidos.
+
+## Informe por Caso
+
+Junto al Scorecard, `npm run suite` y `npm run report` escriben
+`informe/<skill>/<caso>.md`: el documento con el que se decide **si el rojo es del
+skill o del check**. Por cada Ejecución y cada Check, pone lado a lado:
+
+- la **aserción** del Check (`Exige:` / `Tumba:`), sacada de su propio `assert`;
+- la **línea del artefacto** que la tumba, con su número, o —si el Check falla por
+  **ausencia**— la línea donde debería estar lo que exige; y
+- la **sección del skill** de la que el Caso dice depender, citada **por su
+  título** (nunca por número de línea) y con su texto, leído del árbol que se
+  midió.
+
+El informe **presenta, no adivina**: no emite veredicto de culpa del skill ni del
+check. El Caso declara de qué sección depende cada Check en su `rubric.md`, bajo
+el epígrafe `## Anclaje en desy-skills`:
+
+```markdown
+- variante-primaria: desy-styles-reference → «Componentes con `c-*` (bloques UI completos)»
+```
+
+`npm run verificar-casos` comprueba que ese título existe en el `SKILL.md` del
+skill citado y que el id existe en el Caso. Un Check sin ancla (los del Framework,
+por ejemplo) se presenta diciendo que no declara sección; una Ejecución que no
+invocó ningún skill, o un Check del Flujo, dicen por qué no hay sección ni línea
+que citar. Un Caso nuevo puede empezar sin anclas: el informe sigue siendo legible.
 
 ## Pin
 

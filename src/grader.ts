@@ -1,4 +1,4 @@
-import type { Assert, Check, HechoEstructural, TipoCaso } from "./caso.js";
+import type { AnclaDeSkill, Assert, Check, HechoEstructural, TipoCaso } from "./caso.js";
 import { parseChecks } from "./caso.js";
 import { propsValidasDeMacro, componenteEnCatalogo, varianteEnCatalogo } from "./catalogo.js";
 import {
@@ -35,6 +35,17 @@ export interface DetalleCheck {
   id: string;
   severity: Check["severity"];
   passed: boolean;
+  /**
+   * La aserción que se evaluó (ticket 06). El informe por Caso tiene que citar el
+   * **texto** del Check que falla, y una Ejecución persistida se lee sin el Caso
+   * —que además pudo cambiar desde que se midió—: por eso viaja aquí, no se
+   * busca en `casos/` al reportar. Es opcional porque una Ejecución anterior al
+   * ticket 06 no la trae; entonces el informe cita el id y dice por qué no hay
+   * aserción.
+   */
+  assert?: Assert;
+  /** La sección del skill de la que el Caso hace depender este Check, si la declara. */
+  ancla?: AnclaDeSkill;
 }
 
 export interface GradeResult {
@@ -619,6 +630,8 @@ export function grado(
       caso.gold,
       utilidadesGold,
     ),
+    assert: check.assert,
+    ...(check.ancla === undefined ? {} : { ancla: check.ancla }),
   }));
 
   const guardFalla = detalle.some((d) => d.severity === "guard" && !d.passed);

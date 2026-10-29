@@ -184,6 +184,77 @@ describe("coherencia rúbrica ↔ checks.json", () => {
   });
 });
 
+describe("anclas de skill del Caso (ticket 06)", () => {
+  const conAnclas = (
+    anclas: [string, { skill: string; seccion: string }][],
+    over: Partial<CasoParaValidar> = {},
+  ): CasoParaValidar =>
+    casoOk({
+      idsDeChecks: ["variante-primaria"],
+      anclas: new Map(anclas),
+      seccionesPorSkill: new Map([
+        ["desy-styles-reference", new Set(["Componentes con `c-*` (bloques UI completos)"])],
+      ]),
+      ...over,
+    });
+
+  it("no señala nada si el ancla nombra un Check del Caso y una sección que existe", () => {
+    const hallazgos = problemasDelArbolDeCasos([
+      conAnclas([
+        [
+          "variante-primaria",
+          { skill: "desy-styles-reference", seccion: "Componentes con `c-*` (bloques UI completos)" },
+        ],
+      ]),
+    ]);
+
+    expect(hallazgos).toEqual([]);
+  });
+
+  it("señala un ancla a un Check que el Caso no tiene: sería una sección citada por nadie", () => {
+    const hallazgos = problemasDelArbolDeCasos([
+      conAnclas([["variante-antigua", { skill: "desy-styles-reference", seccion: "Componentes con `c-*` (bloques UI completos)" }]]),
+    ]);
+
+    expect(hallazgos).toHaveLength(1);
+    expect(hallazgos[0]).toContain("variante-antigua");
+    expect(hallazgos[0]).toMatch(/el Caso no tiene/);
+  });
+
+  it("señala un ancla a una sección que el SKILL.md no tiene", () => {
+    const hallazgos = problemasDelArbolDeCasos([
+      conAnclas([["variante-primaria", { skill: "desy-styles-reference", seccion: "Una sección que nadie escribió" }]]),
+    ]);
+
+    expect(hallazgos).toHaveLength(1);
+    expect(hallazgos[0]).toContain("Una sección que nadie escribió");
+    expect(hallazgos[0]).toMatch(/no tiene esa sección/);
+  });
+
+  it("señala un ancla a un skill que no está en el árbol medido", () => {
+    const hallazgos = problemasDelArbolDeCasos([
+      conAnclas([["variante-primaria", { skill: "desy-skill-que-no-existe", seccion: "X" }]]),
+    ]);
+
+    expect(hallazgos).toHaveLength(1);
+    expect(hallazgos[0]).toContain("desy-skill-que-no-existe");
+  });
+
+  it("sin secciones del árbol no juzga la existencia (una prueba de un Caso aislado)", () => {
+    const hallazgos = problemasDelArbolDeCasos([
+      conAnclas([["variante-primaria", { skill: "desy-styles-reference", seccion: "Lo que sea" }]], {
+        seccionesPorSkill: undefined,
+      }),
+    ]);
+
+    expect(hallazgos).toEqual([]);
+  });
+
+  it("un Caso sin anclas no se señala: el ancla es opcional", () => {
+    expect(problemasDelArbolDeCasos([casoOk()])).toEqual([]);
+  });
+});
+
 describe("idsDeChecksCitadosEnRubric", () => {
   it("extrae los ids en negrita, ignorando la prosa en negrita", () => {
     const rubric = [

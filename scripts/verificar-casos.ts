@@ -1,25 +1,50 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
+import { anclajesDeRubric } from "../src/caso.js";
 import { CASOS_DIR, cargarCaso } from "../src/caso-loader.js";
 import {
   problemasDelArbolDeCasos,
   type CasoEnDisco,
 } from "../src/guardarrail-casos.js";
 import { REPO_ROOT } from "../src/repo.js";
+import { VENDOR_SKILLS_DIR } from "../src/runner.js";
+import { titulosDeSkill } from "../src/seccion-skill.js";
 
 /**
  * Guardarraíl del árbol de Casos (ver el retro del ticket 09): todo Caso
- * declarado en `casos/` debe ser **cargable**. Es la parte adaptadora del
- * guardarraíl puro `problemasDelArbolDeCasos`: recorre el FS, describe cada Caso
- * (qué ficheros tiene) e intenta cargarlo para capturar un `checks.json`
+ * declarado en `casos/` debe ser cargable. Es la parte adaptadora del
+ * guardarrail puro `problemasDelArbolDeCasos`: recorre el FS, describe cada Caso
+ * (que ficheros tiene) e intenta cargarlo para capturar un `checks.json`
  * malformado. Corre en el pre-commit. `npm run verificar-casos`.
+ *
+ * Desde el ticket 06 contrasta ademas las anclas de skill del `rubric.md` contra
+ * los títulos reales de los `SKILL.md` de `vendor/desy-skills/skills/`: el árbol
+ * canonico, porque es el que el repo versiona y contra el que se mide.
  */
 function rutaRelativa(path: string): string {
   return relative(REPO_ROOT, path).split("\\").join("/");
 }
 
+/**
+ * Los títulos de sección de cada skill del árbol canonico. Se lee vendor/, no un
+ * checkout local: el ancla del Caso es una claim del repo y tiene que valer
+ * contra lo versionado; que un checkout del usuario no la tenga aún es normal
+ * mientras la petición sigue abierta.
+ */
+function seccionesDelArbol(): Map<string, Set<string>> {
+  const porSkill = new Map<string, Set<string>>();
+  if (!existsSync(VENDOR_SKILLS_DIR)) return porSkill;
+  for (const skill of readdirSync(VENDOR_SKILLS_DIR, { withFileTypes: true })) {
+    if (!skill.isDirectory()) continue;
+    const path = join(VENDOR_SKILLS_DIR, skill.name, "SKILL.md");
+    if (!existsSync(path)) continue;
+    porSkill.set(skill.name, titulosDeSkill(readFileSync(path, "utf8")));
+  }
+  return porSkill;
+}
+
 /** Describe cada Caso del árbol: sus ficheros y, si falla, el error del loader. */
-function describirArbol(): CasoEnDisco[] {
+function describirArbol(secciones: Map<string, Set<string>>): CasoEnDisco[] {
   if (!existsSync(CASOS_DIR)) return [];
   const casos: CasoEnDisco[] = [];
   for (const skill of readdirSync(CASOS_DIR, { withFileTypes: true })) {
@@ -31,7 +56,7 @@ function describirArbol(): CasoEnDisco[] {
       for (const caso of readdirSync(tipoDir, { withFileTypes: true })) {
         if (!caso.isDirectory()) continue;
         const dir = join(tipoDir, caso.name);
-        casos.push(describirCaso(dir, skill.name, tipo.name, caso.name));
+        casos.push(describirCaso(dir, skill.name, tipo.name, caso.name, secciones));
       }
     }
   }
@@ -43,6 +68,7 @@ function describirCaso(
   skill: string,
   tipo: string,
   id: string,
+  secciones: Map<string, Set<string>>,
 ): CasoEnDisco {
   const base: CasoEnDisco = {
     ruta: rutaRelativa(dir),
@@ -53,6 +79,7 @@ function describirCaso(
     tieneChecks: existsSync(join(dir, "expected", "checks.json")),
     tieneRubric: existsSync(join(dir, "rubric.md")),
     tieneGold: existsSync(join(dir, "input", "gold.html")),
+    seccionesPorSkill: secciones,
     ...leerRubric(dir),
   };
   try {
@@ -64,26 +91,31 @@ function describirCaso(
 }
 
 /**
- * El texto de la rúbrica, para contrastarla con los Checks del Caso (ver
- * `problemasDeRubric`). Si el fichero no existe, no se lee nada: la falta ya la
- * señala `tieneRubric`.
+ * El texto de la rúbrica (para contrastarla con los Checks: ver
+ * `problemasDeRubric`) y sus anclas de skill (ticket 06). Si el fichero no
+ * existe no se lee nada: la falta ya la señala `tieneRubric`.
  */
-function leerRubric(dir: string): Pick<CasoEnDisco, "textoRubric"> {
+function leerRubric(dir: string): Pick<CasoEnDisco, "textoRubric" | "anclas"> {
   const path = join(dir, "rubric.md");
-  return existsSync(path) ? { textoRubric: readFileSync(path, "utf8") } : {};
+  if (!existsSync(path)) return {};
+  const texto = readFileSync(path, "utf8");
+  const anclas = anclajesDeRubric(texto);
+  return { textoRubric: texto, ...(anclas.size === 0 ? {} : { anclas }) };
 }
 
-const hallazgos = problemasDelArbolDeCasos(describirArbol());
+const hallazgos = problemasDelArbolDeCasos(describirArbol(seccionesDelArbol()));
 
 if (hallazgos.length === 0) {
-  console.log("OK: todos los Casos del árbol son cargables.");
+  console.log(
+    "OK: todos los Casos del árbol son cargables y sus anclas apuntan a secciones reales.",
+  );
   process.exit(0);
 }
 
-console.log(`El árbol de Casos tiene ${hallazgos.length} problema/s:`);
-for (const h of hallazgos) console.log(`  - ${h}`);
+console.log("El árbol de Casos tiene " + hallazgos.length + " problema/s:");
+for (const h of hallazgos) console.log("  - " + h);
 console.log(
   "\nUn Caso malformado no se valida sólo (cada test nombra su ruta): " +
-    "arréglalo o quítalo del árbol.",
+    "arreglalo o quitalo del árbol.",
 );
 process.exit(1);

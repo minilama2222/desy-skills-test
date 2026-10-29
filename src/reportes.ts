@@ -44,11 +44,15 @@ export function rutasDeReporte(reportsDir: string): {
   ejecuciones: string;
   scorecardJson: string;
   scorecardMd: string;
+  informes: string;
 } {
   return {
     ejecuciones: join(reportsDir, "ejecuciones"),
     scorecardJson: join(reportsDir, "scorecard.json"),
     scorecardMd: join(reportsDir, "scorecard.md"),
+    // El informe por Caso (ticket 06) va al lado del Scorecard: es una **vista**
+    // de las Ejecuciones, y como el Scorecard se regenera entero en cada corrida.
+    informes: join(reportsDir, "informe"),
   };
 }
 
@@ -127,4 +131,29 @@ export function escribirScorecard(
   mkdirSync(dirname(rutas.scorecardJson), { recursive: true });
   writeFileSync(rutas.scorecardJson, json, "utf8");
   writeFileSync(rutas.scorecardMd, markdown, "utf8");
+}
+
+/** El informe de un Caso, tal como se escribe a disco. */
+export interface InformeAEscribir {
+  skill: string;
+  caso: string;
+  markdown: string;
+}
+
+/**
+ * Escribe un informe legible por Caso en `<dir>/<skill>/<caso>.md` (ticket 06).
+ * Vacía antes el árbol de informes: un informe de una corrida anterior —de un
+ * Caso que ya no está, o de una Ejecución que ya no existe— describiría algo que
+ * no se midió, y el informe es justo el documento en el que se confía.
+ *
+ * Devuelve las rutas escritas, para que el CLI las anuncie.
+ */
+export function escribirInformes(dir: string, informes: InformeAEscribir[]): string[] {
+  rmSync(dir, { recursive: true, force: true });
+  return informes.map((informe) => {
+    const path = join(dir, informe.skill, `${informe.caso}.md`);
+    mkdirSync(dirname(path), { recursive: true });
+    writeFileSync(path, informe.markdown, "utf8");
+    return path;
+  });
 }

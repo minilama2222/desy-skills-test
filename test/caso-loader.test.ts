@@ -208,6 +208,47 @@ describe("cargarCaso", () => {
     expect(() => cargarCaso(dir)).toThrow(/checks\.json/i);
   });
 
+  it("pega a cada Check la sección del skill que su rubric.md ancla (ticket 06)", () => {
+    root = mkdtempSync(join(tmpdir(), "casos-"));
+    const checks = {
+      checks: [
+        {
+          id: "variante-primaria",
+          severity: "guard",
+          weight: 0,
+          assert: { kind: "macro_con_clase", macro: "componentButton", clase: "c-button--primary" },
+        },
+        {
+          id: "tamano-base",
+          severity: "quality",
+          weight: 2,
+          assert: { kind: "macro_sin_clase", macro: "componentButton", clase: "c-button--sm" },
+        },
+      ],
+    };
+    const rubric = [
+      "# Rúbrica",
+      "",
+      "## Anclaje en `desy-skills`",
+      "",
+      '- variante-primaria: desy-styles-reference → «Componentes con `c-*` (bloques UI completos)»',
+      "",
+      "## Otra cosa",
+      "- tamano-base: desy-implement-component → «Fuera del epígrafe»",
+    ].join("\n");
+    const dir = crearCaso(root, "implement-component", "componente", "boton", { checks, rubric });
+
+    const caso = cargarCaso(dir);
+
+    // El ancla del Check que la rubric nombra, por su título exacto.
+    expect(caso.checks[0]!.ancla).toEqual({
+      skill: "desy-styles-reference",
+      seccion: "Componentes con `c-*` (bloques UI completos)",
+    });
+    // Un Check sin ancla no la inventa: el informe dirá que no declara sección.
+    expect(caso.checks[1]!.ancla).toBeUndefined();
+  });
+
   it("rechaza una carpeta de tipo desconocido con un error claro", () => {
     root = mkdtempSync(join(tmpdir(), "casos-"));
     mkdirSync(join(root, "implement-component", "otro", "x", "input"), { recursive: true });

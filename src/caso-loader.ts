@@ -1,7 +1,14 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import type { Caso, CasoComponente, CasoDecision, CasoPagina, Check } from "./caso.js";
-import { parseChecks, tipoDeCarpeta } from "./caso.js";
+import type {
+  AnclaDeSkill,
+  Caso,
+  CasoComponente,
+  CasoDecision,
+  CasoPagina,
+  Check,
+} from "./caso.js";
+import { anclajesDeRubric, parseChecks, tipoDeCarpeta } from "./caso.js";
 import { REPO_ROOT } from "./repo.js";
 
 export type CasoEnDisco = Caso;
@@ -35,6 +42,18 @@ function cargarChecks(dir: string): Check[] {
   }
 }
 
+/**
+ * Pega cada ancla de `rubric.md` a su Check (ticket 06). Un ancla que nombra un
+ * id que el Caso no tiene se **ignora** aquí y la caza `verificar-casos`: el
+ * loader no juzga la rúbrica, sólo la lee.
+ */
+function anclarChecks(checks: Check[], anclajes: Map<string, AnclaDeSkill>): Check[] {
+  return checks.map((check) => {
+    const ancla = anclajes.get(check.id);
+    return ancla === undefined ? check : { ...check, ancla };
+  });
+}
+
 export function cargarCaso(dir: string): Caso {
   const partes = dir.replace(/\\/g, "/").split("/");
   const id = partes[partes.length - 1]!;
@@ -52,8 +71,8 @@ export function cargarCaso(dir: string): Caso {
   if (!prompt) {
     throw new Error(`Caso inválido: el prompt (${join(dir, PROMPT)}) está vacío`);
   }
-  leer(join(dir, RUBRIC), "la rúbrica del Caso en rubric.md");
-  const checks = cargarChecks(dir);
+  const rubric = leer(join(dir, RUBRIC), "la rúbrica del Caso en rubric.md");
+  const checks = anclarChecks(cargarChecks(dir), anclajesDeRubric(rubric));
 
   if (tipo === "caso-pagina") {
     const goldPath = join(dir, GOLD);
