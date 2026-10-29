@@ -4,7 +4,7 @@
 
 **Blocked by:** 05, 09
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 - [ ] `reports/legado/` con los ficheros previos (`reports/suite/scorecard.*`, `reports/estabilidad-v2/*`, las notas del 27/10 que se quieran conservar)
 - [ ] Cada fichero lleva en cabecera con qué regla se midió

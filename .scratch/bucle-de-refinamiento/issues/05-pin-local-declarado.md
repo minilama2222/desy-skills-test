@@ -4,7 +4,7 @@
 
 **Blocked by:** 04
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 - [ ] El runner acepta una ruta de skills local (opción de CLI o config; no editar `vendor/`)
 - [ ] El scorecard marca esa corrida como `local (sin commit)` en JSON y en el H1 del Markdown

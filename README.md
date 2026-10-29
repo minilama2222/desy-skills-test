@@ -150,11 +150,13 @@ Skill y Caso y escribe:
 - `reports/scorecard.md` — el Scorecard legible: una tabla por Skill con casos,
   veredicto, Grades y qué Check falló.
 
-El veredicto de un Caso aplica el **ADR-0007**: se descartan las Ejecuciones que
-no alcanzaron el skill (`flujoAlcanzoSkill: false`) y basta con que una de las que
-quedan sea correcta. Si ninguna lo alcanzó, el Caso queda **INDETERMINADO** (no es
-un suspenso). El Scorecard separa además «no entregó» (`sin-artefacto`) de
-«entregó mal».
+El veredicto de un Caso aplica el **ADR-0007** y el **ADR-0014**: se descartan las
+Ejecuciones que no alcanzaron el skill (`flujoAlcanzoSkill: false`) y también las
+que alcanzaron y no entregaron Artefacto (`entrega: "sin-artefacto"`); basta con
+que una de las que entregaron sea correcta. Si ninguna entregó, el Caso queda
+**INDETERMINADO** (no es un suspenso): no hay nada que graduar. El Scorecard separa
+además «no entregó» de «entregó mal», y declara el `arbolHash` de los skills
+medidos.
 
 ## Pin
 

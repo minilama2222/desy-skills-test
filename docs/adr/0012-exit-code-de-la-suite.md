@@ -6,7 +6,8 @@ corrió **cero** Casos también sale con ≠ 0.
 
 Lo que **no** bloquea, y por qué:
 
-- **Caso INDETERMINADO** (el SUT no alcanzó el skill): no es un suspenso —el
+- **Caso INDETERMINADO** (el SUT no alcanzó el skill, o lo alcanzó y no entregó
+  Artefacto — ADR-0014): no es un suspenso —el
   ADR-0007 lo declara un tercer estado—, y no hay dato para juzgar el skill. Un
   CI rojo por una corrida en la que el agente no arrancó no mide el skill, mide
   al agente, y con este SUT eso pasa a menudo; convertir cada no-arranque en un

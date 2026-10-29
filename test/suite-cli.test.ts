@@ -227,6 +227,24 @@ describe("suite (comando de CI, ticket 13)", () => {
   );
 
   it(
+    "sale con 0 y INDETERMINADO si ninguna de las N Ejecuciones entregó nada (ADR-0014)",
+    async () => {
+      // Antes esto bloqueaba el merge sin decir nada del skill: el agente llegó
+      // al skill y no escribió. Desde ADR-0014 no hay nada que graduar, así que
+      // el Caso no juzga — pero tampoco pasa por medido: el scorecard lo dice.
+      const corrida = await correrSuite([...BOTON, "--n", "3"], ["nada", "nada", "nada"]);
+
+      expect(corrida.vistas).toEqual(["nada", "nada", "nada"]);
+      expectDentroDelPresupuesto(corrida, 3);
+      expect(corrida.code).toBe(0);
+      const caso = corrida.scorecard?.skills[0]?.casos[0];
+      expect(caso?.veredicto).toBe("INDETERMINADO");
+      expect(caso?.sinArtefacto).toBe(3);
+    },
+    180_000,
+  );
+
+  it(
     "basta con que una de las N Ejecuciones sea correcta (ADR-0007) y sale con 0",
     async () => {
       const corrida = await correrSuite([...BOTON, "--n", "3"], ["malo", "bueno", "nada"]);

@@ -4,7 +4,7 @@
 
 **Blocked by:** 06
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 - [ ] La condición es `entrega === "con-artefacto"` y `grade === EXCELENTE` y `flujoAlcanzoSkill === false`
 - [ ] El hallazgo aparece en lo alto del informe del Caso y en la cabecera del scorecard

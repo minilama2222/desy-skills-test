@@ -4,7 +4,7 @@
 
 **Blocked by:** 01, 04
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 - [ ] Cada `suite` escribe `reports/versiones/<arbolHash>.json` (scorecard completo, con pin y hash)
 - [ ] `reports/` sigue ignorado salvo ese subdirectorio: ajustar `.gitignore` con una excepción explícita

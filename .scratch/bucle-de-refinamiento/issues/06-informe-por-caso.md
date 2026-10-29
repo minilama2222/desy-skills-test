@@ -4,7 +4,7 @@
 
 **Blocked by:** 02, 04
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 - [ ] Cada Caso produce un bloque con: prompt, artefactos entregados, Flujo observado, exit code, y por cada Check ✓/✗ con la línea que falla
 - [ ] El Caso puede nombrar la sección del skill de la que depende (campo en el Caso o en `rubric.md`); el informe la cita por **texto**, no por número de línea

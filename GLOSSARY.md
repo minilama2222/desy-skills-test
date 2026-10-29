@@ -129,11 +129,21 @@ Caso).
 _Avoid_: hablar del «Grade del Caso» cuando se quiere decir su veredicto.
 
 **Veredicto de un Caso**:
-El resultado agregado de las N Ejecuciones de un Caso (ADR-0007): **PASA** (al
-menos una de las Ejecuciones que alcanzaron el skill fue EXCELENTE), **SUSPENDE**
-(alguna alcanzó el skill, ninguna fue correcta) o **INDETERMINADO** (ninguna lo
-alcanzó). Lo calcula el scorecard (`src/scorecard.ts`).
+El resultado agregado de las N Ejecuciones de un Caso (ADR-0007 y ADR-0014):
+**PASA** (al menos una de las Ejecuciones que **entregaron** Artefacto fue
+EXCELENTE), **SUSPENDE** (hubo entregas y ninguna fue correcta) o
+**INDETERMINADO** (ninguna alcanzó el skill, o ninguna entregó). Llegar al skill y
+no escribir nada no condena: sin nada que graduar no hay juicio. Lo calcula el
+scorecard (`src/scorecard.ts`).
 _Avoid_: usar «Grade» para este agregado; llamar «suspenso» al indeterminado.
+
+**PASA sostenido**:
+Dos corridas **consecutivas** del mismo Caso, contadas por separado, y las dos
+PASA. Es el criterio para declarar un skill **refinado** (ADR-0014): una sola
+corrida PASA con una entrega de tres significa «acertó una vez». Lo calcula
+`pasaSostenido` (`src/scorecard.ts`).
+_Avoid_: llamar «refinado» a un Caso que pasó una vez; contar los INDETERMINADO
+como aprobados blandos.
 
 **Scorecard**:
 El agregado de Grades por Skill, renderizado a partir del JSON de resultados. Es

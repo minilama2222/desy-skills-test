@@ -4,7 +4,7 @@
 
 **Blocked by:** 04
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 - [ ] (a) Replay: los artefactos de una Ejecución commiteada pasan por `grader.ts` y dan el mismo Grade (un `scripts/`, no un test de `test/`)
 - [ ] (b) Checklist: para cada Caso, las afirmaciones sobre el contenido de `SKILL.md` de las que depende

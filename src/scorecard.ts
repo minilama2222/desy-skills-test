@@ -98,10 +98,50 @@ function conDatoDe(ejecuciones: ResultadoEjecucion[]): ResultadoEjecucion[] {
   return ejecuciones.filter((e) => e.flujoAlcanzoSkill);
 }
 
+/**
+ * Las Ejecuciones que **entregaron** Artefacto: el denominador de decisión del
+ * ADR-0014. Llegar al skill es la puerta de entrada (ADR-0007); entregar algo que
+ * graduar es la segunda. Una Ejecución que llega y no escribe nada no mide el
+ * skill, igual que una que no llega: las dos se cuentan y se muestran, ninguna
+ * decide.
+ */
+function entregadasDe(ejecuciones: ResultadoEjecucion[]): ResultadoEjecucion[] {
+  return ejecuciones.filter((e) => e.entrega === "con-artefacto");
+}
+
 function veredictoDe(ejecuciones: ResultadoEjecucion[]): VeredictoCaso {
-  const conDato = conDatoDe(ejecuciones);
-  if (conDato.length === 0) return "INDETERMINADO";
-  return conDato.some(esCorrecta) ? "PASA" : "SUSPENDE";
+  const entregadas = entregadasDe(conDatoDe(ejecuciones));
+  // Cero entregas ⇒ INDETERMINADO, nunca SUSPENDE (ADR-0014): no hay nada que
+  // graduar, así que no hay juicio sobre el skill.
+  if (entregadas.length === 0) return "INDETERMINADO";
+  return entregadas.some(esCorrecta) ? "PASA" : "SUSPENDE";
+}
+
+/**
+ * Regla: ¿está **refinada** una versión de skill? Dos corridas **consecutivas**
+ * del mismo Caso, contadas por separado, y las dos PASA (ADR-0014). Una sola
+ * corrida PASA con una entrega de tres significa «acertó una vez», que es
+ * exactamente la conclusión que hacía desconfiar del scorecard.
+ *
+ * Vive aquí y no en el scorecard porque el scorecard agrega **una** suite: esta
+ * regla compara dos, y por eso depende del versionado de scorecards (ticket 09).
+ */
+export function pasaSostenido(
+  veredictos: readonly VeredictoCaso[],
+): { refinado: boolean; motivo: string } {
+  if (veredictos.length < 2) {
+    return {
+      refinado: false,
+      motivo: `hacen falta dos corridas consecutivas y hay ${veredictos.length}`,
+    };
+  }
+  // Sólo las dos últimas importan: refinado es «ahora pasa, y ya pasaba antes».
+  const [penultima, ultima] = veredictos.slice(-2);
+  if (penultima === "PASA" && ultima === "PASA") {
+    return { refinado: true, motivo: "las dos últimas corridas PASA" };
+  }
+  const fallo = ultima !== "PASA" ? ultima : penultima;
+  return { refinado: false, motivo: `la última corrida que no pasa es ${fallo}` };
 }
 
 function fallosDe(ejecuciones: ResultadoEjecucion[]): CasoScorecard["fallos"] {

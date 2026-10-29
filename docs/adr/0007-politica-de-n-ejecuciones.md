@@ -24,3 +24,7 @@ La regla de «al menos una» se fijó **con datos**: en la primera medición de 
 - N = 3 es una decisión de comodidad (cada Ejecución tardó 50–190 s); subirlo a 5 es un cambio de constante, no de política. Con «al menos una», subir N solo aumenta la confianza, nunca endurece el criterio.
 - El **consumidor** de esta política es el scorecard (`src/scorecard.ts`, ticket 12): `agregarScorecard` implementa `veredictoDe` sobre el denominador limpio y representa el estado indeterminado.
 
+## Enmendado por ADR-0014
+
+El ADR-0014 añade **un segundo descarte** al punto 1: una Ejecución que alcanzó el skill y no entregó Artefacto tampoco decide el veredicto (cero entregas ⇒ INDETERMINADO). Todo lo demás de este ADR sigue vigente: N = 3, «basta con una» entre las que quedan, e INDETERMINADO como tercer estado.
+

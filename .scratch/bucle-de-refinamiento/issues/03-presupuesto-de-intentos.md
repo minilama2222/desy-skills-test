@@ -4,7 +4,7 @@
 
 **Blocked by:** 01, 02
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 - [ ] `correrCaso` (`src/cli.ts:104-117`) sigue intentando mientras no haya `n` entregas y queden intentos
 - [ ] Tope duro configurable, por defecto `n * 2`; al agotarlo se para y el veredicto lo refleja (cero entregas ⇒ INDETERMINADO)
