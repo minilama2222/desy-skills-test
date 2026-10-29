@@ -116,4 +116,45 @@ describe("npm run report: deja el informe por Caso en disco", () => {
       rmSync(dir, { recursive: true, force: true });
     }
   }, 60_000);
+
+  it(
+    "no remite a una Evidencia que no está en el árbol que se reporta (retro del ticket 07)",
+    () => {
+      // La ruta de `evidencia` se escribió donde la Ejecución se **corrió**. Al
+      // leer una copia del árbol —un artefacto de CI— esa ruta apunta a un fichero
+      // que aquí no existe: el hallazgo no puede decir «ver en X» y que X falte.
+      const dir = mkdtempSync(join(tmpdir(), "informe-cli-evidencia-"));
+      try {
+        const reports = join(dir, "reports");
+        guardarEjecucion(join(reports, "ejecuciones"), {
+          ...EJECUCION,
+          grade: "EXCELENTE",
+          detalle: EJECUCION.detalle.map((d) => ({ ...d, passed: true })),
+          flujoObservado: ["preflight-check"],
+          flujoAlcanzoSkill: false,
+          evidencia: "reports/oytra-corrida/ejecuciones/boton-primario/3.json",
+        });
+
+        const r = spawnSync(
+          process.execPath,
+          [TSX, "src/cli.ts", "report", "--reports", reports],
+          { cwd: REPO_ROOT, encoding: "utf8" },
+        );
+
+        expect(r.status, r.stderr).toBe(0);
+        const informe = readFileSync(
+          join(reports, "informe", "implement-component", "boton-primario.md"),
+          "utf8",
+        );
+        // El hallazgo sigue saliendo; lo que desaparece es la ruta fantasma.
+        expect(informe).toContain("Hallazgo de trigger");
+        expect(informe).toContain("**Ejecución 1** — `EXCELENTE`");
+        expect(informe).not.toContain("oytra-corrida");
+        expect(r.stdout).not.toContain("oytra-corrida");
+      } finally {
+        rmSync(dir, { recursive: true, force: true });
+      }
+    },
+    60_000,
+  );
 });

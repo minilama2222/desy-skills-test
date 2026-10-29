@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   PENDIENTES_DE_ANCLAR,
+  deudaDeAnclaje,
   idsDeChecksCitadosEnRubric,
+  problemasDeChecksSinAncla,
   problemasDeLaListaDePendientes,
   problemasDelArbolDeCasos,
   type CasoEnDisco as CasoParaValidar,
@@ -352,6 +354,64 @@ describe("problemasDeLaListaDePendientes: la deuda declarada no miente", () => {
 
   it("un pendiente que sigue sin anclar no se señala: ésa es la deuda real", () => {
     expect(problemasDeLaListaDePendientes(todosLosPendientes())).toEqual([]);
+  });
+});
+
+describe("deudaDeAnclaje: la deuda se mide por Check, no por ruta (retro del ticket 07)", () => {
+  /** Los 13 pendientes, igual que en los tests de la lista: los que no mido existen. */
+  const todosLosPendientes = (over: Partial<CasoParaValidar> = {}): CasoParaValidar[] =>
+    [...PENDIENTES_DE_ANCLAR.keys()].map((ruta) =>
+      casoOk({ ruta, idsDeChecks: ["a"], anclas: undefined, ...over }),
+    );
+
+  const [primera] = [...PENDIENTES_DE_ANCLAR.keys()];
+  const deudaDel = (caso: CasoParaValidar): ReturnType<typeof deudaDeAnclaje> =>
+    deudaDeAnclaje([caso]).filter((d) => d.ruta === caso.ruta);
+
+  it("dice cuántos Checks le faltan a un pendiente y cuáles son", () => {
+    const deuda = deudaDel(casoOk({ ruta: primera!, idsDeChecks: ["a", "b", "c"] }));
+
+    expect(deuda).toHaveLength(1);
+    expect(deuda[0]).toMatchObject({
+      ruta: primera,
+      ticket: PENDIENTES_DE_ANCLAR.get(primera!),
+      ancladas: 0,
+      total: 3,
+      sinAncla: ["a", "b", "c"],
+    });
+  });
+
+  it("un pendiente a medio anclar sigue en la deuda, con el progreso", () => {
+    // El agujero que esto cierra: `problemasDeChecksSinAncla` tolera el Caso
+    // entero por estar en la lista, así que 1 de 2 anclados pasaba por «sin
+    // deuda igual». Aquí se ve que queda la mitad.
+    const medio = casoOk({
+      ruta: primera!,
+      idsDeChecks: ["a", "b"],
+      anclas: new Map([["a", { skill: "s", seccion: "x" }]]),
+    });
+
+    expect(problemasDeChecksSinAncla(medio)).toEqual([]);
+    expect(deudaDel(medio)[0]).toMatchObject({ ancladas: 1, total: 2, sinAncla: ["b"] });
+  });
+
+  it("un pendiente ya anclado del todo no es deuda (y la lista lo delata como sobrante)", () => {
+    const completo = casoOk({
+      ruta: primera!,
+      idsDeChecks: ["a"],
+      anclas: new Map([["a", { skill: "s", seccion: "x" }]]),
+    });
+
+    expect(deudaDel(completo)).toEqual([]);
+    expect(
+      problemasDeLaListaDePendientes(
+        todosLosPendientes().map((caso) => (caso.ruta === primera ? completo : caso)),
+      ),
+    ).toHaveLength(1);
+  });
+
+  it("un fantasma no entra en la deuda: no hay Checks que contar", () => {
+    expect(deudaDeAnclaje([])).toEqual([]);
   });
 });
 

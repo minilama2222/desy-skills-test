@@ -410,6 +410,36 @@ describe("hallazgo de trigger: la entrega correcta sin invocar el skill (ticket 
   });
 });
 
+describe("renderScorecard: los INDETERMINADO se leen en la cabecera", () => {
+  it("nombra los Casos que no midieron el skill, y no los cuenta como aprobados", () => {
+    // En CI este Scorecard sale con exit 0: si la cabecera no lo dice, un lector
+    // del informe lo toma por un verde del skill (retro del ticket 07).
+    const texto = renderScorecard(
+      agregarScorecard(
+        [
+          ejecucion({ caso: "a", flujoAlcanzoSkill: false, entrega: "sin-artefacto" }),
+          ejecucion({ caso: "b", grade: "EXCELENTE" }),
+        ],
+        pin,
+      ),
+    );
+
+    const aviso = texto.indexOf("**INDETERMINADO:**");
+    expect(aviso).toBeGreaterThan(-1);
+    expect(aviso).toBeLessThan(texto.indexOf("## implement-component"));
+    expect(texto).toContain("1 Caso/s no midieron el skill (`a`)");
+    // Dice el Caso indeterminado, no el que pasó.
+    expect(texto).toContain("(`a`)");
+    expect(texto).not.toContain("(`b`)");
+  });
+
+  it("sin Casos INDETERMINADO no hay aviso", () => {
+    const texto = renderScorecard(agregarScorecard([ejecucion()], pin));
+
+    expect(texto).not.toContain("**INDETERMINADO:**");
+  });
+});
+
 describe("renderScorecard: revisar el resultado sin leer transcripciones", () => {
   it("declara el Pin testeado en la cabecera", () => {
     const texto = renderScorecard(agregarScorecard([ejecucion()], pin));

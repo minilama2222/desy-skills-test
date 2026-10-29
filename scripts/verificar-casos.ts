@@ -3,7 +3,7 @@ import { join, relative } from "node:path";
 import { anclajesDeRubric } from "../src/caso.js";
 import { CASOS_DIR, cargarCaso } from "../src/caso-loader.js";
 import {
-  PENDIENTES_DE_ANCLAR,
+  deudaDeAnclaje,
   problemasDelArbolDeCasos,
   type CasoEnDisco,
 } from "../src/guardarrail-casos.js";
@@ -108,19 +108,20 @@ const arbol = describirArbol(seccionesDelArbol());
 const hallazgos = problemasDelArbolDeCasos(arbol);
 
 // La deuda declarada se dice aunque no bloquee: un pendiente que no se nombra
-// se olvida, y la lista de `PENDIENTES_DE_ANCLAR` dejaría de vaciarse.
-const pendientes = arbol.filter((caso) =>
-  PENDIENTES_DE_ANCLAR.has(caso.ruta),
-);
-if (pendientes.length > 0) {
+// se olvida, y la lista de `PENDIENTES_DE_ANCLAR` dejaría de vaciarse. Se mide
+// por Check (`deudaDeAnclaje`): anclar uno de doce no es estar más cerca según la
+// lista, pero sí según lo que queda por hacer.
+const deuda = deudaDeAnclaje(arbol);
+if (deuda.length > 0) {
+  const checks = deuda.reduce((suma, d) => suma + d.sinAncla.length, 0);
   console.log(
-    `${pendientes.length} Caso/s sin anclar sus Checks (PENDIENTES_DE_ANCLAR, ` +
+    `${deuda.length} Caso/s sin anclar ${checks} Check/s (PENDIENTES_DE_ANCLAR, ` +
       "se anclan al tocar cada skill):",
   );
-  for (const caso of pendientes) {
+  for (const d of deuda) {
     console.log(
-      `  - ${caso.ruta} (${PENDIENTES_DE_ANCLAR.get(caso.ruta)}): ` +
-        `${caso.idsDeChecks?.length ?? 0} Check/s sin ancla`,
+      `  - ${d.ruta} (${d.ticket}): ${d.sinAncla.length} de ${d.total} Check/s sin ancla ` +
+        `(${d.ancladas} hecha/s) — ${d.sinAncla.join(", ")}`,
     );
   }
 }

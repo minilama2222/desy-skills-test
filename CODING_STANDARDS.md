@@ -76,6 +76,12 @@ it. A new synonym for an existing term, or a term used in the sense the glossary
 marks `_Avoid_:`, is a finding. If the concept is genuinely missing, the diff
 adds it to the glossary rather than letting the reader infer it.
 
+The places where the old word still lies are **code**, not prose: a field, a
+constant or a comment that says «Ejecuciones» where the glossary says
+«attempts». Those are counted in **intentos** until the ticket 03 turns the
+budget into one of **entregas**; a name that says otherwise is a finding even
+when the count is right.
+
 ## A decision-Caso's Guard is the positive decision
 
 In a **Caso-decisión** (see ADR-0011), the no-negociable fact — the thing whose

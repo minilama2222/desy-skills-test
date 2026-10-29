@@ -13,6 +13,11 @@ import type { Scorecard, VeredictoCaso } from "./scorecard.js";
 /**
  * Por defecto un Caso se corre 3 veces (ADR-0007): con N=1 el veredicto al azar
  * de un SUT flaky sería el veredicto del skill.
+ *
+ * Desde el ADR-0014 ese 3 es un presupuesto de **entregas**, no de intentos: se
+ * intenta hasta tener 3 entregas o agotar un tope duro de intentos. El runner
+ * sigue contando **intentos** (ticket 03): hasta entonces, este número es el de
+ * Ejecuciones que se hacen, y el nombre lo dice.
  */
 export const N_POR_DEFECTO = 3;
 
@@ -87,9 +92,8 @@ export function exitCodeDe(scorecard: Scorecard): number {
 }
 
 /**
- * El recuento que se anuncia en la consola y cabe en la cabecera del Scorecard.
- * `suspendidos` es lo que tumba el exit code; `indeterminados` se cuenta aparte
- * porque no bloquea.
+ * El recuento que se anuncia en la consola. `suspendidos` es lo que tumba el exit
+ * code; `indeterminados` se cuenta aparte porque no bloquea.
  */
 export interface ResumenSuite {
   skills: number;
@@ -97,6 +101,11 @@ export interface ResumenSuite {
   pasados: number;
   suspendidos: number;
   indeterminados: number;
+  /**
+   * Las Ejecuciones hechas: son **intentos**, no entregas. Una que no escribió
+   * nada consume intento y no entrega, y la diferencia es justo lo que mide la
+   * tasa de entrega que pide el 14 (ver Presupuesto de intentos, ADR-0014).
+   */
   ejecuciones: number;
 }
 

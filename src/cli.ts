@@ -453,6 +453,14 @@ function runReport(args: string[]): void {
 
   const ejecuciones = leerEjecuciones(rutas.ejecuciones);
   const pin = pinDeLasEjecuciones(ejecuciones);
+  // La Evidencia que una Ejecución cita se escribió donde se **corrió**, no donde
+  // se reporta: leer un árbol con `--reports` (una copia, un artefacto de CI) deja
+  // rutas que ya no existen. Se dice, en vez de remitir a un fichero fantasma.
+  for (const ejecucion of ejecuciones) {
+    if (ejecucion.evidencia !== undefined && !existsSync(join(REPO_ROOT, ejecucion.evidencia))) {
+      delete ejecucion.evidencia;
+    }
+  }
   const scorecard = agregarScorecard(ejecuciones, pin, hashComun(ejecuciones));
   const markdown = renderScorecard(scorecard) + "\n";
 

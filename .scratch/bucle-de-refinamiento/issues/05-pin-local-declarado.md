@@ -5,6 +5,7 @@
 **Blocked by:** 04
 
 **Status:** ready-for-human
+**Status depende de:** que un humano acepte el modo local como comodidad declarada (ADR-0015). Construido y commiteado en `9042bdc`; lo que falta es el visto bueno, no el código. Lo cazó el retro del ticket 07: estaba con todas las casillas hechas y el estado decía «espera a una persona» sin decirlo.
 
 - [x] El runner acepta una ruta de skills local (opción de CLI o config; no editar `vendor/`)
 - [x] El scorecard marca esa corrida como `local (sin commit)` en JSON y en el H1 del Markdown

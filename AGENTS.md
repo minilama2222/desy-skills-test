@@ -30,6 +30,12 @@ anchors each Check to a skill section in its `rubric.md` (`## Anclaje en
 desy-skills`), cited by title via `src/seccion-skill.ts`; `npm run verificar-casos`
 checks the titles exist. The report presents; it never decides skill-vs-check.
 
+### The commit hook runs the whole gate
+
+`scripts/git-hooks/pre-commit` calls `npm run precommit` and nothing else. Add a
+step to `package.json`, never to the hook: a hook that repeats the list drops a
+step in silence, and it already did (retro del ticket 06).
+
 ### Windows shell noise
 
 On Windows, `npm test` / `npm run precommit` and `git commit` can exit 1 because

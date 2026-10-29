@@ -356,6 +356,21 @@ export function renderScorecard(reporte: Scorecard): string {
     }
   }
 
+  // El CI lee el veredicto de un INDETERMINADO como verde (no bloquea), así que
+  // el documento tiene que decir lo que la consola dice: un verde de un Caso que
+  // no midió el skill no es un verde del skill.
+  const indeterminados = reporte.skills.flatMap((skill) =>
+    skill.casos.filter((caso) => caso.veredicto === "INDETERMINADO"),
+  );
+  if (indeterminados.length > 0) {
+    lineas.push(
+      "",
+      `**INDETERMINADO:** ${indeterminados.length} Caso/s no midieron el skill ` +
+        `(${indeterminados.map((c) => `\`${c.caso}\``).join(", ")}): no bloquean, pero ` +
+        "tampoco aprueban.",
+    );
+  }
+
   for (const skill of reporte.skills) {
     lineas.push("", `## ${skill.skill}`);
     lineas.push(

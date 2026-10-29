@@ -76,6 +76,12 @@ _Evita_: confundirlo con la fidelidad estructural (esa compara contra un Gold-HT
 
 **Ejecución**:
 Un run concreto de un Caso por el SUT. Tiene timestamp y hash del pin; queda en `reports/`. Un Caso tiene N Ejecuciones.
+
+Es lo que **intenta**, no lo que consigue: cada una paga sandbox y modelo, así
+que cuentan como intentos del **Presupuesto de intentos**. Que la N de la
+política sea de Ejecuciones o de Entregas es justo lo que el ticket 03 cambia
+(ADR-0014); hasta entonces, un campo o un comentario que diga «Ejecución» donde
+la regla habla de entregas está nombrando la cosa equivocada.
 _Avoid_: llamar "caso" a una Ejecución.
 
 **Framework de checks**:
@@ -153,6 +159,14 @@ corrida PASA con una entrega de tres significa «acertó una vez». Lo calcula
 `pasaSostenido` (`src/scorecard.ts`).
 _Avoid_: llamar «refinado» a un Caso que pasó una vez; contar los INDETERMINADO
 como aprobados blandos.
+
+**Presupuesto de intentos**:
+Lo que cuesta tener `n` Entregas de un Caso: se corre —se **intenta**— hasta
+tener `n` entregas o agotar un tope duro de intentos (`n * 2` por defecto), lo
+que antes llegue. Una Ejecución sin Artefacto consume intento y no entrega, así
+que una tasa de entrega baja multiplica el coste. Ver ADR-0014; el ticket 03 lo
+construye.
+_Avoid_: contar intentos como entregas, o entregas como intentos.
 
 **Scorecard**:
 El agregado de Grades por Skill, renderizado a partir del JSON de resultados. Es

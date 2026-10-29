@@ -21,6 +21,13 @@ small it looks.
 with a criterion that depends on unbuilt work stays `ready-for-human` until that
 work lands — `npm run verificar-tracker` fails the commit otherwise.
 
+The check reads the boxes, so a ticket whose boxes are all ticked **is** built:
+in any other status it is a finding unless the ticket declares why it waits, on
+a `**Status depende de:** <motivo>` line under its `Status:`. Declaring it is a
+decision; leaving the boxes unticked by oversight is not. (Both directions were
+measured: the `done` with an open box, and the `ready-for-human` with every box
+ticked.)
+
 ## When a skill says "publish to the issue tracker"
 
 Create a new file under `.scratch/<feature-slug>/` (creating the directory if needed).

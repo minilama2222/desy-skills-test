@@ -187,7 +187,7 @@ export function problemasDeAnclaje(caso: CasoEnDisco): string[] {
  * La prosa de apoyo sigue siendo válida: lo que se exige es que **además** cada
  * Check tenga su línea de ancla.
  */
-function problemasDeChecksSinAncla(caso: CasoEnDisco): string[] {
+export function problemasDeChecksSinAncla(caso: CasoEnDisco): string[] {
   if (caso.idsDeChecks === undefined || caso.idsDeChecks.length === 0) return [];
   const ancladas = new Set((caso.anclas ?? new Map()).keys());
   const sinAncla = caso.idsDeChecks.filter((id) => !ancladas.has(id));
@@ -199,6 +199,43 @@ function problemasDeChecksSinAncla(caso: CasoEnDisco): string[] {
     `${caso.ruta}: rubric.md no ancla ${sinAncla.length} de sus ${caso.idsDeChecks.length} ` +
       `Check/s (${sinAncla.join(", ")})`,
   ];
+}
+
+/**
+ * La deuda de anclaje, **medida por Check** y no por ruta: cuántos Checks le
+ * faltan a cada Caso pendiente. La tolerancia de `problemasDeChecksSinAncla` es
+ * por ruta —el Caso entero está declarado—, así que sin esto un pendiente que
+ * ancle 11 de 12 Checks seguiría callado y la lista parecería intacta. Sirve para
+ * dos cosas: que `verificar-casos` diga el progreso, y que el ticket 12 vea cuánto
+ * queda sin abrir cada Caso a mano.
+ *
+ * Es pura y no devuelve hallazgos: la deuda no es un rojo, es lo que la lista
+ * declara. Los fantasmas y los ya completos sí lo son, y los dice
+ * `problemasDeLaListaDePendientes`.
+ */
+export interface DeudaDeAnclaje {
+  ruta: string;
+  /** El ticket que la salda (`ticket 12`). */
+  ticket: string;
+  ancladas: number;
+  total: number;
+  /** Los Checks que le faltan, por id: lo que hay que hacer, no sólo cuánto. */
+  sinAncla: string[];
+}
+
+export function deudaDeAnclaje(casos: CasoEnDisco[]): DeudaDeAnclaje[] {
+  const porRuta = new Map(casos.map((c) => [c.ruta, c]));
+  const deuda: DeudaDeAnclaje[] = [];
+  for (const [ruta, ticket] of PENDIENTES_DE_ANCLAR) {
+    const caso = porRuta.get(ruta);
+    if (caso === undefined) continue;
+    const ancladas = new Set((caso.anclas ?? new Map()).keys());
+    const ids = caso.idsDeChecks ?? [];
+    const sinAncla = ids.filter((id) => !ancladas.has(id));
+    if (sinAncla.length === 0) continue;
+    deuda.push({ ruta, ticket, ancladas: ids.length - sinAncla.length, total: ids.length, sinAncla });
+  }
+  return deuda;
 }
 
 /**
@@ -227,6 +264,9 @@ export function problemasDeLaListaDePendientes(casos: CasoEnDisco[]): string[] {
     }
     const ancladas = (caso.anclas ?? new Map()).size;
     const total = caso.idsDeChecks?.length ?? 0;
+    // Por Check, no por ruta: un pendiente que ancle unos pocos Checks sigue en
+    // la lista (`deudaDeAnclaje` mide el progreso), pero uno que los ancle
+    // **todos** ya no es deuda.
     if (total > 0 && ancladas >= total) {
       problemas.push(
         `${ruta} ya ancla sus ${total} Check/s: quítalo de PENDIENTES_DE_ANCLAR (${ticket})`,

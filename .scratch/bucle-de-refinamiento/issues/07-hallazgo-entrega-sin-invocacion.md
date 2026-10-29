@@ -63,3 +63,37 @@ El 27/10 la única entrega EXCELENTE de la corrida se descartó porque el agente
   `scorecard.md` y del informe. ~18 s, dentro de `SEGUNDOS_POR_EJECUCION`.
 - Comprobado en rojo: con `src/` revertido a `eb7b565`, 10 de los 13 tests
   nuevos fallan (los tres de control siguen verdes a propósito).
+
+## Retro (29/10): lo que el propio 07 destapó en el entorno
+
+El retro de este ticket no cambió el harness: cambió los check que **dicen**
+cuidarlo. Los cuatro candidatos salieron de leer el código de los guardarraíles,
+no la prosa, y el más grave estaba vivo en el árbol.
+
+- **`verificar-tracker` tenía media regla.** Sólo cazaba `done` + casilla
+  abierta. El 05 —construido, commiteado en `9042bdc`— seguía en
+  `ready-for-human` con todas las casillas hechas: el mismo engaño, al revés.
+  Ahora la contradicción se mira en las **dos** direcciones, y la excepción no se
+  deduce: se declara con `**Status depende de:**`, que es lo que el 05 ya lleva.
+  Se actualizaron `docs/agents/issue-tracker.md` y `CODING_STANDARDS.md`, que
+  prometían «siempre falla».
+- **`PENDIENTES_DE_ANCLAR` toleraba por ruta.** Progreso 11 de 12 en un Caso
+  pendiente y la lista callaba igual. `deudaDeAnclaje` mide ahora por Check y
+  `verificar-casos` imprime, por Caso, cuántos faltan y **cuáles**: la deuda se ve
+  disminuir sin abrir el Caso a mano, que es lo que el 12 necesita.
+- **«Ejecuciones» decía una cosa y la política otra.** `N_POR_DEFECTO` está
+  comentado como «3 Ejecuciones» mientras el ADR-0014 dice que la N es de
+  **entregas**. No se construye el 03 aquí: se nombra la diferencia en el código,
+  el glosario (`Presupuesto de intentos`, `Ejecución`) y `CODING_STANDARDS.md`,
+  para que quien lo construya no tropiece con el mismo error que el test del 07.
+- **Una Evidencia que no está donde se reporta.** `npm run report --reports
+  <copia>` remitía a rutas que sólo existen donde se corrió; ahora se descarta la
+  ruta fantasma y el hallazgo sale sin ella.
+- **Un INDETERMINADO se leía como verde.** En CI sale con exit 0 y sólo la consola
+  lo decía; la cabecera del `scorecard.md` lo dice ahora también.
+- **El hook del pre-commit**, una línea en `AGENTS.md`: llama al gate entero, así
+  que un paso se añade en `package.json`.
+
+Tests nuevos: 4 de `deudaDeAnclaje`, 3 del tracker en las dos direcciones, 2 de la
+cabecera del scorecard y 1 de proceso real (`report --reports` sobre una Evidencia
+fuera del árbol). Comprobado en rojo contra `a32f3ed`: los 7 caen sin `src/`.
