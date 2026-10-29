@@ -8,6 +8,7 @@ import type { Pin } from "../src/pin.js";
 import {
   MODELO_FIJO,
   buildOpencodeArgs,
+  configuracionDelSandbox,
   dirArtefactoDeCaso,
   runCaso,
   type CommandRunner,
@@ -36,22 +37,26 @@ const fakeSandbox = (artefactos: { path: string; contenido: string }[] = []): Sa
   configDir: "C:/sandbox/home/.config/opencode",
   skillsDir: "C:/sandbox/home/.config/opencode/skills",
   copySkills: vi.fn(),
+  configurar: vi.fn(),
   listArtefactos: vi.fn(() => artefactos),
   cleanup: vi.fn(),
 });
 
 describe("MODELO_FIJO", () => {
-  it("es el modelo fijado por ADR-0001", () => {
-    expect(MODELO_FIJO).toBe("deepinfra/deepseek-ai/DeepSeek-V4.1-Flash");
+  it("es el modelo con el que corre el agente que ejecuta la suite (ADR-0013)", () => {
+    expect(MODELO_FIJO).toBe("deepinfra/deepseek-ai/DeepSeek-V4.1-Flash-1017");
   });
 });
 
 describe("buildOpencodeArgs", () => {
-  it("lanza opencode run no-interactivo con el modelo fijado y el prompt", () => {
+  it("lanza opencode run en --standalone (servidor privado) con el modelo fijado y el prompt", () => {
+    // Sin `--standalone`, `run` se conecta al servicio de fondo compartido del
+    // usuario y el HOME del sandbox deja de mandar (ADR-0013).
     expect(buildOpencodeArgs(caso.prompt)).toEqual([
       "run",
+      "--standalone",
       "--model",
-      "deepinfra/deepseek-ai/DeepSeek-V4.1-Flash",
+      "deepinfra/deepseek-ai/DeepSeek-V4.1-Flash-1017",
       caso.prompt,
     ]);
   });
@@ -59,8 +64,9 @@ describe("buildOpencodeArgs", () => {
   it("adjunta una imagen con --file cuando se pasa una Captura de Gold", () => {
     expect(buildOpencodeArgs("prompt", "gold.png")).toEqual([
       "run",
+      "--standalone",
       "--model",
-      "deepinfra/deepseek-ai/DeepSeek-V4.1-Flash",
+      "deepinfra/deepseek-ai/DeepSeek-V4.1-Flash-1017",
       "--file",
       "gold.png",
       "prompt",
@@ -222,10 +228,32 @@ describe("runCaso", () => {
 
     const [, opts] = run.mock.calls[0] as unknown as [string[], { cwd: string; env: Entorno }];
     expect(opts.cwd).toBe(sandbox.workDir);
+    // `OPENCODE_HOME` fija el directorio de datos (sesiones y `auth.json`): si no
+    // se fija, V2 escribe en el del usuario real (ADR-0013).
     expect(opts.env).toEqual({
       HOME: sandbox.home,
       XDG_CONFIG_HOME: sandbox.configDir,
+      OPENCODE_HOME: "C:/sandbox/home/.local/share/opencode",
     });
+  });
+
+  it("configura el sandbox (config de aislamiento + auth) antes de lanzar el SUT", async () => {
+    const orden: string[] = [];
+    const sandbox: Sandbox = {
+      ...fakeSandbox(),
+      copySkills: vi.fn(() => orden.push("copySkills")),
+      configurar: vi.fn(() => orden.push("configurar")),
+    };
+    const command: CommandRunner = {
+      run: () => {
+        orden.push("run");
+        return { stdout: "", stderr: "", code: 0 };
+      },
+    };
+
+    await runCaso(caso, pin, { sandbox: factoryOf(sandbox), command });
+
+    expect(orden).toEqual(["copySkills", "configurar", "run"]);
   });
 
   it("extrae el Flujo observado de las invocaciones del transcript", async () => {
@@ -504,5 +532,43 @@ describe("runCaso", () => {
       }),
     ).rejects.toThrow(/prompt/i);
     expect(create).not.toHaveBeenCalled();
+  });
+});
+
+describe("configuracionDelSandbox", () => {
+  const sandbox = { home: "/tmp/sut/home", skillsDir: "/tmp/sut/home/.config/opencode/skills" };
+
+  it("solo deja usar el proveedor del modelo fijado (V2 no tiene enabled_providers)", () => {
+    const config = configuracionDelSandbox(sandbox) as {
+      policies: { action: string; resource: string; effect: string }[];
+    };
+
+    // Orden: la última regla que casa gana, así que el `allow` va después.
+    expect(config.policies).toEqual([
+      { action: "provider.use", resource: "*", effect: "deny" },
+      { action: "provider.use", resource: "deepinfra", effect: "allow" },
+    ]);
+  });
+
+  it("niega shell, red, subagentes y ficheros externos, y permite lo que el Caso necesita", () => {
+    const permisos = (configuracionDelSandbox(sandbox) as {
+      permissions: { action: string; resource: string; effect: string }[];
+    }).permissions;
+    const efectoDe = (action: string) =>
+      [...permisos].reverse().find((p) => p.action === action && p.resource === "*")?.effect;
+
+    // La base es deny y no allow: una acción que V2 añada mañana queda cerrada.
+    expect(permisos[0]).toEqual({ action: "*", resource: "*", effect: "deny" });
+    expect(efectoDe("*")).toBe("deny");
+    expect(efectoDe("external_directory")).toBe("deny");
+    for (const permitida of ["read", "edit", "glob", "grep", "skill"]) {
+      expect(efectoDe(permitida)).toBe("allow");
+    }
+  });
+
+  it("declara como fuente de skills el skillsDir del sandbox, no el HOME real", () => {
+    expect(
+      (configuracionDelSandbox(sandbox) as { skills: string[] }).skills,
+    ).toEqual([sandbox.skillsDir]);
   });
 });

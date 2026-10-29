@@ -28,7 +28,7 @@ Un proyecto separado, `desy-skills-test`, que evalúa los 12 skills mediante **t
 14. Como revisor, quiero que la verificación visual de v1 sea determinista contra el Gold-HTML, para mantener el Grade estable y sin comparación de píxeles.
 15. Como mantenedor, quiero una capa opcional nightly con `agent-browser` + axe-core, para una verificación visual y de accesibilidad más profunda fuera del bucle estable.
 16. Como mantenedor, quiero que cada Ejecución corra en un sandbox con `HOME`/config temporal, para no contaminar mi instalación real de skills.
-17. Como mantenedor, quiero que el SUT use un modelo fijado (`deepinfra/deepseek-ai/DeepSeek-V4.1-Flash`), para acercarme a la reproducibilidad.
+17. Como mantenedor, quiero que el SUT use un modelo fijado (`deepinfra/deepseek-ai/DeepSeek-V4.1-Flash-1017`), para acercarme a la reproducibilidad.
 18. Como mantenedor, quiero aserciones sobre hechos estructurales en vez de texto literal, para tolerar variación de wording del modelo.
 19. Como mantenedor, quiero que el resultado sea JSON (fuente de verdad) más un Scorecard renderizado, para servir tanto a CI como a lectura humana.
 20. Como mantenedor, quiero una suite apta para CI (exit code + JSON), para bloquear un merge con regresión.
@@ -41,8 +41,8 @@ Un proyecto separado, `desy-skills-test`, que evalúa los 12 skills mediante **t
 - Stack: **Node + TypeScript + vitest**.
 
 ### SUT y conducción
-- El SUT es **`opencode run` no-interactivo**, el mismo harness donde viven los skills reales (ver ADR-0001).
-- Modelo fijo: **`deepinfra/deepseek-ai/DeepSeek-V4.1-Flash`**, temperatura por defecto.
+- El SUT es **`opencode run` no-interactivo**, en **OpenCode V2 con `--standalone`**, el mismo harness donde viven los skills reales (ver ADR-0001 y ADR-0013).
+- Modelo fijo: **`deepinfra/deepseek-ai/DeepSeek-V4.1-Flash-1017`**, temperatura por defecto.
 - Las aserciones son sobre **hechos estructurales** (¿usó `componentXxx`? ¿la utility es `mb-base`? ¿hay un solo `h1`?), no comparación literal de texto.
 - Evidencia por Ejecución: **transcript** (Flujo observado) **y** artefactos generados.
 

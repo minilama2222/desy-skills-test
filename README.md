@@ -101,8 +101,11 @@ npm run suite -- --reports reports/mi-corrida        # árbol de salida (por def
 
 Qué necesitas para que corra de verdad:
 
-- el binario **`opencode`** en el `PATH` (el SUT, ver ADR-0001) y acceso al modelo
-  fijado (`deepinfra/deepseek-ai/DeepSeek-V4.1-Flash`);
+- el binario **`opencode`** en el `PATH`, en **versión 2** (el SUT, ver ADR-0013), y,
+  en tu usuario, la cuenta del proveedor del modelo fijado conectada con
+  `opencode auth login` (`deepinfra/deepseek-ai/DeepSeek-V4.1-Flash-1017`). El
+  runner copia solo tu `auth.json` al sandbox; sin él V2 responde
+  `Model unavailable`;
 - el **scaffold cacheado** en `.scaffold-cache/desy-html-starter` (ver ADR-0005):
   `powershell -File scripts/preparar-scaffold.ps1` en Windows, o
   `sh scripts/preparar-scaffold.sh` en macOS/Linux;

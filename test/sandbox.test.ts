@@ -1,9 +1,14 @@
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, join, dirname } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { readPin } from "../src/pin.js";
-import { createSandbox, skillsDirDeHome, VENDOR_SKILLS_DIR } from "../src/runner.js";
+import {
+  createSandbox,
+  datosDirDeHome,
+  skillsDirDeConfig,
+  VENDOR_SKILLS_DIR,
+} from "../src/runner.js";
 
 const pin = readPin(join(process.cwd(), "pin.json"));
 
@@ -31,13 +36,14 @@ describe("createSandbox", () => {
     expect(sandbox.configDir.startsWith(tmpdir())).toBe(true);
   });
 
-  it("expone el skillsDir en la ruta que descubre opencode (~/.config/opencode/skills)", () => {
+  it("expone el skillsDir en la ruta que descubre opencode V2 (<config>/opencode/skills)", () => {
     const sandbox = createSandbox();
     cleanup = () => sandbox.cleanup();
 
-    expect(sandbox.skillsDir).toBe(skillsDirDeHome(sandbox.home));
-    expect(basename(sandbox.skillsDir)).toBe("skills");
-    expect(dirname(sandbox.skillsDir)).toBe(sandbox.configDir);
+    // No es `~/.config/opencode/skills`: V2 no escanea esa ruta y la skill falla
+    // al cargar (medido en la 2.1.2, ADR-0013).
+    expect(sandbox.skillsDir).toBe(skillsDirDeConfig(sandbox.configDir));
+    expect(sandbox.skillsDir).toBe(join(sandbox.configDir, "opencode", "skills"));
     expect(existsSync(sandbox.skillsDir)).toBe(true);
   });
 
@@ -83,5 +89,51 @@ describe("createSandbox", () => {
 
     expect(existsSync(root)).toBe(false);
     expect(existsSync(VENDOR_SKILLS_DIR)).toBe(true);
+  });
+
+  it("configurar deja el opencode.jsonc que encierra el sandbox y copia solo el auth.json", () => {
+    // HOME real de mentira: el test no lee ni toca el del usuario que lo corre.
+    const homeReal = mkdtempSync(join(tmpdir(), "home-real-"));
+    const authReal = join(datosDirDeHome(homeReal), "auth.json");
+    mkdirSync(dirname(authReal), { recursive: true });
+    writeFileSync(authReal, '{"deepinfra":{"type":"api"}}');
+    writeFileSync(join(homeReal, "no-copiar.txt"), "estado del usuario");
+    const sandbox = createSandbox({ homeReal });
+    cleanup = () => {
+      sandbox.cleanup();
+      rmSync(homeReal, { recursive: true, force: true });
+    };
+
+    sandbox.copySkills();
+    sandbox.configurar();
+
+    const config = JSON.parse(readFileSync(join(sandbox.configDir, "opencode.jsonc"), "utf8"));
+    expect(config.policies).toEqual([
+      { action: "provider.use", resource: "*", effect: "deny" },
+      { action: "provider.use", resource: "deepinfra", effect: "allow" },
+    ]);
+    expect(config.permissions).toContainEqual({
+      action: "external_directory",
+      resource: "*",
+      effect: "deny",
+    });
+    expect(config.skills).toEqual([sandbox.skillsDir]);
+    expect(readFileSync(join(datosDirDeHome(sandbox.home), "auth.json"))).toEqual(
+      readFileSync(authReal),
+    );
+    // Solo las cuentas: nada más del HOME real entra en el sandbox.
+    expect(existsSync(join(sandbox.home, "no-copiar.txt"))).toBe(false);
+  });
+
+  it("datosDirDeHome sigue a HOME en Linux/Windows y usa Application Support en macOS", () => {
+    // En macOS `HOME` no mueve `~/Library/Application Support`: se compone a mano
+    // (ADR-0013). Las dos ramas se prueban sin depender de la plataforma actual.
+    expect(datosDirDeHome("/home/ana", "linux")).toBe("/home/ana/.local/share/opencode");
+    expect(datosDirDeHome("C:\\Users\\ana", "win32")).toBe(
+      "C:\\Users\\ana/.local/share/opencode",
+    );
+    expect(datosDirDeHome("/Users/ana/", "darwin")).toBe(
+      "/Users/ana/Library/Application Support/opencode",
+    );
   });
 });

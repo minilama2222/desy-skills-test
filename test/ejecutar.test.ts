@@ -42,6 +42,7 @@ const sandbox = (files: { path: string; contenido: string }[]): Sandbox => ({
   configDir: "C:/sandbox/home/.config/opencode",
   skillsDir: "C:/sandbox/home/.config/opencode/skills",
   copySkills: vi.fn(),
+  configurar: vi.fn(),
   listArtefactos: () => files,
   cleanup: vi.fn(),
 });

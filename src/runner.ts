@@ -7,8 +7,9 @@ import {
   readdirSync,
   readFileSync,
   rmSync,
+  writeFileSync,
 } from "node:fs";
-import { tmpdir } from "node:os";
+import { homedir, tmpdir } from "node:os";
 import { join, relative } from "node:path";
 import type { Caso } from "./caso.js";
 import { esCasoDecision, esCasoPagina } from "./caso.js";
@@ -90,7 +91,13 @@ export function estadoDelScaffold(scaffoldDir: string): EstadoScaffold {
 }
 
 
-export const MODELO_FIJO = "deepinfra/deepseek-ai/DeepSeek-V4.1-Flash";
+/**
+ * Proveedor y modelo del SUT. Es el modelo con el que corre este agente
+ * (`deepinfra/deepseek-ai/DeepSeek-V4.1-Flash-1017`), no el alias sin sufijo.
+ */
+export const PROVEEDOR_DEL_SUT = "deepinfra";
+export const MODELO_DEL_SUT = "deepseek-ai/DeepSeek-V4.1-Flash-1017";
+export const MODELO_FIJO = `${PROVEEDOR_DEL_SUT}/${MODELO_DEL_SUT}`;
 
 export interface Artefactos {
   files: Record<string, string>;
@@ -127,7 +134,14 @@ export interface Sandbox {
   readonly home: string;
   readonly configDir: string;
   readonly skillsDir: string;
+  /** Copia los skills del Pin al `skillsDir`. */
   copySkills(): void;
+  /**
+   * Deja la configuración con la que el SUT arranca dentro del sandbox (ver
+   * ADR-0013): el `opencode.jsonc` que lo encierra y el `auth.json` con el que
+   * alcanza el proveedor del modelo fijado.
+   */
+  configurar(): void;
   /**
    * Artefactos que el SUT produjo en `dir` (relativo al `workDir`). El directorio
    * lo decide el tipo de Caso (`dirArtefactoDeCaso`), no el sandbox.
@@ -139,13 +153,71 @@ export interface SandboxFactory {
   create(): Sandbox;
 }
 
+/**
+ * Argumentos de `opencode run` (OpenCode V2). `--standalone` es lo que hace que
+ * el `HOME` del sandbox mande: sin él, `run` se conecta al **servicio de fondo
+ * compartido** del usuario y el sandbox deja de aislar (ver ADR-0013).
+ */
 export function buildOpencodeArgs(prompt: string, imagen?: string): string[] {
-  const args = ["run", "--model", MODELO_FIJO];
+  const args = ["run", "--standalone", "--model", MODELO_FIJO];
   // La Captura de Gold (Gold-imagen) viaja al prompt como referencia visual
   // (spec, ticket 08): `--file` la adjunta al mensaje del SUT.
   if (imagen !== undefined) args.push("--file", imagen);
   args.push(prompt);
   return args;
+}
+
+/**
+ * Permisos del SUT dentro del sandbox (ADR-0013). Los defectos de V2 son «todo
+ * permitido» y `external_directory` no pregunta, así que el sandbox hereda el
+ * disco de la máquina si no se cierra. Se permite escribir/leer (lo que el SUT
+ * necesita para producir el artefacto del Caso) y se niega todo lo que sale del
+ * sandbox o toca la máquina: shell, red, subagentes y ficheros externos.
+ *
+ * El orden importa: en V2 gana la **última** regla que casa, así que primero va
+ * la base y después las negaciones. Se niega `*` y no solo las acciones de hoy,
+ * para que una acción nueva de una versión futura de opencode tampoco entre.
+ */
+export const PERMISOS_DEL_SANDBOX = [
+  { action: "*", resource: "*", effect: "deny" },
+  { action: "read", resource: "*", effect: "allow" },
+  { action: "edit", resource: "*", effect: "allow" },
+  { action: "glob", resource: "*", effect: "allow" },
+  { action: "grep", resource: "*", effect: "allow" },
+  { action: "list", resource: "*", effect: "allow" },
+  // Las skills del Pin viven en el `HOME` del sandbox, fuera del `workDir`.
+  { action: "skill", resource: "*", effect: "allow" },
+  { action: "external_directory", resource: "*", effect: "deny" },
+] as const;
+
+/**
+ * La configuración del sandbox en la forma nativa de OpenCode V2:
+ *
+ * - `policies.provider.use` sustituye al `enabled_providers` de V1 (que V2 no
+ *   tiene): solo el proveedor del modelo fijado. Con el `auth.json` copiado,
+ *   sin esto el SUT podría gastar cualquier otra cuenta del usuario.
+ * - `permissions`: ver `PERMISOS_DEL_SANDBOX`.
+ * - `skills` explícitas al `skillsDir` del sandbox: es ruta absoluta, así que V2
+ *   la resuelve tal cual en cualquier plataforma (las relativas se resuelven
+ *   desde el directorio de trabajo, no desde el config).
+ * - sin MCP ni plugins: no se declaran y no se heredan del HOME real, porque el
+ *   HOME del SUT es el del sandbox.
+ *
+ * `$schema` va con la forma que el editor entiende; opencode no lo necesita.
+ */
+export function configuracionDelSandbox(sandbox: {
+  home: string;
+  skillsDir: string;
+}): object {
+  return {
+    $schema: "https://opencode.ai/config.json",
+    skills: [sandbox.skillsDir],
+    permissions: PERMISOS_DEL_SANDBOX,
+    policies: [
+      { action: "provider.use", resource: "*", effect: "deny" },
+      { action: "provider.use", resource: PROVEEDOR_DEL_SUT, effect: "allow" },
+    ],
+  };
 }
 
 /**
@@ -189,6 +261,7 @@ export async function runCaso(
   const sandbox = deps.sandbox.create();
   try {
     sandbox.copySkills();
+    sandbox.configurar();
     const imagen = adjuntarImagenDeCaso(caso, sandbox.workDir);
     const args = buildOpencodeArgs(
       promptParaSut(prompt, imagen?.tipo, imagen?.nombre),
@@ -196,7 +269,10 @@ export async function runCaso(
     );
     const { stdout, stderr } = deps.command.run(args, {
       cwd: sandbox.workDir,
-      env: { HOME: sandbox.home, XDG_CONFIG_HOME: sandbox.configDir },
+      // `XDG_CONFIG_HOME` es la ruta de config de `opencode.jsonc`; `OPENCODE_HOME`
+      // la del par `auth.json`/base de datos en V2. Se fijan las dos para que no
+      // quede ninguna parte del HOME fuera del sandbox.
+      env: entornoDelSandbox(sandbox),
     });
     const transcript = mergeTranscript(stdout, stderr);
     const dir = dirArtefactoDeCaso(caso.tipo);
@@ -355,8 +431,50 @@ export const realCommand: CommandRunner = {
   },
 };
 
-export function skillsDirDeHome(home: string): string {
-  return join(home, ".config", "opencode", "skills");
+/**
+ * Las skills globales de V2 se descubren en `<config>/opencode/skills`, donde
+ * `<config>` es el directorio de config raíz (el valor de `XDG_CONFIG_HOME`, o
+ * `~/.config` si no se fija). **No** es `~/.config/opencode/skills`: esa ruta no
+ * la escanea V2, y una skill copiada ahí falla con `Unable to load skill`
+ * (medido en la 2.1.2, ver ADR-0013).
+ *
+ * `configDir` es el directorio de config que se pasa al SUT en
+ * `XDG_CONFIG_HOME`; el de skills es su subdirectorio `opencode`.
+ */
+export function skillsDirDeConfig(configDir: string): string {
+  return join(configDir, "opencode", "skills");
+}
+
+/**
+ * Rutas que el SUT tiene que ver apuntando al sandbox. `HOME` y
+ * `XDG_CONFIG_HOME` los usa `opencode.jsonc` y sus skills; `OPENCODE_HOME` fija
+ * el directorio de datos (la base de datos de sesiones), que si no se iría a
+ * `~/.local/share/opencode` del usuario real. `auth.json` no se pone con una
+ * variable: V2 lo busca en el directorio de datos que resuelve para el HOME.
+ */
+export function entornoDelSandbox(sandbox: {
+  home: string;
+  configDir: string;
+}): Record<string, string> {
+  return {
+    HOME: sandbox.home,
+    XDG_CONFIG_HOME: sandbox.configDir,
+    OPENCODE_HOME: datosDirDeHome(sandbox.home),
+  };
+}
+
+/**
+ * Directorio de datos de OpenCode V2: ahí viven `auth.json` (las cuentas
+ * conectadas) y la base de datos de sesiones. En Linux y Windows depende del
+ * `HOME`; en macOS es `~/Library/Application Support/opencode` y no sigue a
+ * `HOME` (ver ADR-0013).
+ */
+export function datosDirDeHome(home: string, plataforma: string = process.platform): string {
+  // Se compone a mano y no con `join`: `join` usa el separador de la máquina
+  // actual, y esta ruta debe ser la de la plataforma pedida (`plataforma`).
+  const base = home.replace(/[\\/]+$/, "");
+  if (plataforma === "darwin") return `${base}/Library/Application Support/opencode`;
+  return `${base}/.local/share/opencode`;
 }
 
 export interface SandboxOptions {
@@ -375,18 +493,30 @@ export interface SandboxOptions {
    * suite` tarda minutos y no segundos.
    */
   scaffoldDir?: string;
+  /**
+   * `auth.json` real del usuario, del que se copian las cuentas conectadas al
+   * sandbox (ver ADR-0013). Sin él, V2 no tiene con qué resolver el modelo
+   * (`Model unavailable`). Por defecto, el del `HOME` real.
+   */
+  authOrigen?: string;
+  /** `HOME` real del usuario; base para `authOrigen`. Por defecto, `os.homedir()`. */
+  homeReal?: string;
 }
 
 export function createSandbox(opciones: string | SandboxOptions = {}): Sandbox {
   const opts: SandboxOptions = typeof opciones === "string" ? { base: opciones } : opciones;
   const base = opts.base ?? tmpdir();
+  const homeReal = opts.homeReal ?? homedir();
+  const authOrigen = opts.authOrigen ?? join(datosDirDeHome(homeReal), "auth.json");
   const root = mkdtempSync(join(base, "desy-sut-"));
   const home = join(root, "home");
   const configDir = join(home, ".config", "opencode");
-  const skillsDir = skillsDirDeHome(home);
+  const skillsDir = skillsDirDeConfig(configDir);
+  const datosDir = datosDirDeHome(home);
   const workDir = join(root, "work");
 
   mkdirSync(skillsDir, { recursive: true });
+  mkdirSync(datosDir, { recursive: true });
   mkdirSync(workDir, { recursive: true });
 
   if (opts.scaffoldDir) {
@@ -429,6 +559,25 @@ export function createSandbox(opciones: string | SandboxOptions = {}): Sandbox {
           recursive: true,
         });
       }
+    },
+    configurar(): void {
+      writeFileSync(
+        join(configDir, "opencode.jsonc"),
+        // JSON puro: es JSONC válido, así que no hace falta un serializador de
+        // comentarios ni plantilla.
+        JSON.stringify(configuracionDelSandbox({ home, skillsDir }), null, 2) + "\n",
+        "utf8",
+      );
+      // Solo se copian las cuentas conectadas; ningún otro estado del usuario
+      // (sesiones, plugins, skills, config) entra en el sandbox.
+      if (!existsSync(authOrigen)) {
+        throw new Error(
+          `No existe ${authOrigen}: OpenCode V2 no tiene con qué resolver ` +
+            `${MODELO_FIJO} dentro del sandbox (lo conectas con \`opencode auth login\` en ` +
+            "tu usuario). Ver ADR-0013.",
+        );
+      }
+      cpSync(authOrigen, join(datosDir, "auth.json"));
     },
     listArtefactos(dir: string) {
       return listarArtefactosDeSalida(workDir, lineaBase, dir);

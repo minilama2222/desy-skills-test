@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import type { CasoComponente } from "../src/caso.js";
 import { readPin } from "../src/pin.js";
-import { createSandbox, runCaso, skillsDirDeHome, type CommandRunner, type Entorno } from "../src/runner.js";
+import { createSandbox, datosDirDeHome, runCaso, skillsDirDeConfig, type CommandRunner, type Entorno } from "../src/runner.js";
 
 const pin = readPin(join(process.cwd(), "pin.json"));
 
@@ -29,7 +29,7 @@ describe("runCaso (smoke de integración con sandbox real)", () => {
         entornoVisto = opts.env;
         promptVisto = args[args.length - 1];
         skillsDuranteElRun = existsSync(
-          join(skillsDirDeHome(opts.env.HOME ?? ""), "desy-preflight-check", "SKILL.md"),
+          join(skillsDirDeConfig(opts.env.XDG_CONFIG_HOME ?? ""), "desy-preflight-check", "SKILL.md"),
         );
         return {
           stdout: "» skill: preflight-check\n» skill: implement-component\n",
@@ -55,6 +55,7 @@ describe("runCaso (smoke de integración con sandbox real)", () => {
     expect(entornoVisto).toEqual({
       HOME: sandbox.home,
       XDG_CONFIG_HOME: sandbox.configDir,
+      OPENCODE_HOME: datosDirDeHome(sandbox.home),
     });
     expect(promptVisto).toBe(caso.prompt);
 
