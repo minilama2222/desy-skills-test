@@ -1,8 +1,8 @@
 import { bumpPin, currentRepo, realGit, PIN_PATH } from "./bump.js";
 import { ANCHO_CAPTURA, asegurarCaptura, capturarConAgentBrowser } from "./captura-gold.js";
 import { CASOS_DIR, cargarCaso, cargarCasos } from "./caso-loader.js";
-import type { AnclaDeSkill, Assert, Check, TipoCaso } from "./caso.js";
-import { ejecutarCaso, type ResultadoEjecucion } from "./ejecutar.js";
+import type { AnclaDeSkill, Assert, Caso, Check, TipoCaso } from "./caso.js";
+import { cuentaComoEntrega, ejecutarCaso, type ResultadoEjecucion } from "./ejecutar.js";
 import { grado } from "./grader.js";
 import { problemasDeArbolLocalSucio, problemasDeVendorSucio } from "./guardarrail-pin.js";
 import type { ContextoDelCaso } from "./informe.js";
@@ -26,11 +26,13 @@ import {
   SCAFFOLD_CACHE_DIR,
   skillsDirDeConfig,
   VENDOR_SKILLS_DIR,
+  type RunDeps,
 } from "./runner.js";
 import { agregarScorecard, etiquetaDelPin, renderScorecard } from "./scorecard.js";
 import { lectorDeSecciones } from "./seccion-skill.js";
 import {
   exitCodeDe,
+  limiteDeIntentos,
   N_POR_DEFECTO,
   resumen,
   seleccionarCasos,
@@ -44,10 +46,11 @@ function usage(): never {
       "Uso: cli <comando> [args]",
       "",
       "Comandos:",
-      "  suite [--skill <skill>] [--case <caso>] [--n <N>] [--reports <dir>] [--skills-local <ruta>]",
-      "      Corre la suite entera (o el subconjunto) por el SUT, N Ejecuciones por",
-      "      Caso, emite JSON + Scorecard y sale con código ≠ 0 si algún Caso SUSPENDE.",
-      "  run --skill <skill> --case <caso> [--n <N>] [--skills-local <ruta>]  Ejecuta un Caso por el SUT y emite Evidencia + Grade.",
+      "  suite [--skill <skill>] [--case <caso>] [--n <N>] [--tope <T>] [--reports <dir>] [--skills-local <ruta>]",
+      "      Corre la suite entera (o el subconjunto) por el SUT hasta tener N entregas",
+      "      por Caso o agotar T intentos (por defecto T = N * 2), emite JSON + Scorecard",
+      "      y sale con código ≠ 0 si algún Caso SUSPENDE.",
+      "  run --skill <skill> --case <caso> [--n <N>] [--tope <T>] [--skills-local <ruta>]  Ejecuta un Caso por el SUT y emite Evidencia + Grade.",
       "      --skills-local <ruta>: mide los skills de un checkout local (declarado como",
       "      `local (sin commit)`) en vez de los de vendor/. Nunca escribe en vendor/.",
       "  grade <id> <severity> <assert> [weight]  Puntúa un Check sobre Evidencia vacía.",
@@ -197,8 +200,9 @@ function escribirInformesPorCaso(
 }
 
 /**
- * El número de Ejecuciones por Caso (`--n`), que es la N de la política del
- * ADR-0007. Sin `--n`, `run` hace una sola Ejecución (inspección rápida); sin
+ * Las **entregas** que se buscan por Caso (`--n`), que es la N de la política del
+ * ADR-0007 desde el ADR-0014: el presupuesto es de entregas, no de intentos
+ * (ticket 03). Sin `--n`, `run` busca una sola entrega (inspección rápida); sin
  * `--n`, `suite` usa `N_POR_DEFECTO`, porque ahí el veredicto se decide sobre las N.
  */
 function leerN(args: string[], porDefecto: number): number {
@@ -209,6 +213,35 @@ function leerN(args: string[], porDefecto: number): number {
     throw new Error(`--n inválido: "${valor}" (se esperaba un entero ≥ 1)`);
   }
   return n;
+}
+
+/**
+ * El tope duro de intentos (`--tope`, ticket 03). Sin él, el doble de `--n`.
+ * Declararlo por debajo de `n` es un error de uso: no se pueden tener `n`
+ * entregas en menos de `n` intentos.
+ */
+/**
+ * El presupuesto que declaró la línea de órdenes: `--n` entregas y, si viene,
+ * `--tope` intentos. Lo comparten `run` y `suite`; `tope` se omite (no se pasa en
+ * `undefined`) para que el defecto lo decida `limiteDeIntentos`, no este lector.
+ */
+export function presupuestoDe(
+  args: string[],
+  nPorDefecto: number,
+): { n: number; tope?: number } {
+  const n = leerN(args, nPorDefecto);
+  const tope = leerTope(args, n);
+  return tope === undefined ? { n } : { n, tope };
+}
+
+function leerTope(args: string[], n: number): number | undefined {
+  const valor = opcion(args, "--tope");
+  if (valor === undefined) return undefined;
+  const tope = Number(valor);
+  if (!Number.isInteger(tope) || tope < n) {
+    throw new Error(`--tope inválido: "${valor}" (se esperaba un entero ≥ ${n})`);
+  }
+  return tope;
 }
 
 /**
@@ -247,22 +280,55 @@ function resolverPin(args: string[]): { pin: Pin; hallazgos: string[] } {
   };
 }
 
-async function correrCaso(
-  caso: ReturnType<typeof cargarCaso>,
-  pin: ReturnType<typeof readPin>,
-  n: number,
-  anunciar?: (ejecucion: number) => void,
-  alGuardar?: (resultado: ResultadoEjecucion) => void,
+/** Lo que el bucle anuncia antes de cada intento (ticket 03). */
+export interface ProgresoDelCaso {
+  /** El intento que empieza, contando desde 1. */
+  intento: number;
+  /** Los intentos que como mucho se harán: el tope duro, no `n`. */
+  tope: number;
+  /** Las entregas que faltan al empezar ese intento. */
+  faltan: number;
+}
+
+export interface OpcionesDelPresupuesto {
+  /** Entregas que se buscan (`--n`). */
+  n: number;
+  /** Tope duro de intentos; por defecto, `limiteDeIntentos(n)`. */
+  tope?: number;
+  /** Los dos dobles del SUT; por defecto, el sandbox real y `opencode`. */
+  deps?: RunDeps;
+  anunciar?: (progreso: ProgresoDelCaso) => void;
+  alGuardar?: (resultado: ResultadoEjecucion) => void;
+}
+
+/**
+ * Corre un Caso bajo el **presupuesto de entregas** del ADR-0014 (ticket 03):
+ * se intenta hasta tener `n` entregas o agotar `tope` intentos, lo que antes
+ * llegue. Una Ejecución sin Artefacto consume intento y no entrega, así que una
+ * tasa de entrega baja cuesta más sandbox y modelo — hasta el tope, que es lo que
+ * impide que un SUT que nunca entrega se coma el presupuesto sin fin.
+ *
+ * Se exporta y recibe sus dependencias para probar el bucle con dobles (el SUT es
+ * un proceso externo): el camino que recorre es el real —sandbox, copia, grader,
+ * entrega—, y lo que cambia es quién decide cada entrega.
+ */
+export async function correrCaso(
+  caso: Caso,
+  pin: Pin,
+  opciones: OpcionesDelPresupuesto,
 ): Promise<ResultadoEjecucion[]> {
+  const tope = limiteDeIntentos(opciones.n, opciones.tope);
+  const deps = opciones.deps ?? { sandbox: { create: sandboxDelCaso }, command: realCommand };
   const resultados: ResultadoEjecucion[] = [];
-  for (let i = 1; i <= n; i++) {
-    anunciar?.(i);
-    const resultado = await ejecutarCaso(caso, pin, {
-      sandbox: { create: sandboxDelCaso },
-      command: realCommand,
-    });
+  let entregas = 0;
+  for (let intento = 1; intento <= tope && entregas < opciones.n; intento++) {
+    opciones.anunciar?.({ intento, tope, faltan: opciones.n - entregas });
+    const resultado = await ejecutarCaso(caso, pin, deps);
     resultados.push(resultado);
-    alGuardar?.(resultado);
+    // La misma cuenta que decide el veredicto (`cuentaComoEntrega`): una entrega
+    // sin invocar el skill no cierra el presupuesto (ticket 03).
+    if (cuentaComoEntrega(resultado)) entregas += 1;
+    opciones.alGuardar?.(resultado);
   }
   return resultados;
 }
@@ -292,9 +358,12 @@ async function runCasos(args: string[]): Promise<number> {
     for (const h of hallazgos) console.error(h);
     return 1;
   }
-  const resultados = await correrCaso(caso, pin, leerN(args, 1), undefined, (resultado) => {
-    const guardado = guardarConSuEvidencia(rutasDeReporte(REPORTS_DIR).ejecuciones, resultado);
-    console.error(`Ejecución guardada: ${rutaRelativa(guardado)}`);
+  const resultados = await correrCaso(caso, pin, {
+    ...presupuestoDe(args, 1),
+    alGuardar: (resultado) => {
+      const guardado = guardarConSuEvidencia(rutasDeReporte(REPORTS_DIR).ejecuciones, resultado);
+      console.error(`Ejecución guardada: ${rutaRelativa(guardado)}`);
+    },
   });
   console.log(JSON.stringify(resultados.length === 1 ? resultados[0] : resultados, null, 2));
   return 0;
@@ -315,7 +384,7 @@ async function runSuite(args: string[]): Promise<number> {
   const seleccion: Seleccion = {
     ...(opcion(args, "--skill") === undefined ? {} : { skill: opcion(args, "--skill")! }),
     ...(opcion(args, "--case") === undefined ? {} : { caso: opcion(args, "--case")! }),
-    n: leerN(args, N_POR_DEFECTO),
+    ...presupuestoDe(args, N_POR_DEFECTO),
   };
   const reportsDir = resolve(opcion(args, "--reports") ?? join("reports", "suite"));
   const rutas = rutasDeReporte(reportsDir);
@@ -337,16 +406,21 @@ async function runSuite(args: string[]): Promise<number> {
     // Se guarda al terminar cada Ejecución, no al acabar el Caso: una suite
     // interrumpida a mitad conserva la Evidencia de las que sí terminaron, y el
     // hallazgo de trigger que se hubiera detectado no se pierde (ticket 07).
-    await correrCaso(
-      caso,
-      pin,
-      seleccion.n,
-      (i) => console.error(`[${caso.skill}/${caso.id}] Ejecución ${i}/${seleccion.n}…`),
-      (resultado) => {
+    await correrCaso(caso, pin, {
+      n: seleccion.n,
+      ...(seleccion.tope === undefined ? {} : { tope: seleccion.tope }),
+      // El progreso se cuenta en entregas, no en intentos (ticket 03): «faltan 2
+      // entregas» dice lo que el presupuesto busca; «intento 1/6» dice a cuánto
+      // está del tope, y las dos cosas cambian cuando el SUT no entrega.
+      anunciar: ({ intento, tope, faltan }) =>
+        console.error(
+          `[${caso.skill}/${caso.id}] Intento ${intento}/${tope} — faltan ${faltan} entrega/s…`,
+        ),
+      alGuardar: (resultado) => {
         guardarConSuEvidencia(rutas.ejecuciones, resultado);
         ejecuciones.push(resultado);
       },
-    );
+    });
   }
 
   const scorecard = agregarScorecard(ejecuciones, pin, hashComun(ejecuciones));
@@ -356,7 +430,7 @@ async function runSuite(args: string[]): Promise<number> {
 
   const r = resumen(scorecard, ejecuciones);
   console.error(
-    `Suite: ${r.casos} Caso/s (${r.ejecuciones} Ejecución/es) sobre Pin ${etiquetaDelPin(scorecard.pin)} → ` +
+    `Suite: ${r.casos} Caso/s (${r.intentos} intento/s, ${r.entregas} entrega/s) sobre Pin ${etiquetaDelPin(scorecard.pin)} → ` +
       `PASA ${r.pasados} · SUSPENDE ${r.suspendidos} · INDETERMINADO ${r.indeterminados}`,
   );
   console.error(`JSON: ${rutaRelativa(rutas.scorecardJson)}`);

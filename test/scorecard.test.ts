@@ -87,7 +87,7 @@ describe("agregarScorecard: veredicto de un Caso (ADR-0007)", () => {
 
     const caso = reporte.skills[0]!.casos[0]!;
     expect(caso.veredicto).toBe("PASA");
-    expect(caso.ejecuciones).toBe(2);
+    expect(caso.intentos).toBe(2);
     expect(caso.alcanzaronSkill).toBe(1);
   });
 });
@@ -325,6 +325,18 @@ describe("hallazgo de trigger: la entrega correcta sin invocar el skill (ticket 
 
     const caso = reporte.skills[0]!.casos[0]!;
     expect(caso.hallazgosDeTrigger).toBe(1);
+  });
+
+  it("una entrega que no invocó el skill no cuenta como entrega del presupuesto (ticket 03)", () => {
+    // Con el presupuesto en entregas, una entrega «correcta» fuera del
+    // denominador limpio no puede rellenar las n entregas: si contara, el
+    // remate de la corrida del 27/10 cerraría el presupuesto sin haber medido el
+    // skill ni una vez. Cuenta como hallazgo, no como entrega.
+    const caso = agregarScorecard([entregaSinSkill()], pin).skills[0]!.casos[0]!;
+
+    expect(caso.entregas).toBe(0);
+    expect(caso.hallazgosConArtefacto).toBe(1);
+    expect(caso.veredicto).toBe("INDETERMINADO");
   });
 
   it("cuenta los hallazgos por Caso, y no los de un Caso en otro", () => {

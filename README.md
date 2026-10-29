@@ -93,13 +93,21 @@ un error.
 `npm run suite` es el comando que corre la **suite entera** y sirve para CI:
 
 ```bash
-npm run suite                                        # todos los Casos, 3 Ejecuciones cada uno
+npm run suite                                        # todos los Casos, 3 entregas cada uno
 npm run suite -- --skill implement-component         # un skill
 npm run suite -- --skill implement-component --case boton-primario   # un Caso
-npm run suite -- --n 1                               # N Ejecuciones por Caso (por defecto 3)
+npm run suite -- --n 1                               # N entregas por Caso (por defecto 3)
+npm run suite -- --tope 8                            # tope duro de intentos (por defecto N * 2)
 npm run suite -- --reports reports/mi-corrida        # árbol de salida (por defecto reports/suite)
 npm run suite -- --skills-local ../desy-skills        # mide los skills de un checkout local, no de vendor/
 ```
+
+`--n` cuenta **entregas**, no Ejecuciones: un Caso se intenta hasta tener N Entregas
+o agotar el tope duro de intentos (`N * 2` por defecto), lo que antes llegue. Una
+corrida que llega al skill y no escribe nada consume intento y no entrega, así que
+la misma N puede costar más Ejecuciones — y ahí el Scorecard dice **intentos** y
+**entregas** por separado. Si no se llega a N entregas se para en el tope, y el
+veredicto se calcula con lo que sí se entregó (cero entregas ⇒ INDETERMINADO).
 
 Qué necesitas para que corra de verdad:
 
@@ -124,7 +132,8 @@ Qué deja y qué devuelve:
 - **`reports/suite/informe/<skill>/<caso>.md`** — el **informe por Caso**: por cada
   Check fallido, la aserción, la línea del artefacto que la tumba y la sección del
   skill de la que el Caso dice depender (ver [Informe por Caso](#informe-por-caso)).
-- Las N Ejecuciones persistidas en `reports/suite/ejecuciones/<skill>/<caso>/<n>.json`.
+- Las Ejecuciones persistidas en `reports/suite/ejecuciones/<skill>/<caso>/<n>.json`
+  (tantas como intentos costó llegar a las N entregas, o al tope).
 
 El **exit code** es la señal que bloquea el merge:
 
@@ -179,9 +188,12 @@ El veredicto de un Caso aplica el **ADR-0007** y el **ADR-0014**: se descartan l
 Ejecuciones que no alcanzaron el skill (`flujoAlcanzoSkill: false`) y también las
 que alcanzaron y no entregaron Artefacto (`entrega: "sin-artefacto"`); basta con
 que una de las que entregaron sea correcta. Si ninguna entregó, el Caso queda
-**INDETERMINADO** (no es un suspenso): no hay nada que graduar. El Scorecard separa
-además «no entregó» de «entregó mal», y declara el `arbolHash` de los skills
-medidos.
+**INDETERMINADO** (no es un suspenso): no hay nada que graduar. Son las mismas
+Ejecuciones las que llenan el presupuesto de entregas: un Artefacto EXCELENTE
+entregado **sin invocar el skill** es un hallazgo de trigger, no una entrega del
+Caso, así que no cierra el presupuesto ni aprueba. El Scorecard separa además «no
+entregó» de «entregó mal», cuenta intentos junto a entregas y declara el
+`arbolHash` de los skills medidos.
 
 ## Informe por Caso
 

@@ -1,4 +1,4 @@
-import type { ResultadoEjecucion } from "./ejecutar.js";
+import { cuentaComoEntrega, type ResultadoEjecucion } from "./ejecutar.js";
 import type { Grade } from "./grader.js";
 import type { Pin } from "./pin.js";
 import { LOCAL, esPinLocal } from "./pin.js";
@@ -29,16 +29,33 @@ export interface CasoScorecard {
   caso: string;
   tipo: ResultadoEjecucion["tipo"];
   veredicto: VeredictoCaso;
-  /** Total de Ejecuciones del Caso. */
-  ejecuciones: number;
+  /**
+   * Las **entregas** del Caso que cuentan para el presupuesto y el veredicto: con
+   * Artefacto **y** habiendo alcanzado el skill. Es lo que estaba mal nombrado
+   * como `ejecuciones` mientras la N contaba intentos; desde el ticket 03 el
+   * presupuesto es de entregas y el nombre dice lo que cuenta.
+   *
+   * Un Artefacto entregado **sin invocar el skill** no es una entrega del Caso: no
+   * midió el skill, así que no lo aprueba ni consume su presupuesto de entregas.
+   * Se cuenta en `hallazgosConArtefacto`.
+   */
+  entregas: number;
+  /** Los **intentos** que costaron esas entregas: todas las Ejecuciones del Caso. */
+  intentos: number;
   /** Ejecuciones cuyo Flujo observado contiene el skill bajo test (denominador limpio). */
   alcanzaronSkill: number;
-  /** Ejecuciones que alcanzaron el skill, con Artefacto y Grade EXCELENTE («entregó bien»). */
+  /** De las `entregas`, las de Grade EXCELENTE («entregó bien»). */
   correctas: number;
-  /** Ejecuciones que alcanzaron el skill, tienen Artefacto y no aprobaron los Checks. */
+  /** De las `entregas`, las que no aprobaron los Checks («entregó mal»). */
   entregoMal: number;
   /** Ejecuciones que alcanzaron el skill pero no produjeron Artefacto («no entregó»). */
   sinArtefacto: number;
+  /**
+   * Ejecuciones con Artefacto que **no** alcanzaron el skill. No son entregas ni
+   * `sinArtefacto`: son el complemento del denominador limpio. Con contenido
+   * EXCELENTE son el hallazgo de trigger (`hallazgosDeTrigger`).
+   */
+  hallazgosConArtefacto?: number;
   /** Checks fallados, con su severidad, para leer el Scorecard sin transcripciones. */
   fallos: { id: string; severity: "guard" | "quality" }[];
   /**
@@ -113,17 +130,6 @@ function conDatoDe(ejecuciones: ResultadoEjecucion[]): ResultadoEjecucion[] {
 }
 
 /**
- * Las Ejecuciones que **entregaron** Artefacto: el denominador de decisión del
- * ADR-0014. Llegar al skill es la puerta de entrada (ADR-0007); entregar algo que
- * graduar es la segunda. Una Ejecución que llega y no escribe nada no mide el
- * skill, igual que una que no llega: las dos se cuentan y se muestran, ninguna
- * decide.
- */
-function entregadasDe(ejecuciones: ResultadoEjecucion[]): ResultadoEjecucion[] {
-  return ejecuciones.filter((e) => e.entrega === "con-artefacto");
-}
-
-/**
  * El hallazgo de trigger (ticket 07): una Ejecución que **entregó** un Artefacto
  * **EXCELENTE sin invocar el skill**. El ADR-0007 la deja fuera del denominador
  * —no midió el skill— pero lo que enseña no es del agente: es que el skill no se
@@ -140,8 +146,23 @@ export function esHallazgoDeTrigger(ejecucion: ResultadoEjecucion): boolean {
   );
 }
 
+/**
+ * Las entregas que **deciden** el veredicto: con Artefacto y habiendo alcanzado el
+ * skill (`flujoAlcanzoSkill`). Es la intersección de los dos ejes del ADR-0007 y
+ * el ADR-0014, y la usan el veredicto y **todas** las cuentas del Caso, para que no
+ * puedan decir cosas distintas de las mismas Ejecuciones.
+ *
+ * Por qué la exclusión por eje: el ADR-0014 se apoya en el ADR-0007, que manda
+ * descartar las que no llegaron al skill — y un Caso que no invocó el skill y aun
+ * así entregó un Artefacto EXCELENTE es el **hallazgo de trigger** (ticket 07):
+ * no midió el skill, así que no puede aprobarlo.
+ */
+function entregasQueDeciden(ejecuciones: ResultadoEjecucion[]): ResultadoEjecucion[] {
+  return ejecuciones.filter(cuentaComoEntrega);
+}
+
 function veredictoDe(ejecuciones: ResultadoEjecucion[]): VeredictoCaso {
-  const entregadas = entregadasDe(conDatoDe(ejecuciones));
+  const entregadas = entregasQueDeciden(ejecuciones);
   // Cero entregas ⇒ INDETERMINADO, nunca SUSPENDE (ADR-0014): no hay nada que
   // graduar, así que no hay juicio sobre el skill.
   if (entregadas.length === 0) return "INDETERMINADO";
@@ -220,8 +241,8 @@ function agregarCaso(
   ejecuciones: ResultadoEjecucion[],
 ): CasoScorecard {
   const conDato = conDatoDe(ejecuciones);
-  const conArtefacto = conDato.filter((e) => e.entrega === "con-artefacto");
-  const correctas = conDato.filter(esCorrecta);
+  const entregadas = entregasQueDeciden(ejecuciones);
+  const correctas = entregadas.filter(esCorrecta);
   const mejor = mejorEjecucion(ejecuciones);
   // Los hallazgos de trigger NO están en `conDato`: el veredicto los descarta a
   // propósito. Se cuentan de las Ejecuciones completas del Caso (ticket 07).
@@ -230,11 +251,17 @@ function agregarCaso(
     caso,
     tipo: ejecuciones[0]!.tipo,
     veredicto: veredictoDe(ejecuciones),
-    ejecuciones: ejecuciones.length,
+    entregas: entregadas.length,
+    intentos: ejecuciones.length,
     alcanzaronSkill: conDato.length,
     correctas: correctas.length,
-    entregoMal: conArtefacto.filter((e) => !esCorrecta(e)).length,
+    // «Entregó mal» es un juicio de los Checks sobre una entrega que **se midió**:
+    // una que no llegó al skill no se juzga, dice otra cosa (ver el hallazgo).
+    entregoMal: entregadas.filter((e) => !esCorrecta(e)).length,
     sinArtefacto: conDato.filter((e) => e.entrega === "sin-artefacto").length,
+    hallazgosConArtefacto: ejecuciones.filter(
+      (e) => e.entrega === "con-artefacto" && !e.flujoAlcanzoSkill,
+    ).length,
     fallos: fallosDe(conDato),
     guards: mejor ? guardsDe(mejor) : { ok: 0, total: 0 },
     gradeCalidad: mejor?.grade ?? "INACEPTABLE",
@@ -366,8 +393,8 @@ export function renderScorecard(reporte: Scorecard): string {
     lineas.push(
       "",
       `**INDETERMINADO:** ${indeterminados.length} Caso/s sin dato para juzgar el skill ` +
-        `(${indeterminados.map((c) => `\`${c.caso}\``).join(", ")}): ninguna de sus ` +
-        "Ejecuciones alcanzó el skill con un Artefacto que graduar. No bloquean, pero " +
+        `(${indeterminados.map((c) => `\`${c.caso}\``).join(", ")}): ninguno de sus ` +
+        "intentos alcanzó el skill con un Artefacto que graduar. No bloquean, pero " +
         "tampoco aprueban.",
     );
   }
@@ -379,16 +406,22 @@ export function renderScorecard(reporte: Scorecard): string {
         `SUSPENDE ${skill.suspendidos} · INDETERMINADO ${skill.indeterminados}`,
     );
     lineas.push("");
-    lineas.push("| Caso | Veredicto | Guards | Grade | Ejecuciones | Con dato | Correctas | No entregó | Entregó mal |");
-    lineas.push("|---|---|---|---|---|---|---|---|---|");
+    // Intentos junto a entregas, no en lugar de ellas (ticket 03): la diferencia
+    // entre las dos es la tasa de entrega, y es lo que dice si el presupuesto
+    // topó. Un Caso que topa con 6 intentos y 2 entregas se lee de un vistazo.
+    lineas.push(
+      "| Caso | Veredicto | Guards | Grade | Intentos | Entregas | Con dato | " +
+        "Correctas | No entregó | Entregó mal |",
+    );
+    lineas.push("|---|---|---|---|---|---|---|---|---|---|");
 
     for (const caso of skill.casos) {
       const guards =
         caso.guards.total === 0 ? "—" : `${caso.guards.ok}/${caso.guards.total}`;
       lineas.push(
         `| ${caso.caso} | ${caso.veredicto} | ${guards} | ${caso.gradeCalidad} | ` +
-          `${caso.ejecuciones} | ${caso.alcanzaronSkill} | ${caso.correctas} | ` +
-          `${caso.sinArtefacto} | ${caso.entregoMal} |`,
+          `${caso.intentos} | ${caso.entregas} | ${caso.alcanzaronSkill} | ` +
+          `${caso.correctas} | ${caso.sinArtefacto} | ${caso.entregoMal} |`,
       );
     }
 

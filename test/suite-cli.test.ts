@@ -79,7 +79,11 @@ const indice = existsSync(marca) ? Number(readFileSync(marca, "utf8")) : 0;
 writeFileSync(marca, String(indice + 1));
 
 const { entregas, artefacto, contenido } = JSON.parse(readFileSync(join(casa, "guion.json"), "utf8"));
-const entrega = entregas[indice] ?? "bueno";
+// Sin más entregas en la lista se repite la última, no se entrega por defecto: el
+// bucle del presupuesto (ticket 03) reintenta hasta tener n entregas, así que un
+// guion corto no puede cambiar lo que el SUT entrega a mitad de corrida — «nada»
+// tiene que seguir siendo «nada» hasta el tope.
+const entrega = entregas[Math.min(indice, entregas.length - 1)] ?? "nada";
 
 // Marca de "el guion corrió esta Ejecución": la lee el test para no confundir un
 // verde del test con un verde de la suite (ver la cabecera).
@@ -189,10 +193,14 @@ async function correrSuite(args: string[], entregas: string[] = ["bueno"]): Prom
     const json = join(reports, "scorecard.json");
     const md = join(reports, "scorecard.md");
     const informe = join(reports, "informe", "implement-component", "boton-primario.md");
-    const vistas = entregas.map((_, i) => {
-      const marca = join(dir, `visto-${i}.txt`);
-      return existsSync(marca) ? readFileSync(marca, "utf8").trim() : "(no corrió)";
-    });
+    // Las marcas del guion **son** los intentos hechos: con el presupuesto de
+    // entregas (ticket 03) la lista de entregas ya no dice cuántos hubo — un
+    // «nada» se reintenta hasta el tope—, así que se leen del disco en vez de
+    // suponer una por entrada de la lista.
+    const vistas: string[] = [];
+    for (let i = 0; existsSync(join(dir, `visto-${i}.txt`)); i++) {
+      vistas.push(readFileSync(join(dir, `visto-${i}.txt`), "utf8").trim());
+    }
     // Las Ejecuciones se leen antes del `finally`: el test necesita la salida
     // cruda del SUT (`salida.stdout`), no sólo el agregado.
     const ejecuciones = leerEjecuciones(join(reports, "ejecuciones"));
@@ -276,19 +284,25 @@ describe("suite (comando de CI, ticket 13)", () => {
   );
 
   it(
-    "sale con 0 y INDETERMINADO si ninguna de las N Ejecuciones entregó nada (ADR-0014)",
+    "sale con 0 y INDETERMINADO si los intentos no dan las N entregas (ADR-0014, ticket 03)",
     async () => {
       // Antes esto bloqueaba el merge sin decir nada del skill: el agente llegó
       // al skill y no escribió. Desde ADR-0014 no hay nada que graduar, así que
       // el Caso no juzga — pero tampoco pasa por medido: el scorecard lo dice.
       const corrida = await correrSuite([...BOTON, "--n", "3"], ["nada", "nada", "nada"]);
 
-      expect(corrida.vistas).toEqual(["nada", "nada", "nada"]);
-      expectDentroDelPresupuesto(corrida, 3);
+      // Pedir 3 entregas no es correr 3 veces: sin un solo Artefacto se agota el
+      // tope duro —6 intentos, el doble de n— y ahí se para (ticket 03).
+      expect(corrida.vistas).toEqual(["nada", "nada", "nada", "nada", "nada", "nada"]);
+      expectDentroDelPresupuesto(corrida, 6);
       expect(corrida.code).toBe(0);
       const caso = corrida.scorecard?.skills[0]?.casos[0];
       expect(caso?.veredicto).toBe("INDETERMINADO");
-      expect(caso?.sinArtefacto).toBe(3);
+      expect(caso?.entregas).toBe(0);
+      expect(caso?.intentos).toBe(6);
+      expect(caso?.sinArtefacto).toBe(6);
+      // Topó con 0 entregas: no es un verde, y el Scorecard lo dice con la
+      // columna de entregas al lado de la de intentos.
     },
     180_000,
   );
@@ -298,16 +312,22 @@ describe("suite (comando de CI, ticket 13)", () => {
     async () => {
       const corrida = await correrSuite([...BOTON, "--n", "3"], ["malo", "bueno", "nada"]);
 
-      expect(corrida.vistas).toEqual(["malo", "bueno", "nada"]);
-      expectDentroDelPresupuesto(corrida, 3);
+      // n=3 son 3 **entregas**, no 3 intentos (ticket 03): el tercer intento no
+      // entregó, así que el bucle sigue pidiendo intentos —y el guion, sin más
+      // entregas en la lista, repite la última («nada»)— hasta agotar el tope
+      // duro de 6. Las entregas cortan el bucle; el tope, la falta de ellas.
+      expect(corrida.vistas).toEqual(["malo", "bueno", "nada", "nada", "nada", "nada"]);
+      expectDentroDelPresupuesto(corrida, 6);
       expect(corrida.code).toBe(0);
       const caso = corrida.scorecard?.skills[0]?.casos[0];
       expect(caso?.veredicto).toBe("PASA");
-      // Las tres causas quedan contadas por separado: entregó mal, entregó
-      // bien y no llegó a entregar.
+      // Las tres causas quedan contadas por separado y cuadran con el
+      // denominador limpio: no entregó + correctas + entregó mal = intentos.
+      expect(caso?.intentos).toBe(6);
+      expect(caso?.entregas).toBe(2);
       expect(caso?.correctas).toBe(1);
       expect(caso?.entregoMal).toBe(1);
-      expect(caso?.sinArtefacto).toBe(1);
+      expect(caso?.sinArtefacto).toBe(4);
     },
     180_000,
   );
@@ -334,17 +354,24 @@ describe("suite (comando de CI, ticket 13)", () => {
       // informe, la Ejecución con su ruta de Evidencia, y el veredicto intacto.
       const corrida = await correrSuite([...BOTON, "--n", "2"], ["malo", "sin-skill"]);
 
-      expect(corrida.vistas).toEqual(["malo", "sin-skill"]);
+      // La entrega sin skill no cierra el presupuesto de 2 entregas (ticket 03):
+      // el guion se queda sin entregas y agota el tope de 4 intentos. Las dos
+      // últimas no aportan entregas que el Caso pueda contar.
+      expect(corrida.vistas).toEqual(["malo", "sin-skill", "sin-skill", "sin-skill"]);
       expectDentroDelPresupuesto(corrida, 2);
 
       // El veredicto sigue descartándola como dato: entrega mala y nada más.
       const caso = corrida.scorecard?.skills[0]?.casos[0];
       expect(caso?.veredicto).toBe("SUSPENDE");
       expect(caso?.correctas).toBe(0);
+      // Sólo la «malo» alcanzó `implement-component`: las `sin-skill` se quedan
+      // en el preflight.
       expect(caso?.alcanzaronSkill).toBe(1);
-      // Pero la evidencia no se pierde.
-      expect(caso?.hallazgosDeTrigger).toBe(1);
-      expect(caso?.triggerConEvidencia).toBe(1);
+      // Y la evidencia no se pierde: los tres intentos que entregaron sin invocar
+      // el skill —el de la lista y los dos que el guion repitió hasta el tope— se
+      // cuentan como hallazgo, cada uno con su Evidencia en disco.
+      expect(caso?.hallazgosDeTrigger).toBe(3);
+      expect(caso?.triggerConEvidencia).toBe(3);
 
       // Y la Ejecución dice de sí misma dónde se lee: la ruta se escribió en el
       // JSON al persistirla, no se reconstruyó al agregar.
@@ -456,7 +483,7 @@ describe("suite --skills-local: un checkout local declarado (ticket 05)", () => 
       expect(corrida.stderr).toContain("sin commitear");
       expect(corrida.stderr).toContain("desy-preflight-check/SKILL.md");
       // Ni una Ejecución gastada: el guion no llegó a correr.
-      expect(corrida.vistas).toEqual(["(no corrió)"]);
+      expect(corrida.vistas).toEqual([]);
       expect(corrida.scorecard).toBeUndefined();
     },
     60_000,
@@ -471,7 +498,7 @@ describe("suite --skills-local: un checkout local declarado (ticket 05)", () => 
       expect(corrida.stderr).toContain("sin commitear");
       expect(corrida.stderr).toContain("desy-preflight-check/SKILL.md");
       // Ni una Ejecución gastada: el guion no llegó a correr.
-      expect(corrida.vistas).toEqual(["(no corrió)"]);
+      expect(corrida.vistas).toEqual([]);
       expect(corrida.scorecard).toBeUndefined();
     },
     60_000,

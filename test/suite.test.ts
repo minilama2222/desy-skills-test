@@ -191,7 +191,9 @@ describe("resumen: las cuentas que se anuncian por consola", () => {
       pasados: 1,
       suspendidos: 1,
       indeterminados: 1,
-      ejecuciones: 3,
+      intentos: 3,
+      // La tercera no entregó: intentos y entregas no son lo mismo (ticket 03).
+      entregas: 2,
     });
   });
 });

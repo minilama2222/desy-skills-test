@@ -11,23 +11,50 @@ import type { Scorecard, VeredictoCaso } from "./scorecard.js";
  */
 
 /**
- * Por defecto un Caso se corre 3 veces (ADR-0007): con N=1 el veredicto al azar
- * de un SUT flaky sería el veredicto del skill.
+ * Por defecto un Caso se corre hasta tener 3 **entregas** (ADR-0007 y
+ * ADR-0014): con una sola, el veredicto al azar de un SUT flaky sería el
+ * veredicto del skill.
  *
  * Desde el ADR-0014 ese 3 es un presupuesto de **entregas**, no de intentos: se
- * intenta hasta tener 3 entregas o agotar un tope duro de intentos. El runner
- * sigue contando **intentos** (ticket 03): hasta entonces, este número es el de
- * Ejecuciones que se hacen, y el nombre lo dice.
+ * intenta hasta tener 3 entregas o agotar el tope duro (`limiteDeIntentos`), lo
+ * que antes llegue. Una Ejecución sin Artefacto consume intento y no entrega.
  */
 export const N_POR_DEFECTO = 3;
+
+/** Cuántos intentos extra por entrega da el tope duro, si no se declara otro. */
+export const INTENTOS_POR_ENTREGA = 2;
+
+/**
+ * El tope duro de intentos para conseguir `n` entregas (ADR-0014): `n * 2` por
+ * defecto. Es una regla pura para poder probar el borde sin correr el SUT —
+ * agotarlo se para y el veredicto sale de lo que sí se entregó.
+ *
+ * Un tope menor que `n` sería un presupuesto que no puede cumplirse; no es un
+ * error de la regla de scoring, es un argumento inválido.
+ */
+export function limiteDeIntentos(n: number, tope?: number): number {
+  if (!Number.isInteger(n) || n < 1) {
+    throw new Error(`presupuesto inválido: ${n} entregas (se esperaba un entero ≥ 1)`);
+  }
+  if (tope === undefined) return n * INTENTOS_POR_ENTREGA;
+  if (!Number.isInteger(tope) || tope < n) {
+    throw new Error(
+      `tope inválido: ${tope} intentos para ${n} entregas ` +
+        `(se esperaba un entero ≥ ${n})`,
+    );
+  }
+  return tope;
+}
 
 export interface Seleccion {
   /** Sólo los Casos de este skill. */
   skill?: string;
   /** Sólo este Caso (dentro de los de `skill`, si se ha dado). */
   caso?: string;
-  /** Número de Ejecuciones por Caso: se corren N, entreguen o no. */
+  /** Entregas que el Caso busca: se intenta hasta tenerlas o topar. */
   n: number;
+  /** Tope duro de intentos; por defecto, `limiteDeIntentos(n)`. */
+  tope?: number;
 }
 
 /**
@@ -102,11 +129,14 @@ export interface ResumenSuite {
   suspendidos: number;
   indeterminados: number;
   /**
-   * Las Ejecuciones hechas: son **intentos**, no entregas. Una que no escribió
-   * nada consume intento y no entrega, y la diferencia es justo lo que mide la
-   * tasa de entrega que pide el 14 (ver Presupuesto de intentos, ADR-0014).
+   * Los **intentos** hechos (las Ejecuciones): no son entregas, y desde el ticket
+   * 03 el nombre lo dice. Una que no escribió nada consume intento y no entrega, y
+   * la diferencia es justo lo que mide la tasa de entrega que pide el 14 (ver
+   * Presupuesto de intentos, ADR-0014).
    */
-  ejecuciones: number;
+  intentos: number;
+  /** Las **entregas** conseguidas: las Ejecuciones con Artefacto. */
+  entregas: number;
 }
 
 export function resumen(scorecard: Scorecard, ejecuciones: ResultadoEjecucion[]): ResumenSuite {
@@ -117,6 +147,7 @@ export function resumen(scorecard: Scorecard, ejecuciones: ResultadoEjecucion[])
     pasados: casos.filter((c) => c.veredicto === "PASA").length,
     suspendidos: casos.filter((c) => c.veredicto === "SUSPENDE").length,
     indeterminados: casos.filter((c) => c.veredicto === "INDETERMINADO").length,
-    ejecuciones: ejecuciones.length,
+    intentos: ejecuciones.length,
+    entregas: ejecuciones.filter((e) => e.entrega === "con-artefacto").length,
   };
 }

@@ -80,6 +80,18 @@ export function alcanzoSkill(flujoObservado: string[], skill: string): boolean {
 }
 
 /**
+ * Regla (ticket 03): ¿esta Ejecución es una **entrega del Caso** que cuenta para
+ * el presupuesto y el veredicto? Hace falta la Entrega **y** haber alcanzado el
+ * skill: un Artefacto escrito sin invocar el skill no midió el skill, así que no
+ * rellena su presupuesto de entregas ni lo aprueba (es el hallazgo de trigger,
+ * ticket 07). La comparten el bucle que corre (`cli.ts`) y el que agrega
+ * (`scorecard.ts`): si discreparan, el bucle podría parar sin haber medido nada.
+ */
+export function cuentaComoEntrega(ejecucion: Pick<ResultadoEjecucion, "entrega" | "flujoAlcanzoSkill">): boolean {
+  return ejecucion.entrega === "con-artefacto" && ejecucion.flujoAlcanzoSkill;
+}
+
+/**
  * Regla: ¿dónde se paró el SUT? El último paso del Flujo observado, o null si no
  * invocó ningún skill. Con `exitCode` separa «crasheó» de «se quedó sin entregar»:
  * un exit ≠ 0 con dos pasos no es lo mismo que un exit 0 con dos pasos y sin
