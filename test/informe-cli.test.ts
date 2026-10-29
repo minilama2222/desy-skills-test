@@ -132,7 +132,7 @@ describe("npm run report: deja el informe por Caso en disco", () => {
           detalle: EJECUCION.detalle.map((d) => ({ ...d, passed: true })),
           flujoObservado: ["preflight-check"],
           flujoAlcanzoSkill: false,
-          evidencia: "reports/oytra-corrida/ejecuciones/boton-primario/3.json",
+          evidencia: "reports/otra-corrida/ejecuciones/boton-primario/3.json",
         });
 
         const r = spawnSync(
@@ -149,8 +149,55 @@ describe("npm run report: deja el informe por Caso en disco", () => {
         // El hallazgo sigue saliendo; lo que desaparece es la ruta fantasma.
         expect(informe).toContain("Hallazgo de trigger");
         expect(informe).toContain("**Ejecución 1** — `EXCELENTE`");
-        expect(informe).not.toContain("oytra-corrida");
-        expect(r.stdout).not.toContain("oytra-corrida");
+        expect(informe).not.toContain("otra-corrida");
+        expect(r.stdout).not.toContain("otra-corrida");
+      } finally {
+        rmSync(dir, { recursive: true, force: true });
+      }
+    },
+    60_000,
+  );
+
+  it(
+    "sí remite a la Evidencia cuando el fichero existe donde se reporta",
+    () => {
+      // Control positivo del test anterior: sin esto, el `.not.toContain` de
+      // arriba pasaría aunque se descartara la ruta **siempre**.
+      const dir = mkdtempSync(join(tmpdir(), "informe-cli-evidencia-viva-"));
+      try {
+        const reports = join(dir, "reports");
+        const ejecuciones = join(reports, "ejecuciones");
+        const guardada = guardarEjecucion(ejecuciones, {
+          ...EJECUCION,
+          grade: "EXCELENTE",
+          detalle: EJECUCION.detalle.map((d) => ({ ...d, passed: true })),
+          flujoObservado: ["preflight-check"],
+          flujoAlcanzoSkill: false,
+        });
+        // La Ejecución se guarda con la ruta de su Evidencia, como hace el CLI
+        // (`rutaRelativa`, que puede salir del repo si `--reports` está fuera).
+        writeFileSync(
+          guardada,
+          JSON.stringify(
+            { ...JSON.parse(readFileSync(guardada, "utf8")), evidencia: guardada.split("\\").join("/") },
+            null,
+            2,
+          ) + "\n",
+          "utf8",
+        );
+
+        const r = spawnSync(
+          process.execPath,
+          [TSX, "src/cli.ts", "report", "--reports", reports],
+          { cwd: REPO_ROOT, encoding: "utf8" },
+        );
+
+        expect(r.status, r.stderr).toBe(0);
+        const informe = readFileSync(
+          join(reports, "informe", "implement-component", "boton-primario.md"),
+          "utf8",
+        );
+        expect(informe).toContain(`Evidencia: \`${guardada.split("\\").join("/")}\``);
       } finally {
         rmSync(dir, { recursive: true, force: true });
       }

@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import {
-  ticketsDoneConCasillasAbiertas,
+  problemasDelTracker,
   type Ticket,
 } from "../src/guardarrail-tracker.js";
 import { REPO_ROOT } from "../src/repo.js";
@@ -23,7 +23,7 @@ function tickets(): Ticket[] {
     }));
 }
 
-const hallazgos = ticketsDoneConCasillasAbiertas(tickets());
+const hallazgos = problemasDelTracker(tickets());
 
 if (hallazgos.length === 0) {
   console.log("OK: ningún ticket `done` tiene casillas sin marcar.");

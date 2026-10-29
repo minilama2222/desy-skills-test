@@ -3,7 +3,6 @@ import {
   PENDIENTES_DE_ANCLAR,
   deudaDeAnclaje,
   idsDeChecksCitadosEnRubric,
-  problemasDeChecksSinAncla,
   problemasDeLaListaDePendientes,
   problemasDelArbolDeCasos,
   type CasoEnDisco as CasoParaValidar,
@@ -384,15 +383,20 @@ describe("deudaDeAnclaje: la deuda se mide por Check, no por ruta (retro del tic
   it("un pendiente a medio anclar sigue en la deuda, con el progreso", () => {
     // El agujero que esto cierra: `problemasDeChecksSinAncla` tolera el Caso
     // entero por estar en la lista, así que 1 de 2 anclados pasaba por «sin
-    // deuda igual». Aquí se ve que queda la mitad.
+    // deuda igual». Aquí se ve que queda la mitad, **por la vía pública**: el
+    // guardarraíl sigue callado (la lista lo tolera) y la deuda lo dice.
     const medio = casoOk({
       ruta: primera!,
       idsDeChecks: ["a", "b"],
       anclas: new Map([["a", { skill: "s", seccion: "x" }]]),
     });
 
-    expect(problemasDeChecksSinAncla(medio)).toEqual([]);
     expect(deudaDel(medio)[0]).toMatchObject({ ancladas: 1, total: 2, sinAncla: ["b"] });
+    expect(
+      problemasDelArbolDeCasos(
+        todosLosPendientes().map((caso) => (caso.ruta === primera ? medio : caso)),
+      ),
+    ).toEqual([]);
   });
 
   it("un pendiente ya anclado del todo no es deuda (y la lista lo delata como sobrante)", () => {
@@ -410,8 +414,17 @@ describe("deudaDeAnclaje: la deuda se mide por Check, no por ruta (retro del tic
     ).toHaveLength(1);
   });
 
-  it("un fantasma no entra en la deuda: no hay Checks que contar", () => {
-    expect(deudaDeAnclaje([])).toEqual([]);
+  it("la tolerancia por ruta y la medida por Check no pueden discrepar", () => {
+    // Control: un Caso **fuera** de la lista con la misma mitad anclada sí da
+    // rojo. Sin esto, el verde de arriba podría ser un guardarraíl apagado.
+    const medioFuera = casoOk({
+      ruta: "casos/skill-nuevo/decision/caso-nuevo",
+      idsDeChecks: ["a", "b"],
+      anclas: new Map([["a", { skill: "s", seccion: "x" }]]),
+    });
+
+    expect(problemasDelArbolDeCasos([medioFuera])).toHaveLength(1);
+    expect(deudaDel(medioFuera)).toEqual([]);
   });
 });
 

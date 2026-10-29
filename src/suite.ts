@@ -26,7 +26,7 @@ export interface Seleccion {
   skill?: string;
   /** Sólo este Caso (dentro de los de `skill`, si se ha dado). */
   caso?: string;
-  /** Número de Ejecuciones por Caso. */
+  /** Número de Ejecuciones por Caso: se corren N, entreguen o no. */
   n: number;
 }
 

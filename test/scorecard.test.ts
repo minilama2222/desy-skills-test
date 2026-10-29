@@ -427,7 +427,7 @@ describe("renderScorecard: los INDETERMINADO se leen en la cabecera", () => {
     const aviso = texto.indexOf("**INDETERMINADO:**");
     expect(aviso).toBeGreaterThan(-1);
     expect(aviso).toBeLessThan(texto.indexOf("## implement-component"));
-    expect(texto).toContain("1 Caso/s no midieron el skill (`a`)");
+    expect(texto).toContain("1 Caso/s sin dato para juzgar el skill (`a`)");
     // Dice el Caso indeterminado, no el que pasó.
     expect(texto).toContain("(`a`)");
     expect(texto).not.toContain("(`b`)");

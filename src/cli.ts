@@ -436,6 +436,29 @@ function pinDeLasEjecuciones(ejecuciones: ResultadoEjecucion[]): Pin {
 }
 
 /**
+ * Comprueba que la Evidencia que cita una Ejecución **existe donde se reporta**.
+ *
+ * Se escribió donde se corrió (`reports/<árbol>/ejecuciones/…`), así que su ruta
+ * es relativa al repo. Reportar una copia del árbol deja rutas que ya no existen,
+ * y el informe no puede decir «ver en X» y que X falte. La comprobación se hace
+ * **aquí**, en el adaptador, no en el agregador: es una pregunta al disco.
+ *
+ * Devuelve copias, no muta: la Ejecución que se leyó sigue diciendo dónde se
+ * guardó, aunque el árbol que se reporta sea otro.
+ */
+function conEvidenciaExistente(
+  ejecuciones: ResultadoEjecucion[],
+): ResultadoEjecucion[] {
+  return ejecuciones.map((ejecucion) => {
+    const ruta = ejecucion.evidencia;
+    if (ruta === undefined) return ejecucion;
+    if (existsSync(resolve(REPO_ROOT, ruta))) return ejecucion;
+    const { evidencia: _fuera, ...sinRuta } = ejecucion;
+    return sinRuta;
+  });
+}
+
+/**
  * El reporte: agrega las Ejecuciones persistidas en el Scorecard (JSON, fuente de
  * verdad) y lo renderiza a markdown legible. El JSON se escribe siempre —es lo
  * que consume CI— y la ruta se anuncia por stderr para no ensuciar la salida
@@ -451,16 +474,8 @@ function runReport(args: string[]): void {
   const reports = opcion(args, "--reports");
   const rutas = rutasDeReporte(reports === undefined ? REPORTS_DIR : resolve(reports));
 
-  const ejecuciones = leerEjecuciones(rutas.ejecuciones);
+  const ejecuciones = conEvidenciaExistente(leerEjecuciones(rutas.ejecuciones));
   const pin = pinDeLasEjecuciones(ejecuciones);
-  // La Evidencia que una Ejecución cita se escribió donde se **corrió**, no donde
-  // se reporta: leer un árbol con `--reports` (una copia, un artefacto de CI) deja
-  // rutas que ya no existen. Se dice, en vez de remitir a un fichero fantasma.
-  for (const ejecucion of ejecuciones) {
-    if (ejecucion.evidencia !== undefined && !existsSync(join(REPO_ROOT, ejecucion.evidencia))) {
-      delete ejecucion.evidencia;
-    }
-  }
   const scorecard = agregarScorecard(ejecuciones, pin, hashComun(ejecuciones));
   const markdown = renderScorecard(scorecard) + "\n";
 

@@ -59,6 +59,7 @@ Cinco piezas, cada una resuelve uno de los cinco fallos de arriba:
 ### Presupuesto de intentos (ver ADR-0014)
 
 - El presupuesto es de **entregas**: se intenta hasta tener `n` entregas o agotar un tope duro de intentos (`n * 2` por defecto), lo que antes llegue.
+- **Cómo se leen las dos N mientras el ticket 03 no esté construido.** Esta sección y la de arriba dicen cosas distintas a propósito: allí `n` cuenta **intentos** (lo que se corre), aquí cuenta **entregas** (lo que se consigue). Hoy el runner sólo cuenta intentos, así que `--n 3` son tres Ejecuciones y puede haber menos de tres entregas. Cuando el 03 aterrice, `n` pasará a ser presupuesto de entregas con tope `n * 2`; hasta entonces, un scorecard que diga «Ejecuciones» está contando intentos, y `resumen().ejecuciones` también.
 - Rechazado a propósito: **nudge en el prompt** (haría que el Caso mida un prompt inventado, no el skill) y **cambiar de modelo o variante** (rompe comparabilidad, ADR-0001/0013).
 
 ### Runner observable

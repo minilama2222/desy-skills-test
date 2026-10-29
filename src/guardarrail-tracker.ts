@@ -47,7 +47,16 @@ function casillas(contenido: string): { abiertas: number; hechas: number } {
  * `done`: «espera a que un humano acepte», «espera a que aterrice el 09».
  */
 export function motivoDeclarado(contenido: string): string | undefined {
-  return /\*\*Status depende de:\*\*\s*(\S.*?)\s*$/m.exec(contenido)?.[1];
+  return /^\*\*Status depende de:\*\*\s*(\S.*?)\s*$/m.exec(contenido)?.[1];
+}
+
+/**
+ * El `Status` del ticket, leído de su **cabecera** (antes del primer `##`): un
+ * ticket que cita otro en su cuerpo no puede pasar por estar en ese estado.
+ */
+function estadoDe(contenido: string): string | undefined {
+  const cabecera = contenido.split(/^## /m)[0] ?? "";
+  return /\*\*Status:\*\*\s*(\S+)/.exec(cabecera)?.[1];
 }
 
 /**
@@ -59,14 +68,14 @@ export function motivoDeclarado(contenido: string): string | undefined {
  *
  * Un ticket sin casillas no se juzga: no hay nada con lo que contrastarlo.
  */
-export function ticketsDoneConCasillasAbiertas(tickets: Ticket[]): string[] {
+export function problemasDelTracker(tickets: Ticket[]): string[] {
   const hallazgos: string[] = [];
   for (const ticket of tickets) {
-    const status = /\*\*Status:\*\*\s*(\S+)/.exec(ticket.contenido)?.[1];
-    if (status === undefined) continue;
+    const estado = estadoDe(ticket.contenido);
+    if (estado === undefined) continue;
     const { abiertas, hechas } = casillas(ticket.contenido);
 
-    if (status === "done") {
+    if (estado === "done") {
       if (abiertas > 0) {
         hallazgos.push(
           `${ticket.path}: Status "done" con ${abiertas} casilla/s sin marcar. ` +
@@ -79,7 +88,7 @@ export function ticketsDoneConCasillasAbiertas(tickets: Ticket[]): string[] {
 
     if (abiertas === 0 && hechas > 0 && motivoDeclarado(ticket.contenido) === undefined) {
       hallazgos.push(
-        `${ticket.path}: Status "${status}" con sus ${hechas} casilla/s ya hechas: ` +
+        `${ticket.path}: Status "${estado}" con sus ${hechas} casilla/s ya hechas: ` +
           "el ticket está construido y el estado dice que no. Es `done`, o " +
           "declara por qué espera con `**Status depende de:**` (ver " +
           "docs/agents/issue-tracker.md).",

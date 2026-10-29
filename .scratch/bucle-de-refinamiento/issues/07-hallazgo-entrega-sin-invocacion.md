@@ -78,22 +78,32 @@ no la prosa, y el más grave estaba vivo en el árbol.
   Se actualizaron `docs/agents/issue-tracker.md` y `CODING_STANDARDS.md`, que
   prometían «siempre falla».
 - **`PENDIENTES_DE_ANCLAR` toleraba por ruta.** Progreso 11 de 12 en un Caso
-  pendiente y la lista callaba igual. `deudaDeAnclaje` mide ahora por Check y
+  pendiente y la lista callaba igual. `deudaDeAnclaje` **mide** por Check y
   `verificar-casos` imprime, por Caso, cuántos faltan y **cuáles**: la deuda se ve
-  disminuir sin abrir el Caso a mano, que es lo que el 12 necesita.
-- **«Ejecuciones» decía una cosa y la política otra.** `N_POR_DEFECTO` está
-  comentado como «3 Ejecuciones» mientras el ADR-0014 dice que la N es de
-  **entregas**. No se construye el 03 aquí: se nombra la diferencia en el código,
-  el glosario (`Presupuesto de intentos`, `Ejecución`) y `CODING_STANDARDS.md`,
+  disminuir sin abrir el Caso a mano, que es lo que el 12 necesita. Sigue **sin
+  ser un rojo**: el 06 decidió tolerar la deuda mientras el Caso esté en la lista,
+  y esta función no cambia esa decisión, sólo la hace legible. Lo que sí garantiza
+  es que la tolerancia y la medida no discrepen: las dos salen de `checksSinAncla`.
+- **«Ejecuciones» decía una cosa y la política otra.** `N_POR_DEFECTO` decía «3
+  Ejecuciones» mientras el ADR-0014 dice que la N es de **entregas**. No se
+  construye el 03 aquí: se nombra la diferencia en el código, el glosario
+  (`Presupuesto de intentos`, `Ejecución`) y `CODING_STANDARDS.md`, y se reconcilia
+  en `spec.md` («Cómo se leen las dos N mientras el ticket 03 no esté construido»),
   para que quien lo construya no tropiece con el mismo error que el test del 07.
 - **Una Evidencia que no está donde se reporta.** `npm run report --reports
-  <copia>` remitía a rutas que sólo existen donde se corrió; ahora se descarta la
-  ruta fantasma y el hallazgo sale sin ella.
+  <copia>` remitía a rutas que sólo existen donde se corrió; el adaptador descarta
+  la ruta fantasma —sin mutar la Ejecución leída— y el hallazgo sale sin ella.
 - **Un INDETERMINADO se leía como verde.** En CI sale con exit 0 y sólo la consola
-  lo decía; la cabecera del `scorecard.md` lo dice ahora también.
+  lo decía; la cabecera del `scorecard.md` lo dice ahora también, con la
+  definición del glosario (sin dato para juzgar: ninguna alcanzó el skill **con** un
+  Artefacto que graduar).
 - **El hook del pre-commit**, una línea en `AGENTS.md`: llama al gate entero, así
   que un paso se añade en `package.json`.
 
-Tests nuevos: 4 de `deudaDeAnclaje`, 3 del tracker en las dos direcciones, 2 de la
-cabecera del scorecard y 1 de proceso real (`report --reports` sobre una Evidencia
-fuera del árbol). Comprobado en rojo contra `a32f3ed`: los 7 caen sin `src/`.
+Tests nuevos: 11 — 4 de `deudaDeAnclaje` y su control de la tolerancia por ruta,
+4 del tracker (la dirección nueva, su control positivo, `done` + declaración, y el
+`Status` leído sólo de la cabecera), 2 de la cabecera del scorecard y 2 de proceso
+real (`report --reports`: una Evidencia fuera del árbol y otra dentro). Comprobado
+en rojo contra `a32f3ed`: sin `src/` fallan los 10 tests del tracker (el import
+mismo del módulo) y **8 más** de comportamiento; los de `deudaDeAnclaje` no
+compilan sin la función nueva, y son el 11 y 12 del cambio.

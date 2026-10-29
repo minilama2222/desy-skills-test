@@ -365,8 +365,9 @@ export function renderScorecard(reporte: Scorecard): string {
   if (indeterminados.length > 0) {
     lineas.push(
       "",
-      `**INDETERMINADO:** ${indeterminados.length} Caso/s no midieron el skill ` +
-        `(${indeterminados.map((c) => `\`${c.caso}\``).join(", ")}): no bloquean, pero ` +
+      `**INDETERMINADO:** ${indeterminados.length} Caso/s sin dato para juzgar el skill ` +
+        `(${indeterminados.map((c) => `\`${c.caso}\``).join(", ")}): ninguna de sus ` +
+        "Ejecuciones alcanzó el skill con un Artefacto que graduar. No bloquean, pero " +
         "tampoco aprueban.",
     );
   }
