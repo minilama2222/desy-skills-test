@@ -36,7 +36,7 @@ import {
   seleccionarCasos,
   type Seleccion,
 } from "./suite.js";
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync, readdirSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 function usage(): never {
   console.error(
@@ -252,18 +252,33 @@ async function correrCaso(
   pin: ReturnType<typeof readPin>,
   n: number,
   anunciar?: (ejecucion: number) => void,
+  alGuardar?: (resultado: ResultadoEjecucion) => void,
 ): Promise<ResultadoEjecucion[]> {
   const resultados: ResultadoEjecucion[] = [];
   for (let i = 1; i <= n; i++) {
     anunciar?.(i);
-    resultados.push(
-      await ejecutarCaso(caso, pin, {
-        sandbox: { create: sandboxDelCaso },
-        command: realCommand,
-      }),
-    );
+    const resultado = await ejecutarCaso(caso, pin, {
+      sandbox: { create: sandboxDelCaso },
+      command: realCommand,
+    });
+    resultados.push(resultado);
+    alGuardar?.(resultado);
   }
   return resultados;
+}
+
+/**
+ * Persiste una Ejecución y **deja dicha en ella su ruta** (ticket 07): el
+ * scorecard puede así remitir a la Evidencia de un hallazgo de trigger, en vez de
+ * nombrar el hallazgo sin decir dónde se lee. Se escribe una segunda vez con la
+ * ruta ya puesta —la ruta es la del fichero que acaba de crearse—, porque la
+ * Ejecución tiene que llevar en sí misma lo que el scorecard va a citar.
+ */
+function guardarConSuEvidencia(dir: string, resultado: ResultadoEjecucion): string {
+  const path = guardarEjecucion(dir, resultado);
+  resultado.evidencia = rutaRelativa(path);
+  writeFileSync(path, JSON.stringify(resultado, null, 2) + "\n", "utf8");
+  return path;
 }
 
 async function runCasos(args: string[]): Promise<number> {
@@ -277,11 +292,10 @@ async function runCasos(args: string[]): Promise<number> {
     for (const h of hallazgos) console.error(h);
     return 1;
   }
-  const resultados = await correrCaso(caso, pin, leerN(args, 1));
-  for (const resultado of resultados) {
-    const guardado = guardarEjecucion(rutasDeReporte(REPORTS_DIR).ejecuciones, resultado);
+  const resultados = await correrCaso(caso, pin, leerN(args, 1), undefined, (resultado) => {
+    const guardado = guardarConSuEvidencia(rutasDeReporte(REPORTS_DIR).ejecuciones, resultado);
     console.error(`Ejecución guardada: ${rutaRelativa(guardado)}`);
-  }
+  });
   console.log(JSON.stringify(resultados.length === 1 ? resultados[0] : resultados, null, 2));
   return 0;
 }
@@ -320,13 +334,19 @@ async function runSuite(args: string[]): Promise<number> {
 
   const ejecuciones: ResultadoEjecucion[] = [];
   for (const caso of casos) {
-    const resultados = await correrCaso(caso, pin, seleccion.n, (i) =>
-      console.error(`[${caso.skill}/${caso.id}] Ejecución ${i}/${seleccion.n}…`),
+    // Se guarda al terminar cada Ejecución, no al acabar el Caso: una suite
+    // interrumpida a mitad conserva la Evidencia de las que sí terminaron, y el
+    // hallazgo de trigger que se hubiera detectado no se pierde (ticket 07).
+    await correrCaso(
+      caso,
+      pin,
+      seleccion.n,
+      (i) => console.error(`[${caso.skill}/${caso.id}] Ejecución ${i}/${seleccion.n}…`),
+      (resultado) => {
+        guardarConSuEvidencia(rutas.ejecuciones, resultado);
+        ejecuciones.push(resultado);
+      },
     );
-    for (const resultado of resultados) {
-      guardarEjecucion(rutas.ejecuciones, resultado);
-      ejecuciones.push(resultado);
-    }
   }
 
   const scorecard = agregarScorecard(ejecuciones, pin, hashComun(ejecuciones));

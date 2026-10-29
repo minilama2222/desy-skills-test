@@ -270,6 +270,66 @@ describe("renderInformeCaso: presenta, no adivina", () => {
   });
 });
 
+describe("hallazgo de trigger en el informe del Caso (ticket 07)", () => {
+  /**
+   * La corrida real del 27/10 tras el arreglo
+   * (`HALLAZGO-tokens-fichero-de-ejemplo.md:140-153`): la #3 editó
+   * `pagina-prueba-EDITA-PARA-EMPEZAR.html` **sin invocar** `implement-component`
+   * —el Flujo se paró en `preflight-check`— y el grader la dio EXCELENTE. Es la
+   * única entrega buena de la corrida y el scorecard la descartaba en silencio.
+   */
+  const corridaDel2710 = (): ResultadoEjecucion[] => [
+    ejecucionReal(ARTEFACTO_SIN_VARIANTE, { entrega: "sin-artefacto", artefactos: {}, grade: "INACEPTABLE" }),
+    ejecucionReal(ARTEFACTO_SIN_VARIANTE, { entrega: "sin-artefacto", artefactos: {}, grade: "INACEPTABLE" }),
+    ejecucionReal(ARTEFACTO_BUENO, {
+      flujoObservado: ["preflight-check"],
+      flujoAlcanzoSkill: false,
+      ultimoPasoDelFlujo: "preflight-check",
+      evidencia: "reports/suite/ejecuciones/implement-component/boton-primario/3.json",
+    }),
+  ];
+
+  it("lo destaca en lo alto del informe, antes de la tabla de Ejecuciones", () => {
+    const texto = renderInformeCaso(corridaDel2710(), contextoReal());
+
+    const hallazgo = texto.indexOf("Hallazgo de trigger");
+    expect(hallazgo).toBeGreaterThan(-1);
+    // Lo alto: justo tras el H1 del informe, antes del prompt y de la tabla.
+    expect(hallazgo).toBeLessThan(texto.indexOf("**Prompt:**"));
+    expect(hallazgo).toBeLessThan(texto.indexOf("| Ejecución |"));
+  });
+
+  it("nombra la Ejecución, su artefacto, su Flujo y su Evidencia", () => {
+    const texto = renderInformeCaso(corridaDel2710(), contextoReal());
+
+    expect(texto).toContain(
+      "**Ejecución 3** — `EXCELENTE`, Flujo `preflight-check`, entregó `src/boton-enviar.njk` — " +
+        "Evidencia: `reports/suite/ejecuciones/implement-component/boton-primario/3.json`",
+    );
+    // Y no la marca como fallo de Check: entregó bien y no hubo nada que reparar.
+    expect(texto).not.toMatch(/culpa/i);
+  });
+
+  it("sin hallazgo, el informe no abre con el bloque de trigger", () => {
+    // Control: la misma corrida sin la Ejecución que no invocó el skill.
+    const texto = renderInformeCaso(corridaDel2710().slice(0, 2), contextoReal());
+
+    expect(texto).not.toContain("Hallazgo de trigger");
+    expect(texto.indexOf("**Prompt:**")).toBeLessThan(texto.indexOf("| Ejecución |"));
+  });
+
+  it("cita el hallazgo también cuando la Evidencia no está en disco", () => {
+    const sinRuta = corridaDel2710().map((e) => {
+      const { evidencia: _ruta, ...resto } = e;
+      return resto as ResultadoEjecucion;
+    });
+
+    const texto = renderInformeCaso(sinRuta, contextoReal());
+    expect(texto).toContain("**Ejecución 3**");
+    expect(texto).not.toContain("Evidencia: `");
+  });
+});
+
 describe("esHallazgoDeTrigger / lineasQueMencionan", () => {
   it("una entrega EXCELENTE sin invocar el skill se destaca", () => {
     const ejecucion = ejecucionReal(ARTEFACTO_BUENO, {

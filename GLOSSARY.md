@@ -96,6 +96,15 @@ _Avoid_: leer `sin-artefacto` como un Grade; contar las Ejecuciones `sin-artefac
 Si el Flujo observado contiene el paso del skill bajo test: es el punto hasta donde llegó el SUT. **Ortogonal** a la Entrega — se puede llegar al skill y no entregar, o no llegar siquiera. Cuando es falso, un INACEPTABLE **no evalúa el skill**: el agente ni lo invocó, así que esa Ejecución no cuenta para medir el skill (sí para medir el agente). Ver el ticket 15.
 _Avoid_: confundirlo con «entregó mal»; meterlo dentro de la Entrega (son ejes distintos).
 
+**Hallazgo de trigger**:
+Una Ejecución que **entregó** un Artefacto **EXCELENTE sin invocar el Skill** bajo
+test. El veredicto la descarta como dato (ADR-0007: no midió el Skill), y eso es
+correcto, pero el hecho sí dice algo del Skill: su `description`/frontmatter no
+lo disparó. Por eso no se tira: el informe por Caso y la cabecera del Scorecard lo
+destacan, con la ruta de su Evidencia si la hay. Lo calcula `esHallazgoDeTrigger`
+(`src/scorecard.ts`), junto al veredicto que descarta la Ejecución.
+_Avoid_: contarlo como PASA; leerlo como un fallo del SUT o del Check.
+
 **Caso indeterminado**:
 El veredicto agregado de un Caso cuando **ninguna** de sus N Ejecuciones alcanzó el skill bajo test. No es suspenso: no hay dato para juzgar el skill (el agente no arrancó ninguna vez). Es un tercer estado además de aprobado/suspendido, y el scorecard debe representarlo. Ver ADR-0007.
 _Avoid_: contarlo como suspenso del skill.

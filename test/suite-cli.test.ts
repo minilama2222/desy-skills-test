@@ -86,8 +86,12 @@ const entrega = entregas[indice] ?? "bueno";
 writeFileSync(join(casa, "visto-" + indice + ".txt"), entrega);
 
 // El Flujo observado: preflight primero (Flujo canónico) y el skill del Caso.
+// \`sin-skill\` es la Ejecución del 27/10: escribe el fichero sin invocar el skill
+// (ticket 07), así que sólo se ve el Arranque.
 process.stderr.write('\\u2192 Skill "desy-preflight-check"\\n');
-process.stderr.write('\\u2192 Skill "desy-implement-component"\\n');
+if (entrega !== "sin-skill") {
+  process.stderr.write('\\u2192 Skill "desy-implement-component"\\n');
+}
 
 // Lo que el SUT "ve" de skills en su HOME, para el test de --skills-local: lee el
 // SKILL.md que el runner copió al sandbox y lo escribe por stdout, que es el canal
@@ -106,7 +110,8 @@ process.stdout.write("skills-vistos=" + vistoSkills + "\\n");
 
 if (entrega !== "nada") {
   mkdirSync("src", { recursive: true });
-  writeFileSync(join("src", artefacto), contenido[entrega] ?? "");
+  const cual = entrega === "sin-skill" ? "bueno" : entrega;
+  writeFileSync(join("src", artefacto), contenido[cual] ?? "");
 }
 `;
 
@@ -139,6 +144,8 @@ interface Corrida {
   vistas: string[];
   scorecard?: Scorecard;
   markdown?: string;
+  /** El informe por Caso, tal como quedó en disco. */
+  informe?: string;
   /** El árbol temporal de la corrida, para leer sus Ejecuciones antes de borrarlo. */
   ejecuciones: ResultadoEjecucion[];
 }
@@ -181,6 +188,7 @@ async function correrSuite(args: string[], entregas: string[] = ["bueno"]): Prom
 
     const json = join(reports, "scorecard.json");
     const md = join(reports, "scorecard.md");
+    const informe = join(reports, "informe", "implement-component", "boton-primario.md");
     const vistas = entregas.map((_, i) => {
       const marca = join(dir, `visto-${i}.txt`);
       return existsSync(marca) ? readFileSync(marca, "utf8").trim() : "(no corrió)";
@@ -197,6 +205,7 @@ async function correrSuite(args: string[], entregas: string[] = ["bueno"]): Prom
       ejecuciones,
       ...(existsSync(json) ? { scorecard: JSON.parse(readFileSync(json, "utf8")) as Scorecard } : {}),
       ...(existsSync(md) ? { markdown: readFileSync(md, "utf8") } : {}),
+      ...(existsSync(informe) ? { informe: readFileSync(informe, "utf8") } : {}),
     };
   } finally {
     rmSync(dir, { recursive: true, force: true });
@@ -313,6 +322,47 @@ describe("suite (comando de CI, ticket 13)", () => {
       expect(corrida.scorecard).toBeUndefined();
     },
     60_000,
+  );
+
+  it(
+    "destaca la entrega EXCELENTE sin invocar el skill, en el scorecard y en el informe (ticket 07)",
+    async () => {
+      // La corrida del 27/10: una Ejecución llega al skill y entrega mal, otra
+      // entrega bien **sin invocar `implement-component`**. Recorrido completo
+      // —sandbox, copia de skills, SUT falso, grader, persistencia— para fijar lo
+      // que el CLI deja en disco: el hallazgo en lo alto del scorecard y del
+      // informe, la Ejecución con su ruta de Evidencia, y el veredicto intacto.
+      const corrida = await correrSuite([...BOTON, "--n", "2"], ["malo", "sin-skill"]);
+
+      expect(corrida.vistas).toEqual(["malo", "sin-skill"]);
+      expectDentroDelPresupuesto(corrida, 2);
+
+      // El veredicto sigue descartándola como dato: entrega mala y nada más.
+      const caso = corrida.scorecard?.skills[0]?.casos[0];
+      expect(caso?.veredicto).toBe("SUSPENDE");
+      expect(caso?.correctas).toBe(0);
+      expect(caso?.alcanzaronSkill).toBe(1);
+      // Pero la evidencia no se pierde.
+      expect(caso?.hallazgosDeTrigger).toBe(1);
+      expect(caso?.triggerConEvidencia).toBe(1);
+
+      // Y la Ejecución dice de sí misma dónde se lee: la ruta se escribió en el
+      // JSON al persistirla, no se reconstruyó al agregar.
+      const tercera = corrida.ejecuciones[1]!;
+      expect(tercera.evidencia).toMatch(
+        /ejecuciones[\\/]implement-component[\\/]boton-primario[\\/]2\.json$/,
+      );
+
+      // En lo alto de los dos documentos, antes de ninguna tabla.
+      const hallazgoMd = corrida.markdown!.indexOf("Hallazgo de trigger");
+      const hallazgoInforme = corrida.informe!.indexOf("Hallazgo de trigger");
+      expect(hallazgoMd).toBeGreaterThan(-1);
+      expect(hallazgoMd).toBeLessThan(corrida.markdown!.indexOf("| Caso |"));
+      expect(hallazgoInforme).toBeGreaterThan(-1);
+      expect(hallazgoInforme).toBeLessThan(corrida.informe!.indexOf("| Ejecución |"));
+      expect(corrida.informe).toContain(tercera.evidencia!.split("\\").join("/"));
+    },
+    180_000,
   );
 });
 

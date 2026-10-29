@@ -49,6 +49,19 @@ export interface CasoScorecard {
    */
   guards: { ok: number; total: number };
   gradeCalidad: Grade;
+  /**
+   * Hallazgos de **trigger** del Caso (ticket 07): Ejecuciones que entregaron un
+   * Artefacto EXCELENTE **sin invocar el skill**. Se cuenta aparte del veredicto
+   * —no lo convierte en PASA—, pero se destaca en la cabecera: es un hecho sobre
+   * la `description`/frontmatter del skill, no ruido, y el scorecard lo tiraba.
+   */
+  hallazgosDeTrigger: number;
+  /**
+   * De esas, las que traen un JSON de Evidencia en disco (`reports/.../*.json`) al
+   * que apuntar. Es la parte que se pierde si sólo se lee el scorecard agregado:
+   * el hallazgo remite a la Evidencia, no la reemplaza.
+   */
+  triggerConEvidencia: number;
 }
 
 export interface SkillScorecard {
@@ -108,6 +121,23 @@ function conDatoDe(ejecuciones: ResultadoEjecucion[]): ResultadoEjecucion[] {
  */
 function entregadasDe(ejecuciones: ResultadoEjecucion[]): ResultadoEjecucion[] {
   return ejecuciones.filter((e) => e.entrega === "con-artefacto");
+}
+
+/**
+ * El hallazgo de trigger (ticket 07): una Ejecución que **entregó** un Artefacto
+ * **EXCELENTE sin invocar el skill**. El ADR-0007 la deja fuera del denominador
+ * —no midió el skill— pero lo que enseña no es del agente: es que el skill no se
+ * disparó y aun así hubo entrega buena. Por eso no se descarta: se cuenta.
+ *
+ * Vive aquí, junto al veredicto que la descarta, para que descarte y hallazgo no
+ * puedan divergir; el informe por Caso (`src/informe.ts`) lo re-exporta.
+ */
+export function esHallazgoDeTrigger(ejecucion: ResultadoEjecucion): boolean {
+  return (
+    ejecucion.entrega === "con-artefacto" &&
+    ejecucion.grade === GRADE_CORRECTO &&
+    !ejecucion.flujoAlcanzoSkill
+  );
 }
 
 function veredictoDe(ejecuciones: ResultadoEjecucion[]): VeredictoCaso {
@@ -193,6 +223,9 @@ function agregarCaso(
   const conArtefacto = conDato.filter((e) => e.entrega === "con-artefacto");
   const correctas = conDato.filter(esCorrecta);
   const mejor = mejorEjecucion(ejecuciones);
+  // Los hallazgos de trigger NO están en `conDato`: el veredicto los descarta a
+  // propósito. Se cuentan de las Ejecuciones completas del Caso (ticket 07).
+  const triggers = ejecuciones.filter(esHallazgoDeTrigger);
   return {
     caso,
     tipo: ejecuciones[0]!.tipo,
@@ -205,6 +238,8 @@ function agregarCaso(
     fallos: fallosDe(conDato),
     guards: mejor ? guardsDe(mejor) : { ok: 0, total: 0 },
     gradeCalidad: mejor?.grade ?? "INACEPTABLE",
+    hallazgosDeTrigger: triggers.length,
+    triggerConEvidencia: triggers.filter((e) => e.evidencia !== undefined).length,
   };
 }
 
@@ -283,6 +318,42 @@ export function renderScorecard(reporte: Scorecard): string {
   if (reporte.skills.length === 0) {
     lineas.push("", "Sin Ejecuciones.");
     return lineas.join("\n");
+  }
+
+  // Lo alto del Scorecard es el hallazgo, no el Pin: una entrega EXCELENTE sin
+  // invocar el skill es información sobre el trigger, y quien sólo lea la
+  // cabecera tiene que verla antes que ninguna tabla (ticket 07).
+  const hallazgos = reporte.skills.flatMap((skill) =>
+    skill.casos.flatMap((caso) =>
+      caso.hallazgosDeTrigger === 0
+        ? []
+        : [{ skill: skill.skill, caso: caso.caso, casoScorecard: caso }],
+    ),
+  );
+  if (hallazgos.length > 0) {
+    lineas.push(
+      "",
+      "## ⚠ Hallazgo de trigger: entrega correcta sin invocar el skill",
+      "",
+      "Hay Ejecuciones que entregaron un Artefacto EXCELENTE **sin invocar el skill**.",
+      "No son dato del veredicto (ADR-0007: no midieron el skill, así que no lo",
+      "aprueban), pero sí son prueba de que la `description`/frontmatter no lo disparó:",
+      "eso se arregla en el skill, no en el check.",
+      "",
+    );
+    for (const hallazgo of hallazgos) {
+      const caso = hallazgo.casoScorecard;
+      const evidencia =
+        caso.triggerConEvidencia === caso.hallazgosDeTrigger
+          ? "con Evidencia en disco"
+          : caso.triggerConEvidencia === 0
+            ? "sin Evidencia en disco"
+            : `${caso.triggerConEvidencia} con Evidencia en disco`;
+      lineas.push(
+        `- \`${hallazgo.skill}/${hallazgo.caso}\` — ${caso.hallazgosDeTrigger} ` +
+          `Ejecución/es (${evidencia}); veredicto del Caso: **${caso.veredicto}**`,
+      );
+    }
   }
 
   for (const skill of reporte.skills) {

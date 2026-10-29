@@ -1,6 +1,7 @@
 import type { AnclaDeSkill } from "./caso.js";
 import type { ResultadoEjecucion } from "./ejecutar.js";
 import type { DetalleCheck } from "./grader.js";
+import { esHallazgoDeTrigger } from "./scorecard.js";
 import { trazaDeAssert, type TrazaCheck } from "./traza.js";
 
 /**
@@ -16,7 +17,8 @@ import { trazaDeAssert, type TrazaCheck } from "./traza.js";
  *
  * La única excepción que sí se destaca es el **hallazgo de trigger** (entrega
  * correcta sin invocar el skill): es un hecho del Flujo, no una atribución de
- * culpa, y sin destacarlo la evidencia se pierde.
+ * culpa, y sin destacarlo la evidencia se pierde. Sale en lo alto del informe del
+ * Caso y en la cabecera del Scorecard (ticket 07).
  */
 
 /** Un ancla como la lee el informe: el skill y su sección, resueltos o no. */
@@ -93,14 +95,12 @@ function artefactosEntregados(ejecucion: ResultadoEjecucion): string[] {
  * El hallazgo de trigger: una Ejecución entregó un Artefacto **EXCELENTE sin
  * invocar el skill bajo test**. Es de la clase «información sobre el skill (su
  * `description`/frontmatter) que el veredicto tira», y sin destacarlo se pierde.
+ *
+ * La regla no vive aquí: vive en `src/scorecard.ts`, junto al veredicto que
+ * descarta la Ejecución (ticket 07), para que descarte y hallazgo no puedan
+ * divergir. Se re-exporta porque el informe es su consumidor natural.
  */
-export function esHallazgoDeTrigger(ejecucion: ResultadoEjecucion): boolean {
-  return (
-    ejecucion.entrega === "con-artefacto" &&
-    ejecucion.grade === "EXCELENTE" &&
-    !ejecucion.flujoAlcanzoSkill
-  );
-}
+export { esHallazgoDeTrigger };
 
 /**
  * Las primeras líneas de la salida del SUT en las que aparece `aguja`, con su
@@ -429,6 +429,35 @@ export function renderInformeCaso(
   const skill = primera?.skill ?? "(skill desconocido)";
   const caso = primera?.caso ?? contexto.caso;
   lineas.push(`# Informe — ${skill}/${caso}`, "");
+
+  // El hallazgo de trigger va **lo alto del informe**, antes que nada: es la
+  // única cosa que el veredicto descarta a propósito y la que el mantenedor no
+  // puede perder (ticket 07). Se nombra la Ejecución y su Evidencia, para que la
+  // afirmación se pueda comprobar sin creerla.
+  const triggers = ejecuciones
+    .map((e, i) => ({ ejecucion: e, numero: i + 1 }))
+    .filter(({ ejecucion }) => esHallazgoDeTrigger(ejecucion));
+  if (triggers.length > 0) {
+    lineas.push(
+      "> **Hallazgo de trigger:** hay Ejecuciones que entregaron un Artefacto EXCELENTE" +
+        " **sin invocar el skill**.",
+      "> No cuentan para el veredicto del Caso (ADR-0007: no midieron el skill), y eso es" +
+        " la política correcta,",
+      "> pero sí dicen algo del skill: su `description`/frontmatter no lo disparó. Se" +
+        " arregla en el frontmatter, no en los Checks.",
+      "",
+    );
+    for (const { ejecucion, numero } of triggers) {
+      const artefactos = artefactosEntregados(ejecucion);
+      lineas.push(
+        `- **Ejecución ${numero}** — \`${ejecucion.grade}\`, Flujo \`` +
+          `${ejecucion.flujoObservado.join(" → ") || "—"}\`, entregó ` +
+          `${artefactos.length === 0 ? "un Artefacto" : artefactos.map((f) => `\`${f}\``).join(", ")}` +
+          `${ejecucion.evidencia === undefined ? "" : ` — Evidencia: \`${ejecucion.evidencia}\``}`,
+      );
+    }
+    lineas.push("");
+  }
 
   // La cabecera resume lo que una ojeada necesita: qué se pidió y cómo acabó cada
   // Ejecución. Es el «lado a lado» a nivel de Caso; el detalle va por Ejecución.

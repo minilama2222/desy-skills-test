@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { ResultadoEjecucion } from "../src/ejecutar.js";
 import type { Pin } from "../src/pin.js";
-import { agregarScorecard, renderScorecard } from "../src/scorecard.js";
+import { agregarScorecard, esHallazgoDeTrigger, renderScorecard } from "../src/scorecard.js";
 
 const pin: Pin = {
   ref: "main",
@@ -279,6 +279,134 @@ describe("agregarScorecard: guards OK y Grade de calidad por Caso", () => {
     const caso = reporte.skills[0]!.casos[0]!;
     expect(caso.guards).toEqual({ ok: 0, total: 0 });
     expect(caso.gradeCalidad).toBe("INACEPTABLE");
+  });
+});
+
+describe("hallazgo de trigger: la entrega correcta sin invocar el skill (ticket 07)", () => {
+  /**
+   * La corrida real del 27/10 (`HALLAZGO-tokens-fichero-de-ejemplo.md:140-153`):
+   * dos Ejecuciones llegaron al skill y no entregaron, y la tercera entregó un
+   * Artefacto EXCELENTE **sin invocar `implement-component`** (`flujo` sólo
+   * `preflight-check`). El veredicto SUSPENDE es el correcto; lo que se perdió es
+   * la única entrega buena de la corrida.
+   */
+  const entregaSinSkill = () =>
+    ejecucion({
+      flujoObservado: ["preflight-check"],
+      flujoAlcanzoSkill: false,
+      grade: "EXCELENTE",
+    });
+
+  it("reconoce el hallazgo con la condición exacta (entrega + EXCELENTE + sin invocar)", () => {
+    expect(esHallazgoDeTrigger(entregaSinSkill())).toBe(true);
+    // Cada uno de los tres términos por separado lo apaga: sin la conjunción, el
+    // hallazgo se dispararía con una Ejecución que sí midió el skill o que no
+    // entregó nada.
+    expect(esHallazgoDeTrigger(ejecucion({ flujoAlcanzoSkill: true }))).toBe(false);
+    expect(
+      esHallazgoDeTrigger({ ...entregaSinSkill(), entrega: "sin-artefacto" }),
+    ).toBe(false);
+    expect(
+      esHallazgoDeTrigger({ ...entregaSinSkill(), grade: "BUENO" }),
+    ).toBe(false);
+  });
+
+  it("el veredicto sigue descartando la Ejecución como dato: no se convierte en PASA", () => {
+    const reporte = agregarScorecard([entregaSinSkill()], pin);
+
+    const caso = reporte.skills[0]!.casos[0]!;
+    expect(caso.veredicto).toBe("INDETERMINADO");
+    expect(caso.correctas).toBe(0);
+    expect(caso.alcanzaronSkill).toBe(0);
+  });
+
+  it("la evidencia no se pierde: el Caso cuenta el hallazgo aunque el veredicto lo descarte", () => {
+    const reporte = agregarScorecard([entregaSinSkill()], pin);
+
+    const caso = reporte.skills[0]!.casos[0]!;
+    expect(caso.hallazgosDeTrigger).toBe(1);
+  });
+
+  it("cuenta los hallazgos por Caso, y no los de un Caso en otro", () => {
+    const reporte = agregarScorecard(
+      [
+        ejecucion({ caso: "a", grade: "INACEPTABLE" }),
+        ejecucion({ caso: "a", entrega: "sin-artefacto" }),
+        { ...entregaSinSkill(), caso: "b" },
+      ],
+      pin,
+    );
+
+    expect(reporte.skills[0]!.casos.map((c) => [c.caso, c.hallazgosDeTrigger])).toEqual([
+      ["a", 0],
+      ["b", 1],
+    ]);
+  });
+
+  it("dice cuántos hallazgos traen su Evidencia en disco, para poder remitir a ella", () => {
+    const reporte = agregarScorecard(
+      [
+        { ...entregaSinSkill(), evidencia: "reports/suite/ejecuciones/implement-component/boton-primario/3.json" },
+        entregaSinSkill(),
+      ],
+      pin,
+    );
+
+    const caso = reporte.skills[0]!.casos[0]!;
+    expect(caso.hallazgosDeTrigger).toBe(2);
+    expect(caso.triggerConEvidencia).toBe(1);
+  });
+
+  it("una corrida sin hallazgos deja el Caso a cero, no con el campo ausente", () => {
+    const caso = agregarScorecard([ejecucion()], pin).skills[0]!.casos[0]!;
+
+    expect(caso.hallazgosDeTrigger).toBe(0);
+    expect(caso.triggerConEvidencia).toBe(0);
+  });
+
+  it("se destaca en la cabecera del Scorecard, antes de cualquier tabla", () => {
+    const texto = renderScorecard(
+      agregarScorecard(
+        [
+          ejecucion({ grade: "INACEPTABLE" }),
+          ejecucion({ grade: "INACEPTABLE" }),
+          entregaSinSkill(),
+        ],
+        pin,
+      ),
+    );
+
+    const hallazgo = texto.indexOf("Hallazgo de trigger");
+    expect(hallazgo).toBeGreaterThan(-1);
+    // En la cabecera: antes del H1 del primer Skill y de su tabla.
+    expect(hallazgo).toBeLessThan(texto.indexOf("## implement-component"));
+    expect(hallazgo).toBeLessThan(texto.indexOf("| Caso |"));
+    // Nombra el Caso, cuántos son, y remite al veredicto que los descarta.
+    expect(texto).toContain("`implement-component/boton-primario` — 1 Ejecución");
+    expect(texto).toContain("INDETERMINADO");
+    // Y no los convierte en un aprobado.
+    expect(texto).not.toContain("| boton-primario | PASA");
+  });
+
+  it("con hallazgos de varios Casos, los enumera todos", () => {
+    const texto = renderScorecard(
+      agregarScorecard(
+        [
+          { ...entregaSinSkill(), caso: "a" },
+          { ...entregaSinSkill(), caso: "b", evidencia: "reports/ejecuciones/a/b/1.json" },
+        ],
+        pin,
+      ),
+    );
+
+    expect(texto).toContain("`implement-component/a` — 1 Ejecución/es (sin Evidencia en disco)");
+    expect(texto).toContain("`implement-component/b` — 1 Ejecución/es (con Evidencia en disco)");
+  });
+
+  it("sin hallazgos, el Scorecard no lleva la cabecera del hallazgo", () => {
+    const texto = renderScorecard(agregarScorecard([ejecucion({ grade: "INACEPTABLE" })], pin));
+
+    expect(texto).not.toContain("Hallazgo de trigger");
   });
 });
 

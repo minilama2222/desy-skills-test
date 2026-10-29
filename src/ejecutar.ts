@@ -41,6 +41,14 @@ export interface ResultadoEjecucion {
   arbolHash: string;
   /** Lo que el SUT escribió por cada canal, sin fusionar (ver `Evidencia.salida`). */
   salida: { stdout: string; stderr: string };
+  /**
+   * La ruta del JSON de Evidencia con el que esta Ejecución se guardó, relativa al
+   * repo (ticket 07). La pone el adaptador que la escribe (`cli.ts`), no el
+   * grader: sólo existe cuando la Ejecución está en disco, y es lo que deja al
+   * scorecard **remitir** a la evidencia de un hallazgo de trigger en vez de
+   * perderla al agregar.
+   */
+  evidencia?: string;
 }
 
 /**
