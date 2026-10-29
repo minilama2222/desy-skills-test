@@ -4,8 +4,9 @@ import { CASOS_DIR, cargarCaso, cargarCasos } from "./caso-loader.js";
 import type { Assert, Check, TipoCaso } from "./caso.js";
 import { ejecutarCaso, type ResultadoEjecucion } from "./ejecutar.js";
 import { grado } from "./grader.js";
-import { problemasDeVendorSucio } from "./guardarrail-pin.js";
-import { readPin } from "./pin.js";
+import { problemasDeArbolLocalSucio, problemasDeVendorSucio } from "./guardarrail-pin.js";
+import type { Pin } from "./pin.js";
+import { LOCAL, pinLocal, readPin, rutaEnElRepo } from "./pin.js";
 import {
   escribirScorecard,
   guardarEjecucion,
@@ -15,8 +16,9 @@ import {
   rutaRelativa,
   vaciarEjecuciones,
 } from "./reportes.js";
-import { createSandbox, realCommand, SCAFFOLD_CACHE_DIR, VENDOR_SKILLS_DIR } from "./runner.js";
-import { HASH_DESCONOCIDO, agregarScorecard, renderScorecard } from "./scorecard.js";
+import { REPO_ROOT } from "./repo.js";
+import { createSandbox, realCommand, SCAFFOLD_CACHE_DIR, skillsDirDeConfig } from "./runner.js";
+import { agregarScorecard, etiquetaDelPin, renderScorecard } from "./scorecard.js";
 import {
   exitCodeDe,
   N_POR_DEFECTO,
@@ -32,10 +34,12 @@ function usage(): never {
       "Uso: cli <comando> [args]",
       "",
       "Comandos:",
-      "  suite [--skill <skill>] [--case <caso>] [--n <N>] [--reports <dir>]",
+      "  suite [--skill <skill>] [--case <caso>] [--n <N>] [--reports <dir>] [--skills-local <ruta>]",
       "      Corre la suite entera (o el subconjunto) por el SUT, N Ejecuciones por",
       "      Caso, emite JSON + Scorecard y sale con código ≠ 0 si algún Caso SUSPENDE.",
-      "  run --skill <skill> --case <caso> [--n <N>]  Ejecuta un Caso por el SUT y emite Evidencia + Grade.",
+      "  run --skill <skill> --case <caso> [--n <N>] [--skills-local <ruta>]  Ejecuta un Caso por el SUT y emite Evidencia + Grade.",
+      "      --skills-local <ruta>: mide los skills de un checkout local (declarado como",
+      "      `local (sin commit)`) en vez de los de vendor/. Nunca escribe en vendor/.",
       "  grade <id> <severity> <assert> [weight]  Puntúa un Check sobre Evidencia vacía.",
       "  load <ruta>  Carga un Caso desde su carpeta y muestra su JSON.",
       "  capturar-gold --skill <skill> --case <caso>  Genera/valida la Captura de Gold (Gold-imagen) del Caso-página.",
@@ -91,10 +95,41 @@ function leerN(args: string[], porDefecto: number): number {
 }
 
 /**
- * Corre un Caso N veces por el SUT (cada Ejecución en su sandbox) y devuelve los
- * resultados. Es lo que comparten `run` (N=1 por defecto) y `suite` (N=3): el
- * sandbox y el comando real se resuelven aquí, una sola vez.
+ * El sandbox del SUT. Se crea con el `HOME` y la config que resuelve el propio
+ * `createSandbox`; lo único que se añade es el starter cacheado, para que cada
+ * Ejecución no scaffoldee sin permiso (ADR-0005).
  */
+function sandboxDelCaso(): ReturnType<typeof createSandbox> {
+  return createSandbox(existsSync(SCAFFOLD_CACHE_DIR) ? { scaffoldDir: SCAFFOLD_CACHE_DIR } : {});
+}
+
+/**
+ * El Pin de una corrida, y los hallazgos que impiden medir con él (ticket 05).
+ *
+ * - **Sin `--skills-local`**: el Pin canónico de `pin.json` y los skills de
+ *   `vendor/`. Si el árbol de `vendor/desy-skills/` tiene cambios sin commitear,
+ *   no se mide (ticket 04).
+ * - **Con `--skills-local <ruta>`**: un Pin local que declara `local (sin commit)`
+ *   y copia los skills de `<ruta>/skills/`. El mismo guardarraíl, sobre ese árbol.
+ *
+ * En ningún caso se escribe en `vendor/`: `bump-pin` es el único comando que lo
+ * toca, y con él se explicitan los cambios.
+ */
+function resolverPin(args: string[]): { pin: Pin; hallazgos: string[] } {
+  const local = opcion(args, "--skills-local");
+  const fecha = new Date().toISOString().slice(0, 10);
+  if (local === undefined) {
+    const hallazgos = problemasDeVendorSucio(join(REPO_ROOT, "vendor", "desy-skills"));
+    return { pin: readPin(PIN_PATH), hallazgos };
+  }
+  const checkout = resolve(local);
+  const hallazgos = problemasDeArbolLocalSucio(checkout);
+  return {
+    pin: pinLocal(rutaEnElRepo(REPO_ROOT, checkout), fecha),
+    hallazgos,
+  };
+}
+
 async function correrCaso(
   caso: ReturnType<typeof cargarCaso>,
   pin: ReturnType<typeof readPin>,
@@ -106,12 +141,7 @@ async function correrCaso(
     anunciar?.(i);
     resultados.push(
       await ejecutarCaso(caso, pin, {
-        sandbox: {
-          create: () =>
-            createSandbox(
-              existsSync(SCAFFOLD_CACHE_DIR) ? { scaffoldDir: SCAFFOLD_CACHE_DIR } : {},
-            ),
-        },
+        sandbox: { create: sandboxDelCaso },
         command: realCommand,
       }),
     );
@@ -119,19 +149,24 @@ async function correrCaso(
   return resultados;
 }
 
-async function runCasos(args: string[]): Promise<void> {
+async function runCasos(args: string[]): Promise<number> {
   const skill = opcion(args, "--skill");
   const id = opcion(args, "--case");
   if (!skill || !id) usage();
 
   const caso = cargarCaso(localizarCaso(skill!, id!));
-  const pin = readPin(PIN_PATH);
+  const { pin, hallazgos } = resolverPin(args);
+  if (hallazgos.length > 0) {
+    for (const h of hallazgos) console.error(h);
+    return 1;
+  }
   const resultados = await correrCaso(caso, pin, leerN(args, 1));
   for (const resultado of resultados) {
     const guardado = guardarEjecucion(rutasDeReporte(REPORTS_DIR).ejecuciones, resultado);
     console.error(`Ejecución guardada: ${rutaRelativa(guardado)}`);
   }
   console.log(JSON.stringify(resultados.length === 1 ? resultados[0] : resultados, null, 2));
+  return 0;
 }
 
 /**
@@ -155,12 +190,12 @@ async function runSuite(args: string[]): Promise<number> {
   const rutas = rutasDeReporte(reportsDir);
 
   const casos = seleccionarCasos(cargarCasos(CASOS_DIR), seleccion);
-  const pin = readPin(PIN_PATH);
-
-  // Antes de vaciar reportes o gastar una sola corrida: si el árbol vendido
-  // tiene cambios, el informe declararía el commit de pin.json sin serlo.
-  const sucio = problemasDeVendorSucio(VENDOR_SKILLS_DIR.replace(/[\\/]skills$/, ""));  if (sucio.length > 0) {
-    for (const h of sucio) console.error(h);
+  // Antes de vaciar reportes o gastar una sola corrida: si el árbol que se va a
+  // medir tiene cambios sin commitear, el informe diría una versión que no es
+  // (ticket 04, y lo mismo para un checkout local en el 05).
+  const { pin, hallazgos } = resolverPin(args);
+  if (hallazgos.length > 0) {
+    for (const h of hallazgos) console.error(h);
     return 1;
   }
 
@@ -183,7 +218,7 @@ async function runSuite(args: string[]): Promise<number> {
 
   const r = resumen(scorecard, ejecuciones);
   console.error(
-    `Suite: ${r.casos} Caso/s (${r.ejecuciones} Ejecución/es) sobre Pin ${pin.commit} → ` +
+    `Suite: ${r.casos} Caso/s (${r.ejecuciones} Ejecución/es) sobre Pin ${etiquetaDelPin(scorecard.pin)} → ` +
       `PASA ${r.pasados} · SUSPENDE ${r.suspendidos} · INDETERMINADO ${r.indeterminados}`,
   );
   console.error(`JSON: ${rutaRelativa(rutas.scorecardJson)}`);
@@ -237,12 +272,29 @@ function runLoad([ruta = ""]: string[]): void {
 
 /**
  * El hash de árbol de una corrida. Todas las Ejecuciones de una suite copian el
- * mismo árbol, así que basta con el primero que lo declare; si no hay ninguno (una
- * suite antigua, o un árbol de Ejecuciones mezclado a mano) se dice
- * `HASH_DESCONOCIDO` en vez de inventar uno.
+ * mismo árbol, así que basta con el primero que lo declare. Si ninguna lo hace (un
+ * árbol de Ejecuciones anterior al ticket 04, o mezclado a mano) el scorecard no
+ * declara hash: inventar `HASH_DESCONOCIDO` lo haría parecer una identidad cuando
+ * es la ausencia de una.
  */
-function hashComun(ejecuciones: ResultadoEjecucion[]): string {
-  return ejecuciones.find((e) => e.arbolHash.length > 0)?.arbolHash ?? HASH_DESCONOCIDO;
+function hashComun(ejecuciones: ResultadoEjecucion[]): string | undefined {
+  return ejecuciones.find((e) => e.arbolHash.length > 0)?.arbolHash;
+}
+
+/**
+ * El Pin de un árbol de Ejecuciones: lo declara la primera y una suite lo escribe
+ * en todas. `pin` es un único campo (el commit), y una corrida local escribe ahí
+ * `LOCAL` —no un SHA a propósito—, así que eso es lo que distingue los dos casos.
+ *
+ * La fecha sale de la Ejecución y no de `pin.json`, que daría la de hoy: el
+ * scorecard la declara como la del Pin medido. Sin Ejecuciones no hay nada que
+ * re-etiquetar.
+ */
+function pinDeLasEjecuciones(ejecuciones: ResultadoEjecucion[]): Pin {
+  const declarado = ejecuciones[0];
+  if (declarado === undefined) throw new Error("No hay Ejecuciones que agregar.");
+  if (declarado.pin === LOCAL) return pinLocal("", declarado.fecha);
+  return { ref: "", commit: declarado.pin, fecha: declarado.fecha };
 }
 
 /**
@@ -251,13 +303,18 @@ function hashComun(ejecuciones: ResultadoEjecucion[]): string {
  * que consume CI— y la ruta se anuncia por stderr para no ensuciar la salida
  * estándar, que es el Scorecard. `--reports` apunta a una corrida de otra
  * herramienta; por defecto, al árbol de las corridas sueltas de `run`.
+ *
+ * El Pin sale de las **Ejecuciones**, no de `pin.json` del momento: re-etiquetar
+ * con el Pin de hoy una corrida que se midió con otro es la mentira que el ticket
+ * 04 quitó, y con un Pin local (ticket 05) no hay commit del que sacarlo. Sólo se
+ * cae en `pin.json` cuando las Ejecuciones no declaran ninguno.
  */
 function runReport(args: string[]): void {
   const reports = opcion(args, "--reports");
   const rutas = rutasDeReporte(reports === undefined ? REPORTS_DIR : resolve(reports));
 
-  const pin = readPin(PIN_PATH);
   const ejecuciones = leerEjecuciones(rutas.ejecuciones);
+  const pin = pinDeLasEjecuciones(ejecuciones);
   const scorecard = agregarScorecard(ejecuciones, pin, hashComun(ejecuciones));
   const markdown = renderScorecard(scorecard) + "\n";
 
@@ -305,8 +362,7 @@ async function main(): Promise<number> {
     case "suite":
       return runSuite(rest);
     case "run":
-      await runCasos(rest);
-      return 0;
+      return runCasos(rest);
     case "grade":
       runGrade(rest);
       return 0;

@@ -97,6 +97,7 @@ npm run suite -- --skill implement-component         # un skill
 npm run suite -- --skill implement-component --case boton-primario   # un Caso
 npm run suite -- --n 1                               # N Ejecuciones por Caso (por defecto 3)
 npm run suite -- --reports reports/mi-corrida        # árbol de salida (por defecto reports/suite)
+npm run suite -- --skills-local ../desy-skills        # mide los skills de un checkout local, no de vendor/
 ```
 
 Qué necesitas para que corra de verdad:
@@ -135,6 +136,25 @@ dice y la suite avisa por stderr: un verde de un Caso que el agente ni arrancó 
 es un verde del skill. Y una suite vacía (filtro que no casa) sale con `1`: un
 CI verde sin haber evaluado nada es peor que un rojo.
 
+### Medir un checkout local
+
+`--skills-local <ruta>` mide los skills de `<ruta>/skills/` en vez de
+`vendor/desy-skills/skills/`, para iterar sobre un skill sin re-pinear por cada
+frase:
+
+```bash
+npm run suite -- --skills-local ../desy-skills --skill implement-component --case boton-primario
+```
+
+- El Scorecard lo declara como **`local (sin commit)`** —en el JSON, en el H1 y
+  por consola—: no hay commit que declarar, y fingir uno es lo que el Pin honesto
+  quitó. Lo medido se identifica por su `arbolHash`.
+- El árbol que se mide pasa por el **mismo guardarraíl de árbol sucio** que
+  `vendor/`: un checkout con cambios sin commitear en `skills/` no se mide. Lo que
+  cambie fuera de `skills/` no cuenta.
+- No escribe ni toca `vendor/`, y no cambia `pin.json`. Canónico sigue siendo
+  upstream por SHA (ADR-0003): esto es comodidad declarada.
+
 Cada `npm run suite` escribe en su propio árbol y vacía el anterior, así que el
 veredicto no mezcla Ejecuciones de corridas distintas. Las corridas sueltas de
 `npm run run` siguen en `reports/ejecuciones/` y su reporte es `npm run report`.
@@ -160,4 +180,6 @@ medidos.
 
 ## Pin
 
-El commit de `desy-skills` bajo test se registra en [`pin.json`](./pin.json) y se copia a `vendor/desy-skills/`. Cada reporte declara el Pin testeado.
+El commit de `desy-skills` bajo test se registra en [`pin.json`](./pin.json) y se copia a `vendor/desy-skills/`. Cada reporte declara el Pin testeado, pero su identidad real es el `arbolHash` de lo que se copió al sandbox: el commit no verifica que `vendor/` coincida con él.
+
+`npm run suite` se niega a medir un `vendor/desy-skills/` con cambios sin commitear. Para iterar sobre un skill sin tocar el vendor, `--skills-local <ruta>` mide un checkout propio y lo declara como `local (sin commit)` (ver «Medir un checkout local» y el ADR-0015).

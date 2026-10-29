@@ -21,6 +21,7 @@ const ejecucion = (over: Partial<ResultadoEjecucion> = {}): ResultadoEjecucion =
   caso: "boton-primario",
   tipo: "caso-componente",
   pin: pin.commit,
+  fecha: pin.fecha,
   grade: "EXCELENTE",
   detalle: [],
   flujoObservado: ["preflight-check", "implement-component"],
@@ -30,6 +31,7 @@ const ejecucion = (over: Partial<ResultadoEjecucion> = {}): ResultadoEjecucion =
   exitCode: 0,
   ultimoPasoDelFlujo: "implement-component",
   arbolHash: "hash-de-fixture",
+  salida: { stdout: "", stderr: "" },
   ...over,
 });
 

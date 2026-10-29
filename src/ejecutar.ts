@@ -12,6 +12,13 @@ export interface ResultadoEjecucion {
   caso: string;
   tipo: Caso["tipo"];
   pin: string;
+  /**
+   * La fecha del Pin con el que se midió. Va en la Ejecución, no se toma de
+   * `pin.json` al reportar: re-etiquetar una corrida con el Pin de hoy es la
+   * mentira que quitó el ticket 04, y con un Pin local (ticket 05) el resto del
+   * Pin —`commit: local`— tampoco está en `pin.json`.
+   */
+  fecha: string;
   grade: Grade;
   detalle: DetalleCheck[];
   flujoObservado: string[];
@@ -24,6 +31,8 @@ export interface ResultadoEjecucion {
   ultimoPasoDelFlujo: string | null;
   /** Hash del árbol de skills medido (ticket 04): la identidad de la versión. */
   arbolHash: string;
+  /** Lo que el SUT escribió por cada canal, sin fusionar (ver `Evidencia.salida`). */
+  salida: { stdout: string; stderr: string };
 }
 
 /**
@@ -96,6 +105,7 @@ export async function ejecutarCaso(
     caso: caso.id,
     tipo: caso.tipo,
     pin: pin.commit,
+    fecha: pin.fecha,
     grade,
     detalle,
     flujoObservado: evidencia.transcript.invocaciones,
@@ -104,6 +114,7 @@ export async function ejecutarCaso(
     flujoAlcanzoSkill: alcanzoSkill(evidencia.transcript.invocaciones, caso.skill),
     exitCode: evidencia.exitCode,
     ultimoPasoDelFlujo: ultimoPasoDelFlujo(evidencia.transcript.invocaciones),
+    salida: evidencia.salida,
     arbolHash: evidencia.arbolHash,
   };
 }

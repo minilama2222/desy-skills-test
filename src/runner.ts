@@ -14,8 +14,9 @@ import { join, relative } from "node:path";
 import type { Caso } from "./caso.js";
 import { esCasoDecision, esCasoPagina } from "./caso.js";
 import type { FicheroDeSkill } from "./guardarrail-pin.js";
-import { hashDelArbol, rutaDeSkill } from "./guardarrail-pin.js";
+import { hashDelArbol, rutaDeSkill, skillsDeCheckout } from "./guardarrail-pin.js";
 import type { Pin } from "./pin.js";
+import { esPinLocal } from "./pin.js";
 import { REPO_ROOT } from "./repo.js";
 
 export const VENDOR_SKILLS_DIR = join(REPO_ROOT, "vendor", "desy-skills", "skills");
@@ -119,9 +120,18 @@ export interface Evidencia {
    */
   exitCode: number;
   /**
+   * Los dos canales del SUT tal cual, sin fusionar. `transcript` los une para leer
+   * el Flujo, pero la prosa del modelo (stdout) y el progreso de opencode
+   * (stderr) llegan a la suite por la misma tubería: quien quiera citar un
+   * párrafo de la salida no puede fiarse de la fusión. Es también lo que deja a
+   * un test afirmar qué vio el SUT dentro de su sandbox.
+   */
+  salida: { stdout: string; stderr: string };
+  /**
    * Hash del árbol de skills que se copió al sandbox (ticket 04): la identidad de
    * qué se midió. El commit de `pin.json` no basta, porque nada verifica que
-   * `vendor/` coincida con él.
+   * `vendor/` coincida con él; y con un Pin local no hay commit en absoluto
+   * (ticket 05), así que el hash es la **única** identidad en ese caso.
    */
   arbolHash: string;
 }
@@ -148,8 +158,15 @@ export interface Sandbox {
   readonly home: string;
   readonly configDir: string;
   readonly skillsDir: string;
-  /** Copia los skills del Pin al `skillsDir`. */
-  copySkills(): void;
+  /**
+   * Copia al `skillsDir` los skills que hay dentro de `origen`: el propio
+   * `vendor/desy-skills/skills/` del vendor (el defecto) o la **raíz de un
+   * checkout local** (ticket 05), de cuyo `skills/` salen. Se copia skill por
+   * skill —cada subdirectorio— y no el directorio entero: un checkout trae su
+   * `.git/` y su README, que no son skills y no tienen por qué acabar en el
+   * sandbox.
+   */
+  copySkills(origen?: string): void;
   /**
    * Deja la configuración con la que el SUT arranca dentro del sandbox (ver
    * ADR-0013): el `opencode.jsonc` que lo encierra y el `auth.json` con el que
@@ -271,10 +288,16 @@ export async function runCaso(
   if (!prompt) {
     throw new Error(`Caso ${caso.skill}/${caso.id} inválido: prompt vacío`);
   }
+  // El Pin decide DE DÓNDE salen los skills (ticket 05): un Pin local trae la ruta
+  // de un checkout del usuario en `repo`, y se copia su `skills/`; el canónico no
+  // trae ruta y manda `vendor/`. Antes este parámetro se recibía y no se leía, y el
+  // informe declaraba el commit de `pin.json` midiera lo que midiera.
+  const origenSkills =
+    esPinLocal(pin) && pin.repo ? skillsDeCheckout(pin.repo) : undefined;
 
   const sandbox = deps.sandbox.create();
   try {
-    sandbox.copySkills();
+    sandbox.copySkills(origenSkills);
     sandbox.configurar();
     const imagen = adjuntarImagenDeCaso(caso, sandbox.workDir);
     const args = buildOpencodeArgs(
@@ -299,6 +322,7 @@ export async function runCaso(
       },
       transcript: { invocaciones: parseInvocaciones(transcript) },
       exitCode: code,
+      salida: { stdout, stderr },
       arbolHash: hashDelArbolDelSandbox(sandbox.skillsDir),
     };
   } finally {
@@ -481,11 +505,12 @@ export const realCommand: CommandRunner = {
  * la escanea V2, y una skill copiada ahí falla con `Unable to load skill`
  * (medido en la 2.1.2, ver ADR-0013).
  *
- * `configDir` es el directorio de config que se pasa al SUT en
- * `XDG_CONFIG_HOME`; el de skills es su subdirectorio `opencode`.
+ * Recibe el directorio **raíz** de config (`HOME/.config`), no el que se pasa al
+ * SUT en `XDG_CONFIG_HOME` (que es su subdirectorio `opencode`): por eso se le
+ * añade `opencode` aquí, y por eso el sandbox le pasa `home/.config`.
  */
-export function skillsDirDeConfig(configDir: string): string {
-  return join(configDir, "opencode", "skills");
+export function skillsDirDeConfig(configRaiz: string): string {
+  return join(configRaiz, "opencode", "skills");
 }
 
 /**
@@ -554,7 +579,11 @@ export function createSandbox(opciones: string | SandboxOptions = {}): Sandbox {
   const root = mkdtempSync(join(base, "desy-sut-"));
   const home = join(root, "home");
   const configDir = join(home, ".config", "opencode");
-  const skillsDir = skillsDirDeConfig(configDir);
+  // `skillsDirDeConfig` recibe la **raíz** de config (`home/.config`), que es lo
+  // que el SUT tiene en `XDG_CONFIG_HOME` menos el `opencode` final. Pasarle
+  // `configDir` duplicaba el segmento y las skills acababan en
+  // `…/opencode/opencode/skills`, que V2 no escanea (ADR-0013).
+  const skillsDir = skillsDirDeConfig(join(home, ".config"));
   const datosDir = datosDirDeHome(home);
   const workDir = join(root, "work");
 
@@ -593,12 +622,17 @@ export function createSandbox(opciones: string | SandboxOptions = {}): Sandbox {
     home,
     configDir,
     skillsDir,
-    copySkills(): void {
-      if (!existsSync(VENDOR_SKILLS_DIR)) {
-        throw new Error(`No existe el vendor de skills en ${VENDOR_SKILLS_DIR}`);
+    copySkills(origen: string = VENDOR_SKILLS_DIR): void {
+      // El origen es un directorio **de skills** (el `skills/` del vendor): se
+      // copian sus subdirectorios, que son las skills. Un `.git/` —que un vendor
+      // podría traer— no lo es. El checkout local lo resuelve `runCaso` apuntando
+      // ya a su `skills/`, para que un `skills/skills/` no se cuele.
+      if (!existsSync(origen)) {
+        throw new Error(`No existe el árbol de skills en ${origen}`);
       }
-      for (const entry of readdirSync(VENDOR_SKILLS_DIR)) {
-        cpSync(join(VENDOR_SKILLS_DIR, entry), join(skillsDir, entry), {
+      for (const entry of readdirSync(origen, { withFileTypes: true })) {
+        if (!entry.isDirectory() || entry.name === ".git") continue;
+        cpSync(join(origen, entry.name), join(skillsDir, entry.name), {
           recursive: true,
         });
       }

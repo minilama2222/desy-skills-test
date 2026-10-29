@@ -10,6 +10,7 @@ const ejecucion = (over: Partial<ResultadoEjecucion> = {}): ResultadoEjecucion =
   caso: "boton-primario",
   tipo: "caso-componente",
   pin: "b523ca7df8594532f5fd47376894c16bc8f1b5df",
+  fecha: "2026-10-20",
   grade: "EXCELENTE",
   detalle: [],
   flujoObservado: [],
@@ -19,6 +20,7 @@ const ejecucion = (over: Partial<ResultadoEjecucion> = {}): ResultadoEjecucion =
   exitCode: 0,
   ultimoPasoDelFlujo: null,
   arbolHash: "hash-de-fixture",
+  salida: { stdout: "", stderr: "" },
   ...over,
 });
 

@@ -1,14 +1,23 @@
 import { describe, expect, it, vi } from "vitest";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { CasoComponente, Check } from "../src/caso.js";
 import { grado } from "../src/grader.js";
 import type { Pin } from "../src/pin.js";
+import { pinLocal } from "../src/pin.js";
 import {
   MODELO_FIJO,
   buildOpencodeArgs,
   configuracionDelSandbox,
+  createSandbox,
   dirArtefactoDeCaso,
   runCaso,
   type CommandRunner,
@@ -205,12 +214,15 @@ describe("runCaso", () => {
       "arbolHash",
       "artefactos",
       "exitCode",
+      "salida",
       "transcript",
     ]);
     expect(resultado.artefactos).toEqual({
       files: { "boton.html": "<button>Enviar</button>" },
     });
-    expect(resultado.transcript).toEqual({ invocaciones: ["implement-component"] });
+    // La salida cruda viaja sin fusionar: quien cite la prosa del SUT no puede
+    // fiarse de un transcript donde stdout y stderr van mezclados.
+    expect(resultado.salida).toEqual({ stdout: "» skill: implement-component\n", stderr: "" });
   });
 
   it("copia los skills del Pin al sandbox antes de ejecutar el SUT", async () => {
@@ -222,6 +234,101 @@ describe("runCaso", () => {
     await runCaso(caso, pin, { sandbox: factoryOf(sandbox), command });
 
     expect(sandbox.copySkills).toHaveBeenCalledOnce();
+  });
+
+  it("con un Pin remoto no pasa origen a copySkills: los skills salen de vendor/", async () => {
+    // El Pin remoto no trae ruta. Antes, `runCaso` recibía el Pin y no lo leía, y
+    // era lo mismo sacara de donde sacara los skills (ticket 05).
+    const sandbox = fakeSandbox();
+
+    await runCaso(caso, pin, {
+      sandbox: factoryOf(sandbox),
+      command: { run: () => ({ stdout: "", stderr: "", code: 0 }) },
+    });
+
+    expect(sandbox.copySkills).toHaveBeenCalledWith(undefined);
+  });
+
+  it("con un Pin local copia los skills de ese checkout, no de vendor/ (ticket 05)", async () => {
+    const sandbox = fakeSandbox();
+    // La ruta del Pin es el **checkout**; lo que se copia es su `skills/`, no él:
+    // copiar la raíz entera metía un `skills/skills/` en el sandbox.
+    const dir = mkdtempSync(join(tmpdir(), "checkout-"));
+    try {
+      mkdirSync(join(dir, "skills"), { recursive: true });
+      const local = pinLocal(dir, "2026-10-29");
+
+      await runCaso(caso, local, {
+        sandbox: factoryOf(sandbox),
+        command: { run: () => ({ stdout: "", stderr: "", code: 0 }) },
+      });
+
+      expect(sandbox.copySkills).toHaveBeenCalledWith(join(dir, "skills"));
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("con un Pin local apuntando a algo sin skills/ falla en voz alta, no mide un árbol vacío", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "checkout-vacio-"));
+    try {
+      await expect(
+        runCaso(caso, pinLocal(dir, "2026-10-29"), {
+          sandbox: factoryOf(fakeSandbox()),
+          command: { run: () => ({ stdout: "", stderr: "", code: 0 }) },
+        }),
+      ).rejects.toThrow(/skills/);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("copySkills corre el árbol que se le da, no vendor/: el sandbox del ticket 05", () => {
+    // Sin este test, pasar `origen` al sandbox quedaría sin cubrir: los dobles de
+    // arriba aceptan cualquier argumento y no copian nada.
+    const dir = mkdtempSync(join(tmpdir(), "skills-local-"));
+    try {
+      mkdirSync(join(dir, "desy-preflight-check"), { recursive: true });
+      writeFileSync(join(dir, "desy-preflight-check", "SKILL.md"), "versión local", "utf8");
+      // Un `.git/` en el origen —lo que trae un checkout entero— no es una skill.
+      mkdirSync(join(dir, ".git"), { recursive: true });
+      writeFileSync(join(dir, ".git", "HEAD"), "ref: refs/heads/master", "utf8");
+      const sandbox = createSandbox();
+      try {
+        sandbox.copySkills(dir);
+        expect(
+          readFileSync(join(sandbox.skillsDir, "desy-preflight-check", "SKILL.md"), "utf8"),
+        ).toBe("versión local");
+        expect(
+          existsSync(join(sandbox.skillsDir, "desy-preflight-check")),
+          "la skill del origen tiene que haber llegado",
+        ).toBe(true);
+        expect(
+          existsSync(join(sandbox.skillsDir, "desy-preflight-check", "SKILL.md")),
+        ).toBe(true);
+        expect(existsSync(join(sandbox.skillsDir, ".git")), "el .git/ no entra").toBe(false);
+        expect(
+          existsSync(join(sandbox.skillsDir, "desy-implement-component")),
+          "un árbol local no arrastra los skills de vendor/",
+        ).toBe(false);
+      } finally {
+        sandbox.cleanup();
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("VENDOR_SKILLS_DIR sigue siendo el origen por defecto de copySkills", () => {
+    // Sin argumento, el sandbox copia los skills vendidos: es lo que garantiza
+    // que un Pin remoto sigue midiendo vendor/ y no un árbol vacío.
+    const sandbox = createSandbox();
+    try {
+      sandbox.copySkills();
+      expect(existsSync(join(sandbox.skillsDir, "desy-preflight-check", "SKILL.md"))).toBe(true);
+    } finally {
+      sandbox.cleanup();
+    }
   });
 
   it("ejecuta opencode con un cwd limpio y el entorno del sandbox", async () => {

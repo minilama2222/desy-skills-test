@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { basename, join, dirname } from "node:path";
+import { basename, join, dirname, sep } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { readPin } from "../src/pin.js";
 import {
@@ -42,9 +42,23 @@ describe("createSandbox", () => {
 
     // No es `~/.config/opencode/skills`: V2 no escanea esa ruta y la skill falla
     // al cargar (medido en la 2.1.2, ADR-0013).
-    expect(sandbox.skillsDir).toBe(skillsDirDeConfig(sandbox.configDir));
-    expect(sandbox.skillsDir).toBe(join(sandbox.configDir, "opencode", "skills"));
+    //
+    // La raíz de config es la del `HOME` del sandbox (`home/.config`), que es lo
+    // que va en `XDG_CONFIG_HOME` menos el `opencode` final. Antes se le pasaba a
+    // `skillsDirDeConfig` el `configDir` —que ya termina en `opencode`— y este
+    // test, construido sobre la misma confusión, fijaba
+    // `…/opencode/opencode/skills` como correcto.
+    const raizConfig = join(sandbox.home, ".config");
+    expect(sandbox.configDir).toBe(join(raizConfig, "opencode"));
+    expect(sandbox.skillsDir).toBe(skillsDirDeConfig(raizConfig));
+    expect(sandbox.skillsDir).toBe(join(raizConfig, "opencode", "skills"));
     expect(existsSync(sandbox.skillsDir)).toBe(true);
+
+    // Y lo que `opencode.jsonc` declara es exactamente esa ruta.
+    sandbox.configurar();
+    const config = JSON.parse(readFileSync(join(sandbox.configDir, "opencode.jsonc"), "utf8"));
+    expect(config.skills).toEqual([sandbox.skillsDir]);
+    expect(config.skills[0]).not.toContain(`opencode${sep}opencode`);
   });
 
   it("copia los skills del Pin al skillsDir que descubre el SUT", () => {

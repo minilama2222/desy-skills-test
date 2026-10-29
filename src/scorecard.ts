@@ -1,6 +1,7 @@
 import type { ResultadoEjecucion } from "./ejecutar.js";
 import type { Grade } from "./grader.js";
 import type { Pin } from "./pin.js";
+import { LOCAL, esPinLocal } from "./pin.js";
 
 /**
  * El veredicto agregado de un Caso (ADR-0007): el Grade de una Ejecución no es
@@ -59,30 +60,30 @@ export interface SkillScorecard {
 }
 
 /**
- * El hash que se declara cuando no hay uno real (scorecards construidos a mano
- * en tests, o el comando `report` sobre Ejecuciones sin Evidencia). Es un valor
- * explícito, no una cadena vacía: que un scorecard diga «desconocido» es
- * información; que parezca un hash inventado no lo es.
- */
-/**
- * El hash que se declara cuando no hay uno real (scorecards construidos a mano
- * en tests, o el comando `report` sobre Ejecuciones sin Evidencia). Es un valor
- * explícito, no una cadena vacía: que un scorecard diga «desconocido» es
- * información; que parezca un hash inventado no lo es.
+ * El hash que se declara cuando no hay ninguno real: un scorecard construido en
+ * un test, o un árbol de Ejecuciones mezclado a mano. Es un valor explícito, no
+ * una cadena vacía: que un scorecard diga «desconocido» es información; que
+ * parezca un hash inventado no lo es.
  */
 export const HASH_DESCONOCIDO = "desconocido";
 
 export interface Scorecard {
-  /** El Pin testeado: commit + fecha. Todo reporte lo declara. */
+  /** El Pin testeado: commit + fecha, o —en una corrida local— `local` (ticket 05). */
   pin: Pick<Pin, "ref" | "commit" | "fecha" | "repo">;
   /**
    * La identidad de **qué skills se midieron**: hash del árbol copiado al
    * sandbox (ticket 04). El commit no basta — una versión local sucia no tiene
    * commit — y es este hash el que se compara entre versiones.
+   *
+   * Opcional porque `npm run report` agrega Ejecuciones ya hechas, y sólo las
+   * nuevas declaran el hash; el agregador lo recoge de ellas cuando existe.
    */
-  arbolHash: string;
+  arbolHash?: string;
   skills: SkillScorecard[];
 }
+
+/** Cómo se nombra el Pin de una corrida local en todo lo que se lee (ticket 05). */
+export const PIN_LOCAL_DECLARADO = "local (sin commit)";
 
 function esCorrecta(ejecucion: ResultadoEjecucion): boolean {
   return ejecucion.entrega === "con-artefacto" && ejecucion.grade === GRADE_CORRECTO;
@@ -230,7 +231,7 @@ function agruparPor<T>(items: T[], clave: (item: T) => string): Map<string, T[]>
 export function agregarScorecard(
   ejecuciones: ResultadoEjecucion[],
   pin: Pin,
-  arbolHash: string = HASH_DESCONOCIDO,
+  arbolHash?: string,
 ): Scorecard {
   const porSkill = agruparPor(ejecuciones, (e) => e.skill);
 
@@ -247,10 +248,24 @@ export function agregarScorecard(
   });
 
   return {
+    // El Pin declarado es el de la corrida, con la ruta **relativa** del checkout
+    // local cuando toca (`rutaEnElRepo` la construye). Qué se versiona de esto y
+    // qué no es decisión del ticket 09, sobre esta misma forma.
     pin: { ref: pin.ref, commit: pin.commit, fecha: pin.fecha, repo: pin.repo },
-    arbolHash,
+    ...(arbolHash === undefined ? {} : { arbolHash }),
     skills,
   };
+}
+
+/**
+ * La etiqueta del Pin en lo que se lee: `local (sin commit)` cuando la corrida
+ * salió de un checkout local, el commit en cualquier otro caso. La decisión va por
+ * `commit === LOCAL`, no por la marca `local` del Pin en memoria: el scorecard de
+ * versión (ticket 09) se versiona sin la marca, y el H1 no puede depender de algo
+ * que no se guardó. Una corrida local no puede leerse como si fuera un commit.
+ */
+export function etiquetaDelPin(pin: Scorecard["pin"]): string {
+  return esPinLocal(pin) || pin.commit === LOCAL ? PIN_LOCAL_DECLARADO : pin.commit;
 }
 
 /**
@@ -261,9 +276,9 @@ export function agregarScorecard(
  */
 export function renderScorecard(reporte: Scorecard): string {
   const lineas: string[] = [];
-  lineas.push(`# Scorecard — Pin ${reporte.pin.commit} (${reporte.pin.fecha})`);
+  lineas.push(`# Scorecard — Pin ${etiquetaDelPin(reporte.pin)} (${reporte.pin.fecha})`);
   if (reporte.pin.ref) lineas.push(`Ref: ${reporte.pin.ref}`);
-  lineas.push(`Árbol ${reporte.arbolHash}`);
+  if (reporte.arbolHash) lineas.push(`Árbol ${reporte.arbolHash}`);
 
   if (reporte.skills.length === 0) {
     lineas.push("", "Sin Ejecuciones.");

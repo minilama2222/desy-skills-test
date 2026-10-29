@@ -1,10 +1,21 @@
 import { describe, expect, it } from "vitest";
-import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { spawnSync, execFileSync } from "node:child_process";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, relative } from "node:path";
 import { REPO_ROOT } from "../src/repo.js";
 import { readPin } from "../src/pin.js";
+import { leerEjecuciones } from "../src/reportes.js";
+import type { ResultadoEjecucion } from "../src/ejecutar.js";
 import type { Scorecard } from "../src/scorecard.js";
 
 /**
@@ -78,6 +89,21 @@ writeFileSync(join(casa, "visto-" + indice + ".txt"), entrega);
 process.stderr.write('\\u2192 Skill "desy-preflight-check"\\n');
 process.stderr.write('\\u2192 Skill "desy-implement-component"\\n');
 
+// Lo que el SUT "ve" de skills en su HOME, para el test de --skills-local: lee el
+// SKILL.md que el runner copió al sandbox y lo escribe por stdout, que es el canal
+// del propio SUT. La ruta se toma del \`opencode.jsonc\` que el SUT obedece, no se
+// reconstruye: reconstruirla en el test es cómo se coló un \`opencode/opencode\` que
+// el propio SUT no usa (ADR-0015).
+let vistoSkills = "(sin preflight local)";
+try {
+  const cfg = JSON.parse(readFileSync(join(String(process.env.XDG_CONFIG_HOME), "opencode.jsonc"), "utf8"));
+  const declarado = cfg.skills[0];
+  vistoSkills = readFileSync(join(declarado, "desy-preflight-check", "SKILL.md"), "utf8").trim();
+} catch (e) {
+  vistoSkills = "(sin preflight local) " + e.message;
+}
+process.stdout.write("skills-vistos=" + vistoSkills + "\\n");
+
 if (entrega !== "nada") {
   mkdirSync("src", { recursive: true });
   writeFileSync(join("src", artefacto), contenido[entrega] ?? "");
@@ -113,6 +139,8 @@ interface Corrida {
   vistas: string[];
   scorecard?: Scorecard;
   markdown?: string;
+  /** El árbol temporal de la corrida, para leer sus Ejecuciones antes de borrarlo. */
+  ejecuciones: ResultadoEjecucion[];
 }
 
 const TSX = join(REPO_ROOT, "node_modules", "tsx", "dist", "cli.mjs");
@@ -132,20 +160,21 @@ async function correrSuite(args: string[], entregas: string[] = ["bueno"]): Prom
       "utf8",
     );
 
+    const env = {
+      ...process.env,
+      // `NODE_OPTIONS` parsea comillas y barras: la ruta va con `/` o Windows
+      // se come los `\` y Node no encuentra el preludio.
+      NODE_OPTIONS: `${process.env.NODE_OPTIONS ?? ""} --require "${join(dir, "preludio.cjs").replace(/\\/g, "/")}"`.trim(),
+    };
     const reports = join(dir, "reports");
     const inicio = Date.now();
     const r = spawnSync(
       process.execPath,
-      [TSX, "src/cli.ts", "suite", ...args, "--reports", reports],
+      [TSX, "src/cli.ts", "suite", ...resolverRutasDeCheckout(args, dir), "--reports", reports],
       {
         cwd: REPO_ROOT,
         encoding: "utf8",
-        env: {
-          ...process.env,
-          // `NODE_OPTIONS` parsea comillas y barras: la ruta va con `/` o Windows
-          // se come los `\` y Node no encuentra el preludio.
-          NODE_OPTIONS: `${process.env.NODE_OPTIONS ?? ""} --require "${join(dir, "preludio.cjs").replace(/\\/g, "/")}"`.trim(),
-        },
+        env,
       },
     );
     const segundos = Math.round((Date.now() - inicio) / 1000);
@@ -156,12 +185,16 @@ async function correrSuite(args: string[], entregas: string[] = ["bueno"]): Prom
       const marca = join(dir, `visto-${i}.txt`);
       return existsSync(marca) ? readFileSync(marca, "utf8").trim() : "(no corrió)";
     });
+    // Las Ejecuciones se leen antes del `finally`: el test necesita la salida
+    // cruda del SUT (`salida.stdout`), no sólo el agregado.
+    const ejecuciones = leerEjecuciones(join(reports, "ejecuciones"));
     return {
       code: r.status ?? -1,
       stdout: r.stdout ?? "",
       stderr: r.stderr ?? "",
       segundos,
       vistas,
+      ejecuciones,
       ...(existsSync(json) ? { scorecard: JSON.parse(readFileSync(json, "utf8")) as Scorecard } : {}),
       ...(existsSync(md) ? { markdown: readFileSync(md, "utf8") } : {}),
     };
@@ -172,6 +205,9 @@ async function correrSuite(args: string[], entregas: string[] = ["bueno"]): Prom
 
 const pin = readPin(join(REPO_ROOT, "pin.json"));
 const BOTON = ["--skill", "implement-component", "--case", "boton-primario"];
+
+/** El `SKILL.md` del checkout limpio: el guion del SUT lo lee de su HOME y lo dice. */
+const MARCA_LOCAL = "mi-desy-skills-42";
 
 /**
  * Presupuesto de tiempo por Ejecución. No es un adorno: la copia del starter al
@@ -219,10 +255,14 @@ describe("suite (comando de CI, ticket 13)", () => {
 
       expect(corrida.vistas).toEqual(["malo", "malo", "malo"]);
       expectDentroDelPresupuesto(corrida, 3);
-      expect(corrida.code).not.toBe(0);
+      expect(corrida.code, corrida.stderr).not.toBe(0);
       expect(corrida.scorecard?.skills[0]?.casos[0]?.veredicto).toBe("SUSPENDE");
       expect(corrida.stderr).toContain("SUSPENDIDO");
     },
+    // ~26 s medido aislado; ~45 s con la batería entera compitiendo por el disco.
+    // Los 180 s de antes dejaron pasar por una vez un rojo que no volvió a
+    // reproducirse en tres corridas: el techo era el de la máquina, no el del
+    // test, y un intermitente así no se puede diagnosticar (CODING_STANDARDS).
     180_000,
   );
 
@@ -275,3 +315,151 @@ describe("suite (comando de CI, ticket 13)", () => {
     60_000,
   );
 });
+
+/**
+ * Los checkouts que usan los tests de `--skills-local`, dentro del directorio
+ * temporal de la corrida: uno limpio, con una marca en el `SKILL.md` que el guion
+ * del SUT lee de su HOME, y uno con ese `SKILL.md` editado sin commitear.
+ */
+function prepararCheckouts(dir: string): { limpio: string; sucio: string } {
+  const crear = (nombre: string, contenido: string): string => {
+    const repo = join(dir, nombre);
+    mkdirSync(join(repo, "skills", "desy-preflight-check"), { recursive: true });
+    writeFileSync(join(repo, "skills", "desy-preflight-check", "SKILL.md"), contenido, "utf8");
+    const git = (...args: string[]): void => {
+      execFileSync("git", args, { cwd: repo, stdio: "pipe" });
+    };
+    git("init", "--quiet");
+    git("config", "user.email", "test@example.com");
+    git("config", "user.name", "test");
+    git("add", ".");
+    git("commit", "--quiet", "-m", "checkout");
+    return repo;
+  };
+
+  const limpio = crear("mi-desy-skills", MARCA_LOCAL);
+  const sucio = crear("mi-desy-skills-sucio", "version commiteada");
+  writeFileSync(
+    join(sucio, "skills", "desy-preflight-check", "SKILL.md"),
+    "editado a mano sin commitear",
+    "utf8",
+  );
+  return { limpio, sucio };
+}
+
+/** El test nombra el checkout que quiere con un marcador; aquí se vuelve ruta. */
+function resolverRutasDeCheckout(args: string[], dir: string): string[] {
+  const { limpio, sucio } = prepararCheckouts(dir);
+  return args.map((a) => a.replace("@CHECKOUT_LIMPIO@", limpio).replace("@CHECKOUT_SUCIO@", sucio));
+}
+
+/**
+ * Ticket 05: un checkout local declarado. Lo único que este test fija y los demás
+ * no pueden es el camino completo de `--skills-local` con un proceso real: que los
+ * skills que el SUT ve salgan **de ese checkout** (el guion lo lee de su HOME), que
+ * el scorecard diga `local (sin commit)` donde un Pin remoto diría un SHA, y que
+ * `vendor/` no se toque.
+ */
+describe("suite --skills-local: un checkout local declarado (ticket 05)", () => {
+  it(
+    "mide los skills del checkout, lo declara como `local (sin commit)` y no toca vendor/",
+    async () => {
+      const antes = fingerprintDeVendor();
+      const corrida = await correrSuite([...BOTON, "--n", "1", "--skills-local", "@CHECKOUT_LIMPIO@"]);
+
+      expect(corrida.vistas).toEqual(["bueno"]);
+      expectDentroDelPresupuesto(corrida, 1);
+      expect(corrida.code).toBe(0);
+
+      // Ni un SHA: el Pin es local y así se lee en JSON, en el H1 y por consola.
+      expect(corrida.scorecard?.pin.commit).toBe("local");
+      expect(corrida.scorecard?.pin.commit).not.toMatch(/[0-9a-f]{7,40}/i);
+      expect(corrida.markdown).toContain("Scorecard — Pin local (sin commit)");
+      expect(corrida.stderr).toContain("sobre Pin local (sin commit)");
+
+      // Lo medido se identifica por hash: sin commit, es lo que queda.
+      expect(corrida.scorecard?.arbolHash).toMatch(/^[0-9a-f]{64}$/);
+
+      // El SUT vio el checkout local, no `vendor/`: lo dijo por stdout y el
+      // runner guarda la salida sin fusionar en la Ejecución.
+      const ejecuciones = corrida.ejecuciones;
+      expect(ejecuciones[0]?.salida.stdout).toContain(`skills-vistos=${MARCA_LOCAL}`);
+
+      // Medir local nunca escribe en vendor/: mismo vistazo antes y después.
+      expect(fingerprintDeVendor()).toEqual(antes);
+    },
+    180_000,
+  );
+
+  /**
+   * Los demás tests de `--skills-local` no necesitan un SUT: el guion del SUT
+   * falso (que abre sandbox y copia el starter) es el 90 % del coste, y lo que
+   * estos casos fijan es la política del comando: negarse ante un árbol sucio o
+   * una ruta inexistente, sin gastar una sola Ejecución.
+   */
+  it(
+    "se niega a medir un checkout local sucio, igual que con vendor/ (ticket 04)",
+    async () => {
+      const corrida = await correrSuite([...BOTON, "--n", "1", "--skills-local", "@CHECKOUT_SUCIO@"]);
+
+      expect(corrida.code).not.toBe(0);
+      expect(corrida.stderr).toContain("sin commitear");
+      expect(corrida.stderr).toContain("desy-preflight-check/SKILL.md");
+      // Ni una Ejecución gastada: el guion no llegó a correr.
+      expect(corrida.vistas).toEqual(["(no corrió)"]);
+      expect(corrida.scorecard).toBeUndefined();
+    },
+    60_000,
+  );
+
+  it(
+    "se niega a medir un checkout local sucio, igual que con vendor/ (ticket 04)",
+    async () => {
+      const corrida = await correrSuite([...BOTON, "--n", "1", "--skills-local", "@CHECKOUT_SUCIO@"]);
+
+      expect(corrida.code).not.toBe(0);
+      expect(corrida.stderr).toContain("sin commitear");
+      expect(corrida.stderr).toContain("desy-preflight-check/SKILL.md");
+      // Ni una Ejecución gastada: el guion no llegó a correr.
+      expect(corrida.vistas).toEqual(["(no corrió)"]);
+      expect(corrida.scorecard).toBeUndefined();
+    },
+    60_000,
+  );
+
+  it(
+    "un --skills-local que no existe es un error explícito, no un árbol limpio",
+    async () => {
+      const corrida = await correrSuite([
+        ...BOTON,
+        "--n",
+        "1",
+        "--skills-local",
+        join(tmpdir(), "no-existe-checkout-local"),
+      ]);
+
+      expect(corrida.code).not.toBe(0);
+      expect(corrida.stderr).toMatch(/No existe el checkout local/);
+      expect(corrida.scorecard).toBeUndefined();
+    },
+    60_000,
+  );
+});
+
+/**
+ * Un vistazo de `vendor/desy-skills`: nombre y mtime de cada fichero. Basta para
+ * afirmar que un `--skills-local` no lo reescribió.
+ */
+function fingerprintDeVendor(): string[] {
+  const vendor = join(REPO_ROOT, "vendor", "desy-skills");
+  const lineas: string[] = [];
+  const recorrer = (dir: string): void => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const full = join(dir, entry.name);
+      if (entry.isDirectory()) recorrer(full);
+      else lineas.push(`${relative(vendor, full)}:${statSync(full).mtimeMs}`);
+    }
+  };
+  recorrer(vendor);
+  return lineas.sort();
+}
