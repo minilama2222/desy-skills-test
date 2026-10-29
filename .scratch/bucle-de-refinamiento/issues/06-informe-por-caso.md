@@ -57,7 +57,15 @@ Leyendo solo este informe, alguien que no conoce el harness puede decidir si toc
   que no hay sección que leer». Un Check de Flujo: «mira el Flujo, no el artefacto».
 - **Los Casos existentes pueden empezar sin anclas** (el informe sigue legible);
   `boton-primario`, el Caso del 27/10 que motivó el ticket, queda anclado como
-  ejemplo.
+  ejemplo. Retro (29/10): se midió que **10 de los 11** Casos con epígrafe de
+  anclaje lo escriben como prosa de apoyo («Macros y props: … → «…»»), que no dice
+  a qué Check corresponde cada sección; el parser, correcto, los ignoraba y
+  `verificar-casos` no podía avisar, porque sólo valida lo que encontró. Ahora cada
+  Check debe tener su ancla, y los 13 Casos pendientes están en
+  `PENDIENTES_DE_ANCLAR` con el ticket 11: el check falla para un Caso nuevo sin
+  ancla, enumera la deuda al pasar, y falla si la lista miente (un pendiente
+  fantasma o ya anclado). Anclarlos exige juicio sobre qué sección cubre cada
+  Check, así que se hace Caso a Caso, al tocar cada skill.
 
 ## Verificación
 

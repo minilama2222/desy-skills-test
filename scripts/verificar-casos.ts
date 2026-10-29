@@ -3,6 +3,7 @@ import { join, relative } from "node:path";
 import { anclajesDeRubric } from "../src/caso.js";
 import { CASOS_DIR, cargarCaso } from "../src/caso-loader.js";
 import {
+  PENDIENTES_DE_ANCLAR,
   problemasDelArbolDeCasos,
   type CasoEnDisco,
 } from "../src/guardarrail-casos.js";
@@ -103,7 +104,26 @@ function leerRubric(dir: string): Pick<CasoEnDisco, "textoRubric" | "anclas"> {
   return { textoRubric: texto, ...(anclas.size === 0 ? {} : { anclas }) };
 }
 
-const hallazgos = problemasDelArbolDeCasos(describirArbol(seccionesDelArbol()));
+const arbol = describirArbol(seccionesDelArbol());
+const hallazgos = problemasDelArbolDeCasos(arbol);
+
+// La deuda declarada se dice aunque no bloquee: un pendiente que no se nombra
+// se olvida, y la lista de `PENDIENTES_DE_ANCLAR` dejaría de vaciarse.
+const pendientes = arbol.filter((caso) =>
+  PENDIENTES_DE_ANCLAR.has(caso.ruta),
+);
+if (pendientes.length > 0) {
+  console.log(
+    `${pendientes.length} Caso/s sin anclar sus Checks (PENDIENTES_DE_ANCLAR, ` +
+      "se anclan al tocar cada skill):",
+  );
+  for (const caso of pendientes) {
+    console.log(
+      `  - ${caso.ruta} (${PENDIENTES_DE_ANCLAR.get(caso.ruta)}): ` +
+        `${caso.idsDeChecks?.length ?? 0} Check/s sin ancla`,
+    );
+  }
+}
 
 if (hallazgos.length === 0) {
   console.log(
@@ -116,6 +136,9 @@ console.log("El árbol de Casos tiene " + hallazgos.length + " problema/s:");
 for (const h of hallazgos) console.log("  - " + h);
 console.log(
   "\nUn Caso malformado no se valida sólo (cada test nombra su ruta): " +
-    "arréglalo o quítalo del árbol.",
+    "arréglalo o quítalo del árbol.\n" +
+    "Un Check sin ancla: bajo «## Anclaje en «desy-skills»» de su rubric.md, cada\n" +
+    "Check necesita una línea «- <id>: <skill> → «<sección>»»; la prosa de apoyo\n" +
+    "sigue valiendo, pero el informe necesita el ancla por Check.",
 );
 process.exit(1);

@@ -219,8 +219,14 @@ en el Caso. Es el árbol canónico a propósito: el ancla es una claim del repo 
 valer contra lo versionado, no contra el checkout de turno. Un Check sin ancla (los
 del Framework, por ejemplo) se presenta diciendo que no declara sección; una
 Ejecución que no invocó ningún skill **no cita la sección** aunque el skill exista
-en el árbol, y lo dice; un Check del Flujo dice por qué no hay línea que citar. Un
-Caso nuevo puede empezar sin anclas: el informe sigue siendo legible.
+en el árbol, y lo dice; un Check del Flujo dice por qué no hay línea que citar.
+
+El guardarraíl exige que **cada** Check del Caso tenga su ancla; un Caso nuevo sin
+anclar rompe el build. Los Casos anteriores al anclaje por Check están en
+`PENDIENTES_DE_ANCLAR` (`src/guardarrail-casos.ts`), con el ticket que los anclará:
+`verificar-casos` los enumera al pasar y falla si la lista nombra un Caso que no
+existe o que ya está anclado. Es deuda declarada, no una excepción silenciosa.
+
 
 ## Pin
 

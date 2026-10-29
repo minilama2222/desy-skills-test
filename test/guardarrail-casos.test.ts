@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  PENDIENTES_DE_ANCLAR,
   idsDeChecksCitadosEnRubric,
+  problemasDeLaListaDePendientes,
   problemasDelArbolDeCasos,
   type CasoEnDisco as CasoParaValidar,
 } from "../src/guardarrail-casos.js";
@@ -89,8 +91,15 @@ describe("problemasDelArbolDeCasos", () => {
 });
 
 describe("coherencia rúbrica ↔ checks.json", () => {
+  // Cada test de aquí mide la coherencia rúbrica↔checks; los Checks van todos
+  // anclados para que no se cuele el hallazgo de «Check sin ancla», que tiene su
+  // propio describe (ticket 06).
   const conChecks = (ids: string[]): CasoParaValidar =>
-    casoOk({ idsDeChecks: ids });
+    casoOk({
+      idsDeChecks: ids,
+      anclas: new Map(ids.map((id) => [id, { skill: "desy-styles-reference", seccion: "X" }])),
+      seccionesPorSkill: new Map([["desy-styles-reference", new Set(["X"])]]),
+    });
 
   it("no señala nada si la rúbrica nombra exactamente los checks del Caso", () => {
     const caso = conChecks(["token-base-16px", "token-lg-28px"]);
@@ -185,12 +194,15 @@ describe("coherencia rúbrica ↔ checks.json", () => {
 });
 
 describe("anclas de skill del Caso (ticket 06)", () => {
+  const SECCION = { skill: "desy-styles-reference", seccion: "Componentes con `c-*` (bloques UI completos)" };
   const conAnclas = (
     anclas: [string, { skill: string; seccion: string }][],
     over: Partial<CasoParaValidar> = {},
   ): CasoParaValidar =>
     casoOk({
-      idsDeChecks: ["variante-primaria"],
+      // Todos los Checks del Caso anclados salvo que el test diga otra cosa: cada
+      // test de aquí mide **una** regla, no la falta de anclaje (que tiene la suya).
+      idsDeChecks: anclas.map(([id]) => id),
       anclas: new Map(anclas),
       seccionesPorSkill: new Map([
         ["desy-styles-reference", new Set(["Componentes con `c-*` (bloques UI completos)"])],
@@ -200,12 +212,7 @@ describe("anclas de skill del Caso (ticket 06)", () => {
 
   it("no señala nada si el ancla nombra un Check del Caso y una sección que existe", () => {
     const hallazgos = problemasDelArbolDeCasos([
-      conAnclas([
-        [
-          "variante-primaria",
-          { skill: "desy-styles-reference", seccion: "Componentes con `c-*` (bloques UI completos)" },
-        ],
-      ]),
+      conAnclas([["variante-primaria", SECCION]]),
     ]);
 
     expect(hallazgos).toEqual([]);
@@ -213,7 +220,10 @@ describe("anclas de skill del Caso (ticket 06)", () => {
 
   it("señala un ancla a un Check que el Caso no tiene: sería una sección citada por nadie", () => {
     const hallazgos = problemasDelArbolDeCasos([
-      conAnclas([["variante-antigua", { skill: "desy-styles-reference", seccion: "Componentes con `c-*` (bloques UI completos)" }]]),
+      conAnclas([
+        ["variante-antigua", SECCION],
+        ["variante-primaria", SECCION],
+      ], { idsDeChecks: ["variante-primaria"] }),
     ]);
 
     expect(hallazgos).toHaveLength(1);
@@ -252,6 +262,96 @@ describe("anclas de skill del Caso (ticket 06)", () => {
 
   it("un Caso sin anclas no se señala: el ancla es opcional", () => {
     expect(problemasDelArbolDeCasos([casoOk()])).toEqual([]);
+  });
+
+  it("señala los Checks de un Caso que no tienen ancla, uno a uno", () => {
+    // El caso de la retro: el Caso tiene 3 Checks y su rubric.md los describe en
+    // prosa de apoyo, sin una línea de ancla por Check. Antes era silencio.
+    const hallazgos = problemasDelArbolDeCasos([
+      conAnclas([["uno", { skill: "desy-styles-reference", seccion: "X" }]], {
+        idsDeChecks: ["uno", "dos", "tres"],
+        seccionesPorSkill: new Map([["desy-styles-reference", new Set(["X"])]]),
+      }),
+    ]);
+
+    expect(hallazgos).toHaveLength(1);
+    expect(hallazgos[0]).toContain("no ancla 2 de sus 3 Check/s");
+    expect(hallazgos[0]).toContain("dos, tres");
+    // El que sí está anclado no se nombra como falta.
+    expect(hallazgos[0]).not.toContain("(uno,");
+  });
+
+  it("señala todos los Checks cuando ninguno está anclado", () => {
+    const hallazgos = problemasDelArbolDeCasos([
+      casoOk({ idsDeChecks: ["a", "b"], anclas: undefined, seccionesPorSkill: new Map() }),
+    ]);
+
+    expect(hallazgos).toHaveLength(1);
+    expect(hallazgos[0]).toContain("no ancla 2 de sus 2");
+  });
+
+  it("no señala la falta de ancla de un Caso que no declara Checks", () => {
+    expect(problemasDelArbolDeCasos([casoOk({ idsDeChecks: [] })])).toEqual([]);
+  });
+
+  it("no señala un Caso cuyos Checks están todos anclados", () => {
+    const hallazgos = problemasDelArbolDeCasos([conAnclas([["variante-primaria", SECCION]])]);
+
+    expect(hallazgos).toEqual([]);
+  });
+
+  it("tolera los Checks sin ancla de un Caso que está en PENDIENTES_DE_ANCLAR", () => {
+    // Deuda declarada: el pendiente existe, pero no rompe el build mientras esté
+    // nombrado. El script lo anuncia aparte.
+    const [ruta] = [...PENDIENTES_DE_ANCLAR.keys()];
+    const hallazgos = problemasDelArbolDeCasos([
+      casoOk({ ruta, idsDeChecks: ["a", "b"], anclas: undefined }),
+    ]);
+
+    expect(hallazgos).toEqual([]);
+  });
+
+  it("un Caso que NO está en la lista y no ancla sus Checks sigue siendo un rojo", () => {
+    const hallazgos = problemasDelArbolDeCasos([
+      casoOk({ ruta: "casos/skill-nuevo/decision/caso-nuevo", idsDeChecks: ["a"] }),
+    ]);
+
+    expect(hallazgos).toHaveLength(1);
+    expect(hallazgos[0]).toContain("no ancla 1 de sus 1");
+  });
+});
+
+describe("problemasDeLaListaDePendientes: la deuda declarada no miente", () => {
+  /** Los 13 pendientes, para que no salgan como fantasmas los que no mido. */
+  const todosLosPendientes = (over: Partial<CasoParaValidar> = {}): CasoParaValidar[] =>
+    [...PENDIENTES_DE_ANCLAR.keys()].map((ruta) =>
+      casoOk({ ruta, idsDeChecks: ["a"], anclas: undefined, ...over }),
+    );
+
+  it("un pendiente que no está en el árbol es un fantasma, y se señala", () => {
+    const [ruta] = [...PENDIENTES_DE_ANCLAR.keys()];
+    const hallazgos = problemasDeLaListaDePendientes(todosLosPendientes().slice(1));
+
+    expect(hallazgos).toHaveLength(1);
+    expect(hallazgos[0]).toContain(ruta!);
+    expect(hallazgos[0]).toContain("quítalo de la lista");
+  });
+
+  it("un pendiente que ya ancla todos sus Checks sobra, y se señala", () => {
+    const [ruta] = [...PENDIENTES_DE_ANCLAR.keys()];
+    const casos = todosLosPendientes().map((caso) =>
+      caso.ruta === ruta
+        ? { ...caso, anclas: new Map([["a", { skill: "s", seccion: "x" }]]) }
+        : caso,
+    );
+    const hallazgos = problemasDeLaListaDePendientes(casos);
+
+    expect(hallazgos).toHaveLength(1);
+    expect(hallazgos[0]).toContain("ya ancla sus 1 Check/s");
+  });
+
+  it("un pendiente que sigue sin anclar no se señala: ésa es la deuda real", () => {
+    expect(problemasDeLaListaDePendientes(todosLosPendientes())).toEqual([]);
   });
 });
 
