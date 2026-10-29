@@ -1,13 +1,11 @@
 #!/bin/sh
-# Guardarraíl pre-commit: typecheck + tests + guardarraíles (tests, codificación,
-# tracker, casos, fixtures de mockup y conteo del README). Se activa con:
-# git config core.hooksPath scripts/git-hooks
+# Guardarraíl pre-commit: corre el gate entero del repo, sin repetir su lista.
+#
+# La lista vive en `package.json` (`npm run precommit`) y **sólo** ahí. Antes este
+# hook enumeraba los pasos a mano y se quedó corto: no corría `verificar-pin`, que
+# sí estaba en el script npm, así que el gate que de verdad se ejecutaba al
+# commitear era más débil que el que el repo documenta (retro del ticket 06).
+#
+# Se activa con: git config core.hooksPath scripts/git-hooks
 set -e
-npm run typecheck
-npm run verificar-tests
-npm run verificar-codificacion
-npm run verificar-tracker
-npm run verificar-casos
-npm run verificar-mockup
-npm run verificar-readme
-npm test
+npm run precommit

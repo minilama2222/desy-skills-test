@@ -39,6 +39,36 @@ not a CLI subcommand (e.g. `capturar-mockup`, `verificar-captura-gold`) belongs
 in the README and *not* in `usage()`; comparing the two for a script is a false
 finding.
 
+## A test of a "must not" is written with the adverse scenario whole
+
+A criterion that says *this must not happen* — "without invoking the skill, the
+report cites no section", "a Caso that never delivered is not SUSPENDE" — is only
+tested when the test carries the full adversarial setup, **including the parts
+that would make the bug visible**.
+
+The failure this prevents happened in the ticket-06 build: the criterion was "a
+run that invoked no skill cites no section", and the test injected a reader that
+returned `undefined` for every section. That reader made the section unreadable
+for *every* run, so it hid the real bug — the code consulted the reader *before*
+checking for invocation — and the test went green over a broken criterion. The
+review found it by asking what the test would do with the real reader.
+
+So:
+
+- **Never stub away the thing that fails.** If the scenario is "the tree has the
+  section but the run invoked nothing", the test's tree must *have* the section.
+  A double that returns empty is the bug's alibi, not its proof.
+- **Pair it with a positive control**: the same input, with the condition that
+  lifts the prohibition, *does* produce the forbidden thing. Without the control,
+  a green may be a test that could never have failed ("control of that an anchor
+  does read when there is invocation").
+- **Check it goes red first.** Before the fix, the new test must fail; run it
+  against the old code if the fix is already in. A test written after the fix and
+  never seen red is a claim, not a check.
+
+The tell: ask *"what would I have to break for this test to go red?"*. If the
+answer is "nothing I did", the test does not cover the criterion.
+
 ## Domain language comes from the glossary
 
 When the diff names a domain concept, it uses the term as `GLOSSARY.md` defines

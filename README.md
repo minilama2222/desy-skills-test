@@ -21,6 +21,7 @@ npm run grade     # puntúa un Check sobre Evidencia vacía (herramienta de auto
 npm run load -- <ruta>  # carga un Caso desde su carpeta y muestra su JSON
 npm run verificar-casos  # guardarraíl: todos los Casos de casos/ deben ser cargables
 npm run verificar-readme  # guardarraíl: el conteo de Casos del README coincide con el disco
+npm run verificar-acentos  # guardarraíl: la prosa del repo no lleva palabras españolas sin tilde
 npm run verificar-mockup  # valida los mockup.png commiteados (sin navegador; --recapturar sí abre)
 npm run capturar-gold -- --skill <skill> --case <caso>  # genera/valida la Captura de Gold
 npm run capturar-mockup  # genera el mockup (input/mockup.png) de los Casos-decisión

@@ -1,5 +1,39 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { pruebasConNavegador } from "../src/guardarrail-tests.js";
+import { REPO_ROOT } from "../src/repo.js";
+
+/**
+ * Retro del ticket 06: el hook de pre-commit enumeraba los pasos a mano y se
+ * quedó corto —no corría `verificar-pin`, que sí estaba en `npm run precommit`—,
+ * así que el gate que de verdad se ejecutaba al commitear era más débil que el
+ * documentado. La causa era tener **dos** listas; el arreglo, que el hook delegue
+ * en el script npm. Este test fija que no vuelva a haber dos.
+ */
+describe("el hook de pre-commit delega en `npm run precommit`", () => {
+  const hook = readFileSync(join(REPO_ROOT, "scripts", "git-hooks", "pre-commit"), "utf8");
+  const pkg = JSON.parse(readFileSync(join(REPO_ROOT, "package.json"), "utf8")) as {
+    scripts: Record<string, string>;
+  };
+
+  it("llama al script npm en vez de repetir la lista de guardarraíles", () => {
+    expect(hook).toContain("npm run precommit");
+  });
+
+  it("no vuelve a enumerar los `verificar-*` a mano", () => {
+    // Los pasos viven en `package.json` y sólo ahí: un `verificar-` en el hook es
+    // la segunda lista que ya divergió una vez.
+    expect(hook).not.toMatch(/npm run verificar-/);
+  });
+
+  it("el `precommit` de npm incluye los guardarraíles que el hook dejaba fuera", () => {
+    // `verificar-pin` es el que se quedó fuera entonces; y el de acentos es el de
+    // esta retro. Si se cae de la lista, el hook deja de correrlo en silencio.
+    expect(pkg.scripts.precommit).toContain("verificar-pin");
+    expect(pkg.scripts.precommit).toContain("verificar-acentos");
+  });
+});
 
 describe("pruebasConNavegador", () => {
   it("una suite sin navegador no tiene hallazgos", () => {

@@ -20,6 +20,16 @@ contradicts it (e.g. `gap-x-4` in `desy-implement-layout-patterns`), the referen
 wins and the example is the legacy to catch. See the `## A macro Caso-componente…`
 rule in `CODING_STANDARDS.md`.
 
+### The per-Caso report
+
+`npm run suite` and `npm run report` write `reports/<tree>/informe/<skill>/<caso>.md`
+alongside the Scorecard. The renderer is `renderInformeCaso` in `src/informe.ts`
+(pure: Executions + a `ContextoDelCaso`); the adapter that resolves the skills
+tree and writes the files is `escribirInformesPorCaso` in `src/cli.ts`. A Caso
+anchors each Check to a skill section in its `rubric.md` (`## Anclaje en
+desy-skills`), cited by title via `src/seccion-skill.ts`; `npm run verificar-casos`
+checks the titles exist. The report presents; it never decides skill-vs-check.
+
 ### Windows shell noise
 
 On Windows, `npm test` / `npm run precommit` and `git commit` can exit 1 because

@@ -61,10 +61,27 @@ Leyendo solo este informe, alguien que no conoce el harness puede decidir si toc
 
 ## Verificación
 
-`npm run precommit` en verde. Tests nuevos: `test/informe.test.ts` (19, sobre el
+`npm run precommit` en verde. Tests nuevos: `test/informe.test.ts` (20, sobre el
 Caso real `boton-primario`: bloque por Check, cita por título, ausencia, trigger,
 falta de invocación y la regla de «presenta, no adivina»), `test/informe-cli.test.ts`
 (proceso real: `report` deja `informe/<skill>/<caso>.md` y borra el informe de una
 corrida anterior), más casos en `test/caso.test.ts` (parser del ancla),
 `test/caso-loader.test.ts` (ancla pegada al Check) y `test/guardarrail-casos.test.ts`
 (id inexistente, sección inexistente, skill fuera del árbol).
+
+## Retro (29/10): lo que la revisión y la retro destaparon
+
+La primera versión tenía un fallo de criterio que **su propio test tapaba**: el
+test de «sin invocación no se cita la sección» inyectaba un lector vacío, que
+ocultaba que `seccionDe` consultaba el árbol **antes** de mirar la invocación.
+Cazado por `/code-review` y arreglado en `5b07a57`, con el test reescrito sobre el
+árbol real y comprobado en rojo contra el código anterior. La lección está en
+`CODING_STANDARDS.md` → «A test of a "must not" is written with the adverse
+scenario whole».
+
+De la retro salieron, además, dos agujeros del entorno (`5b07a57` y el commit de
+retro): el hook de pre-commit enumeraba los pasos a mano y no corría
+`verificar-pin`, y los acentos aplanados —el fallo de este mismo ticket— no tenían
+check. Ahora el hook llama a `npm run precommit` y `npm run verificar-acentos` caza
+las palabras españolas que sin tilde no existen.
+
