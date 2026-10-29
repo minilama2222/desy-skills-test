@@ -18,6 +18,10 @@ export interface ResultadoEjecucion {
   artefactos: Record<string, string>;
   entrega: Entrega;
   flujoAlcanzoSkill: boolean;
+  /** Exit code del SUT: ≠ 0 ⇒ crasheó; 0 sin Artefacto ⇒ terminó sin entregar. */
+  exitCode: number;
+  /** Último paso del Flujo alcanzado, o null si no invocó ningún skill. */
+  ultimoPasoDelFlujo: string | null;
 }
 
 /**
@@ -46,6 +50,16 @@ export function entregaDeArtefactos(artefactos: Record<string, string>): Entrega
  */
 export function alcanzoSkill(flujoObservado: string[], skill: string): boolean {
   return flujoObservado.some((paso) => pasoCoincide(paso, skill));
+}
+
+/**
+ * Regla: ¿dónde se paró el SUT? El último paso del Flujo observado, o null si no
+ * invocó ningún skill. Con `exitCode` separa «crasheó» de «se quedó sin entregar»:
+ * un exit ≠ 0 con dos pasos no es lo mismo que un exit 0 con dos pasos y sin
+ * Artefacto. Ver el ticket 02 del bucle de refinamiento.
+ */
+export function ultimoPasoDelFlujo(flujoObservado: string[]): string | null {
+  return flujoObservado.length === 0 ? null : flujoObservado[flujoObservado.length - 1]!;
 }
 
 /**
@@ -86,5 +100,7 @@ export async function ejecutarCaso(
     artefactos: evidencia.artefactos.files,
     entrega: entregaDeArtefactos(evidencia.artefactos.files),
     flujoAlcanzoSkill: alcanzoSkill(evidencia.transcript.invocaciones, caso.skill),
+    exitCode: evidencia.exitCode,
+    ultimoPasoDelFlujo: ultimoPasoDelFlujo(evidencia.transcript.invocaciones),
   };
 }

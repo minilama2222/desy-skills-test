@@ -16,6 +16,8 @@ const ejecucion = (over: Partial<ResultadoEjecucion> = {}): ResultadoEjecucion =
   artefactos: {},
   entrega: "con-artefacto",
   flujoAlcanzoSkill: true,
+  exitCode: 0,
+  ultimoPasoDelFlujo: null,
   ...over,
 });
 

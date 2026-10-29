@@ -201,7 +201,11 @@ describe("runCaso", () => {
       command,
     });
 
-    expect(Object.keys(resultado).sort()).toEqual(["artefactos", "transcript"]);
+    expect(Object.keys(resultado).sort()).toEqual([
+      "artefactos",
+      "exitCode",
+      "transcript",
+    ]);
     expect(resultado.artefactos).toEqual({
       files: { "boton.html": "<button>Enviar</button>" },
     });

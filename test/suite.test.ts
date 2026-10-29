@@ -38,6 +38,8 @@ const ejecucion = (over: Partial<ResultadoEjecucion> = {}): ResultadoEjecucion =
   artefactos: { "src/boton.html": "{{ componentButton() }}" },
   entrega: "con-artefacto",
   flujoAlcanzoSkill: true,
+  exitCode: 0,
+  ultimoPasoDelFlujo: "implement-component",
   ...over,
 });
 

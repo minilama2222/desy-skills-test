@@ -110,6 +110,12 @@ export interface Transcript {
 export interface Evidencia {
   artefactos: Artefactos;
   transcript: Transcript;
+  /**
+   * Exit code del SUT (ticket 02 del bucle de refinamiento). Antes se calculaba
+   * en `realCommand` y se descartaba: un crash y un estancamiento daban el mismo
+   * «sin-artefacto». Se eleva por la Evidencia para que el orquestador lo registre.
+   */
+  exitCode: number;
 }
 
 export interface CommandResult {
@@ -267,7 +273,7 @@ export async function runCaso(
       promptParaSut(prompt, imagen?.tipo, imagen?.nombre),
       imagen?.path,
     );
-    const { stdout, stderr } = deps.command.run(args, {
+    const { stdout, stderr, code } = deps.command.run(args, {
       cwd: sandbox.workDir,
       // `XDG_CONFIG_HOME` es la ruta de config de `opencode.jsonc`; `OPENCODE_HOME`
       // la del par `auth.json`/base de datos en V2. Se fijan las dos para que no
@@ -284,6 +290,7 @@ export async function runCaso(
             : artefactosToFiles(sandbox.listArtefactos(dir)),
       },
       transcript: { invocaciones: parseInvocaciones(transcript) },
+      exitCode: code,
     };
   } finally {
     sandbox.cleanup();
