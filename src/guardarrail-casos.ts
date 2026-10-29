@@ -126,19 +126,19 @@ export function problemasDelArbolDeCasos(casos: CasoEnDisco[]): string[] {
  *   sólo se tolera donde ya estaba.
  */
 export const PENDIENTES_DE_ANCLAR: ReadonlyMap<string, string> = new Map([
-  ["casos/angular-translator/componente/boton-primario-angular", "ticket 11"],
-  ["casos/choose-library/decision/portal-turistico", "ticket 11"],
-  ["casos/choose-page-template/decision/404-portal-publico", "ticket 11"],
-  ["casos/component-recognizer/decision/reconocimiento-login", "ticket 11"],
-  ["casos/design-match/decision/afinado-paso-1", "ticket 11"],
-  ["casos/implement-layout-patterns/componente/fieldset-grid-acciones", "ticket 11"],
-  ["casos/implement-pattern/componente/politicas-privacidad", "ticket 11"],
-  ["casos/implement-pattern/pagina/patron-pagina-paso-1-nombre-nif", "ticket 11"],
-  ["casos/preflight-check/decision/proyecto-no-existe", "ticket 11"],
-  ["casos/preflight-check/decision/proyecto-ok-libreria-version", "ticket 11"],
-  ["casos/scaffold-project/decision/no-scaffoldea-sin-permiso", "ticket 11"],
-  ["casos/styles-reference/decision/token-espaciado", "ticket 11"],
-  ["casos/validate-accessibility/decision/checklist-sin-servidor", "ticket 11"],
+  ["casos/angular-translator/componente/boton-primario-angular", "ticket 12"],
+  ["casos/choose-library/decision/portal-turistico", "ticket 12"],
+  ["casos/choose-page-template/decision/404-portal-publico", "ticket 12"],
+  ["casos/component-recognizer/decision/reconocimiento-login", "ticket 12"],
+  ["casos/design-match/decision/afinado-paso-1", "ticket 12"],
+  ["casos/implement-layout-patterns/componente/fieldset-grid-acciones", "ticket 12"],
+  ["casos/implement-pattern/componente/politicas-privacidad", "ticket 12"],
+  ["casos/implement-pattern/pagina/patron-pagina-paso-1-nombre-nif", "ticket 12"],
+  ["casos/preflight-check/decision/proyecto-no-existe", "ticket 12"],
+  ["casos/preflight-check/decision/proyecto-ok-libreria-version", "ticket 12"],
+  ["casos/scaffold-project/decision/no-scaffoldea-sin-permiso", "ticket 12"],
+  ["casos/styles-reference/decision/token-espaciado", "ticket 12"],
+  ["casos/validate-accessibility/decision/checklist-sin-servidor", "ticket 12"],
 ]);
 
 export function problemasDeAnclaje(caso: CasoEnDisco): string[] {
