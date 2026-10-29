@@ -58,9 +58,29 @@ export interface SkillScorecard {
   indeterminados: number;
 }
 
+/**
+ * El hash que se declara cuando no hay uno real (scorecards construidos a mano
+ * en tests, o el comando `report` sobre Ejecuciones sin Evidencia). Es un valor
+ * explícito, no una cadena vacía: que un scorecard diga «desconocido» es
+ * información; que parezca un hash inventado no lo es.
+ */
+/**
+ * El hash que se declara cuando no hay uno real (scorecards construidos a mano
+ * en tests, o el comando `report` sobre Ejecuciones sin Evidencia). Es un valor
+ * explícito, no una cadena vacía: que un scorecard diga «desconocido» es
+ * información; que parezca un hash inventado no lo es.
+ */
+export const HASH_DESCONOCIDO = "desconocido";
+
 export interface Scorecard {
   /** El Pin testeado: commit + fecha. Todo reporte lo declara. */
   pin: Pick<Pin, "ref" | "commit" | "fecha" | "repo">;
+  /**
+   * La identidad de **qué skills se midieron**: hash del árbol copiado al
+   * sandbox (ticket 04). El commit no basta — una versión local sucia no tiene
+   * commit — y es este hash el que se compara entre versiones.
+   */
+  arbolHash: string;
   skills: SkillScorecard[];
 }
 
@@ -170,6 +190,7 @@ function agruparPor<T>(items: T[], clave: (item: T) => string): Map<string, T[]>
 export function agregarScorecard(
   ejecuciones: ResultadoEjecucion[],
   pin: Pin,
+  arbolHash: string = HASH_DESCONOCIDO,
 ): Scorecard {
   const porSkill = agruparPor(ejecuciones, (e) => e.skill);
 
@@ -187,6 +208,7 @@ export function agregarScorecard(
 
   return {
     pin: { ref: pin.ref, commit: pin.commit, fecha: pin.fecha, repo: pin.repo },
+    arbolHash,
     skills,
   };
 }
@@ -201,6 +223,7 @@ export function renderScorecard(reporte: Scorecard): string {
   const lineas: string[] = [];
   lineas.push(`# Scorecard — Pin ${reporte.pin.commit} (${reporte.pin.fecha})`);
   if (reporte.pin.ref) lineas.push(`Ref: ${reporte.pin.ref}`);
+  lineas.push(`Árbol ${reporte.arbolHash}`);
 
   if (reporte.skills.length === 0) {
     lineas.push("", "Sin Ejecuciones.");

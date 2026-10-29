@@ -4,6 +4,7 @@ import { CASOS_DIR, cargarCaso, cargarCasos } from "./caso-loader.js";
 import type { Assert, Check, TipoCaso } from "./caso.js";
 import { ejecutarCaso, type ResultadoEjecucion } from "./ejecutar.js";
 import { grado } from "./grader.js";
+import { problemasDeVendorSucio } from "./guardarrail-pin.js";
 import { readPin } from "./pin.js";
 import {
   escribirScorecard,
@@ -14,8 +15,8 @@ import {
   rutaRelativa,
   vaciarEjecuciones,
 } from "./reportes.js";
-import { createSandbox, realCommand, SCAFFOLD_CACHE_DIR } from "./runner.js";
-import { agregarScorecard, renderScorecard } from "./scorecard.js";
+import { createSandbox, realCommand, SCAFFOLD_CACHE_DIR, VENDOR_SKILLS_DIR } from "./runner.js";
+import { HASH_DESCONOCIDO, agregarScorecard, renderScorecard } from "./scorecard.js";
 import {
   exitCodeDe,
   N_POR_DEFECTO,
@@ -155,6 +156,14 @@ async function runSuite(args: string[]): Promise<number> {
 
   const casos = seleccionarCasos(cargarCasos(CASOS_DIR), seleccion);
   const pin = readPin(PIN_PATH);
+
+  // Antes de vaciar reportes o gastar una sola corrida: si el árbol vendido
+  // tiene cambios, el informe declararía el commit de pin.json sin serlo.
+  const sucio = problemasDeVendorSucio(VENDOR_SKILLS_DIR.replace(/[\\/]skills$/, ""));  if (sucio.length > 0) {
+    for (const h of sucio) console.error(h);
+    return 1;
+  }
+
   vaciarEjecuciones(rutas.ejecuciones);
 
   const ejecuciones: ResultadoEjecucion[] = [];
@@ -168,7 +177,7 @@ async function runSuite(args: string[]): Promise<number> {
     }
   }
 
-  const scorecard = agregarScorecard(ejecuciones, pin);
+  const scorecard = agregarScorecard(ejecuciones, pin, hashComun(ejecuciones));
   const markdown = renderScorecard(scorecard) + "\n";
   escribirScorecard(JSON.stringify(scorecard, null, 2) + "\n", markdown, rutas);
 
@@ -227,6 +236,16 @@ function runLoad([ruta = ""]: string[]): void {
 }
 
 /**
+ * El hash de árbol de una corrida. Todas las Ejecuciones de una suite copian el
+ * mismo árbol, así que basta con el primero que lo declare; si no hay ninguno (una
+ * suite antigua, o un árbol de Ejecuciones mezclado a mano) se dice
+ * `HASH_DESCONOCIDO` en vez de inventar uno.
+ */
+function hashComun(ejecuciones: ResultadoEjecucion[]): string {
+  return ejecuciones.find((e) => e.arbolHash.length > 0)?.arbolHash ?? HASH_DESCONOCIDO;
+}
+
+/**
  * El reporte: agrega las Ejecuciones persistidas en el Scorecard (JSON, fuente de
  * verdad) y lo renderiza a markdown legible. El JSON se escribe siempre —es lo
  * que consume CI— y la ruta se anuncia por stderr para no ensuciar la salida
@@ -239,7 +258,7 @@ function runReport(args: string[]): void {
 
   const pin = readPin(PIN_PATH);
   const ejecuciones = leerEjecuciones(rutas.ejecuciones);
-  const scorecard = agregarScorecard(ejecuciones, pin);
+  const scorecard = agregarScorecard(ejecuciones, pin, hashComun(ejecuciones));
   const markdown = renderScorecard(scorecard) + "\n";
 
   escribirScorecard(JSON.stringify(scorecard, null, 2) + "\n", markdown, rutas);

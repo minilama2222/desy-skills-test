@@ -202,6 +202,7 @@ describe("runCaso", () => {
     });
 
     expect(Object.keys(resultado).sort()).toEqual([
+      "arbolHash",
       "artefactos",
       "exitCode",
       "transcript",

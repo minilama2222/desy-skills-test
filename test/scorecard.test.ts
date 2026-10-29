@@ -24,6 +24,7 @@ const ejecucion = (over: Partial<ResultadoEjecucion> = {}): ResultadoEjecucion =
   flujoAlcanzoSkill: true,
   exitCode: 0,
   ultimoPasoDelFlujo: "implement-component",
+  arbolHash: "hash-de-fixture",
   ...over,
 });
 

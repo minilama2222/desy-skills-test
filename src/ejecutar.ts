@@ -22,6 +22,8 @@ export interface ResultadoEjecucion {
   exitCode: number;
   /** Último paso del Flujo alcanzado, o null si no invocó ningún skill. */
   ultimoPasoDelFlujo: string | null;
+  /** Hash del árbol de skills medido (ticket 04): la identidad de la versión. */
+  arbolHash: string;
 }
 
 /**
@@ -102,5 +104,6 @@ export async function ejecutarCaso(
     flujoAlcanzoSkill: alcanzoSkill(evidencia.transcript.invocaciones, caso.skill),
     exitCode: evidencia.exitCode,
     ultimoPasoDelFlujo: ultimoPasoDelFlujo(evidencia.transcript.invocaciones),
+    arbolHash: evidencia.arbolHash,
   };
 }

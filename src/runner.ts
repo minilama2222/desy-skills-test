@@ -13,6 +13,8 @@ import { homedir, tmpdir } from "node:os";
 import { join, relative } from "node:path";
 import type { Caso } from "./caso.js";
 import { esCasoDecision, esCasoPagina } from "./caso.js";
+import type { FicheroDeSkill } from "./guardarrail-pin.js";
+import { hashDelArbol, rutaDeSkill } from "./guardarrail-pin.js";
 import type { Pin } from "./pin.js";
 import { REPO_ROOT } from "./repo.js";
 
@@ -116,6 +118,12 @@ export interface Evidencia {
    * «sin-artefacto». Se eleva por la Evidencia para que el orquestador lo registre.
    */
   exitCode: number;
+  /**
+   * Hash del árbol de skills que se copió al sandbox (ticket 04): la identidad de
+   * qué se midió. El commit de `pin.json` no basta, porque nada verifica que
+   * `vendor/` coincida con él.
+   */
+  arbolHash: string;
 }
 
 export interface CommandResult {
@@ -291,6 +299,7 @@ export async function runCaso(
       },
       transcript: { invocaciones: parseInvocaciones(transcript) },
       exitCode: code,
+      arbolHash: hashDelArbolDelSandbox(sandbox.skillsDir),
     };
   } finally {
     sandbox.cleanup();
@@ -301,6 +310,33 @@ function artefactosToFiles(
   artefactos: { path: string; contenido: string }[],
 ): Record<string, string> {
   return Object.fromEntries(artefactos.map((a) => [a.path, a.contenido]));
+}
+
+/**
+ * Lee el árbol de skills **ya copiado al sandbox** y lo hashea. Se hashea lo que
+ * el SUT va a ver, no la fuente: si la copia y el vendor divergieran, el hash
+ * diría la verdad de lo medido (ticket 04).
+ */
+function hashDelArbolDelSandbox(skillsDir: string): string {
+  const ficheros: FicheroDeSkill[] = [];
+  // Un skillsDir inexistente es un sandbox sin skills (los dobles de test), no
+  // un error: se hashea el árbol vacío en vez de reventar la Ejecución.
+  if (!existsSync(skillsDir)) return hashDelArbol(ficheros);
+  const recorrer = (dir: string): void => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const absoluta = join(dir, entry.name);
+      if (entry.isDirectory()) {
+        recorrer(absoluta);
+      } else if (entry.isFile()) {
+        ficheros.push({
+          ruta: rutaDeSkill(skillsDir, absoluta),
+          contenido: readFileSync(absoluta, "utf8"),
+        });
+      }
+    }
+  };
+  recorrer(skillsDir);
+  return hashDelArbol(ficheros);
 }
 
 /** Tipo de imagen de referencia que un Caso adjunta al prompt. */
