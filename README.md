@@ -190,10 +190,19 @@ skill o del check**. Por cada Ejecución y cada Check, pone lado a lado:
 
 - la **aserción** del Check (`Exige:` / `Tumba:`), sacada de su propio `assert`;
 - la **línea del artefacto** que la tumba, con su número, o —si el Check falla por
-  **ausencia**— la línea donde debería estar lo que exige; y
+  **ausencia**— la línea donde debería estar lo que exige. Es una **pista**, no un
+  veredicto: se busca el valor que la aserción nombra, así que en un Check de
+  tokens (`p-4`, un color no-token) señala las líneas que lo contienen, y puede
+  señalar una que no sea la que rompe la regla; y
 - la **sección del skill** de la que el Caso dice depender, citada **por su
-  título** (nunca por número de línea) y con su texto, leído del árbol que se
-  midió.
+  título** (nunca por número de línea) y con su texto.
+
+El texto de la sección se lee **al escribir el informe**, del árbol de skills que
+el Pin de las Ejecuciones identifica: el `vendor/` versionado en un Pin remoto, y
+el `<checkout>/skills` de un Pin local. No es una foto del sandbox de la corrida:
+si `vendor/` ha avanzado desde entonces, la sección citada es la de ahora, no la
+que el SUT leyó. Para situarlo, el informe **no** repite el Pin ni el `arbolHash`:
+siguen en el Scorecard de la misma corrida.
 
 El informe **presenta, no adivina**: no emite veredicto de culpa del skill ni del
 check. El Caso declara de qué sección depende cada Check en su `rubric.md`, bajo
@@ -203,11 +212,14 @@ el epígrafe `## Anclaje en desy-skills`:
 - variante-primaria: desy-styles-reference → «Componentes con `c-*` (bloques UI completos)»
 ```
 
-`npm run verificar-casos` comprueba que ese título existe en el `SKILL.md` del
-skill citado y que el id existe en el Caso. Un Check sin ancla (los del Framework,
-por ejemplo) se presenta diciendo que no declara sección; una Ejecución que no
-invocó ningún skill, o un Check del Flujo, dicen por qué no hay sección ni línea
-que citar. Un Caso nuevo puede empezar sin anclas: el informe sigue siendo legible.
+`npm run verificar-casos` comprueba, contra `vendor/desy-skills/`, que ese título
+existe en el `SKILL.md` del skill citado y —cuando el Caso carga— que el id existe
+en el Caso. Es el árbol canónico a propósito: el ancla es una claim del repo y debe
+valer contra lo versionado, no contra el checkout de turno. Un Check sin ancla (los
+del Framework, por ejemplo) se presenta diciendo que no declara sección; una
+Ejecución que no invocó ningún skill **no cita la sección** aunque el skill exista
+en el árbol, y lo dice; un Check del Flujo dice por qué no hay línea que citar. Un
+Caso nuevo puede empezar sin anclas: el informe sigue siendo legible.
 
 ## Pin
 

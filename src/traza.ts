@@ -147,12 +147,3 @@ export function trazaDeAssert(assert: Assert): TrazaCheck {
   }
 }
 
-/**
- * El `id` del Check en la forma en que lo **nombra** el Framework: por tipo de
- * Caso el grader añade checks base que el `checks.json` del Caso no declara
- * (`frameworkDeChecks`), y para trazar su aserción hace falta el `Check`, no sólo
- * el `DetalleCheck`.
- */
-export function trazaDeCheck(check: Check): TrazaCheck {
-  return trazaDeAssert(check.assert);
-}

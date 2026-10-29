@@ -13,20 +13,20 @@ import { titulosDeSkill } from "../src/seccion-skill.js";
 /**
  * Guardarraíl del árbol de Casos (ver el retro del ticket 09): todo Caso
  * declarado en `casos/` debe ser cargable. Es la parte adaptadora del
- * guardarrail puro `problemasDelArbolDeCasos`: recorre el FS, describe cada Caso
- * (que ficheros tiene) e intenta cargarlo para capturar un `checks.json`
+ * guardarraíl puro `problemasDelArbolDeCasos`: recorre el FS, describe cada Caso
+ * (qué ficheros tiene) e intenta cargarlo para capturar un `checks.json`
  * malformado. Corre en el pre-commit. `npm run verificar-casos`.
  *
- * Desde el ticket 06 contrasta ademas las anclas de skill del `rubric.md` contra
+ * Desde el ticket 06 contrasta además las anclas de skill del `rubric.md` contra
  * los títulos reales de los `SKILL.md` de `vendor/desy-skills/skills/`: el árbol
- * canonico, porque es el que el repo versiona y contra el que se mide.
+ * canónico, porque es el que el repo versiona y contra el que se mide.
  */
 function rutaRelativa(path: string): string {
   return relative(REPO_ROOT, path).split("\\").join("/");
 }
 
 /**
- * Los títulos de sección de cada skill del árbol canonico. Se lee vendor/, no un
+ * Los títulos de sección de cada skill del árbol canónico. Se lee vendor/, no un
  * checkout local: el ancla del Caso es una claim del repo y tiene que valer
  * contra lo versionado; que un checkout del usuario no la tenga aún es normal
  * mientras la petición sigue abierta.
@@ -116,6 +116,6 @@ console.log("El árbol de Casos tiene " + hallazgos.length + " problema/s:");
 for (const h of hallazgos) console.log("  - " + h);
 console.log(
   "\nUn Caso malformado no se valida sólo (cada test nombra su ruta): " +
-    "arreglalo o quitalo del árbol.",
+    "arréglalo o quítalo del árbol.",
 );
 process.exit(1);

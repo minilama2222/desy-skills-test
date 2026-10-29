@@ -36,12 +36,12 @@ export interface DetalleCheck {
   severity: Check["severity"];
   passed: boolean;
   /**
-   * La aserción que se evaluó (ticket 06). El informe por Caso tiene que citar el
-   * **texto** del Check que falla, y una Ejecución persistida se lee sin el Caso
-   * —que además pudo cambiar desde que se midió—: por eso viaja aquí, no se
-   * busca en `casos/` al reportar. Es opcional porque una Ejecución anterior al
-   * ticket 06 no la trae; entonces el informe cita el id y dice por qué no hay
-   * aserción.
+   * La aserción que se evaluó (ticket 06). El informe por Caso cita el **texto**
+   * del Check que falla, y una Ejecución persistida se lee sin el Caso —que además
+   * pudo cambiar desde que se midió—: por eso viaja aquí, no se busca en `casos/`
+   * al reportar. Es opcional porque una Ejecución anterior al ticket 06 no la
+   * trae; entonces el informe cita el id, la línea del artefacto si la encuentra,
+   * y dice que no hay aserción que leer.
    */
   assert?: Assert;
   /** La sección del skill de la que el Caso hace depender este Check, si la declara. */

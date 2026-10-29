@@ -260,6 +260,14 @@ function citaDeLineas(
  * La sección del skill que el Caso nombra para un Check, resuelta contra el árbol
  * medido. Sin ancla —un Check del Framework, que el Caso no declara— no hay
  * sección: se dice, no se rellena con una aproximación.
+ *
+ * **La invocación se comprueba primero, y a propósito.** El informe es de una
+ * Ejecución, no del árbol: si esa Ejecución no invocó ningún skill, no hay nada
+ * que esa corrida haya leído, y citar la sección —aunque el skill exista en el
+ * árbol— presentaría como propio de la corrida un texto que el SUT nunca leyó.
+ * Es la cuarta casilla del ticket, y la razón de que el chequeo no pueda quedar
+ * detrás de `leerSeccion`: con el árbol disponible, `leerSeccion` devuelve texto y
+ * la ausencia de invocación pasaría invisible.
  */
 function seccionDe(
   check: DetalleCheck,
@@ -268,13 +276,15 @@ function seccionDe(
 ): SeccionDelSkill | undefined {
   const ancla = check.ancla ?? contexto.anclas?.get(check.id);
   if (ancla === undefined) return undefined;
+  if (invocaciones === 0) {
+    return {
+      ...ancla,
+      texto: "",
+      noLeida: "no se invocó ningún skill, así que no hay sección que leer",
+    };
+  }
   const texto = contexto.leerSeccion?.(ancla);
   if (texto !== undefined) return { ...ancla, texto };
-  // Sin invocación no hubo árbol del que leer la sección de nada: el informe lo
-  // dice con esa causa, no como si la sección hubiera desaparecido.
-  if (invocaciones === 0) {
-    return { ...ancla, texto: "", noLeida: "no se invocó ningún skill, así que no hay sección que leer" };
-  }
   return {
     ...ancla,
     texto: "",

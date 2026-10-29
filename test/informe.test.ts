@@ -156,11 +156,34 @@ describe("renderInformeCaso: el bloque de cada Check", () => {
       flujoObservado: [],
       flujoAlcanzoSkill: false,
     });
+    // **Sin** injertar un lector vacío: el árbol real de `vendor/` sí tiene la
+    // sección del ancla. Éste es el caso que la primera versión del test tapaba —
+    // consultaba `leerSeccion` antes de mirar la invocación y citaba la sección
+    // de una corrida que no leyó nada.
+    const texto = renderInformeCaso([sinInvocacion], contextoReal());
+
+    expect(texto).toContain("no se invocó ningún skill, así que no hay sección que leer");
+    expect(texto).not.toContain("```markdown");
+    // Y no aparece el cuerpo de la sección, que sí existe en el árbol.
+    expect(texto).not.toContain("- `c-button`, `c-button--primary`, `c-button--secondary`");
+  });
+
+  it("sin invocación no cita la sección ni siquiera cuando el skill existe en el árbol", () => {
+    // La variante del mismo fallo, explícita: el lector devuelve texto de verdad.
+    const sinInvocacion = ejecucionReal(ARTEFACTO_SIN_VARIANTE, {
+      flujoObservado: [],
+      flujoAlcanzoSkill: false,
+    });
+    const conArbol = lectorDeSecciones(VENDOR_SKILLS_DIR);
+    // Control: el mismo ancla SÍ se lee cuando hay invocación, así que el caso de
+    // arriba mide la regla y no un lector que no encuentra nada.
+    expect(
+      conArbol({ skill: "desy-styles-reference", seccion: "Componentes con `c-*` (bloques UI completos)" }),
+    ).toBeTypeOf("string");
+
     const texto = renderInformeCaso([sinInvocacion], {
       ...contextoReal(),
-      // Un lector que no encuentra nada simula «no hubo árbol»: el informe debe
-      // decir la **causa**, no presentar la sección como si no existiera.
-      leerSeccion: () => undefined,
+      leerSeccion: conArbol,
     });
 
     expect(texto).toContain("no se invocó ningún skill, así que no hay sección que leer");
