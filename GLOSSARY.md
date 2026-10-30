@@ -173,6 +173,23 @@ El agregado de Grades por Skill, renderizado a partir del JSON de resultados. Es
 el consumidor de la política de N (ADR-0007): da el Veredicto de un Caso y separa
 las Ejecuciones «no entregó» de «entregó mal». Ver `src/scorecard.ts`.
 
+**Scorecard de versión**:
+La conclusión de una suite sobre una **Versión de skills**, escrita en
+`reports/versiones/<arbolHash>.json`: el mismo scorecard (`arbolHash`, `pin` y
+`skills`), pequeño y versionado en git. Dos de ellos se comparan con
+`npm run diff-versiones`. El nombre es el hash porque el hash —no el commit— es
+la identidad de lo medido. Ver ADR-0016.
+
+**Diff de versiones**:
+La comparación de dos Scorecards de versión, por Caso y por Skill: el cambio de
+Veredicto de un Caso y de sus cuentas (correctas, entregó mal, sin entregar), y
+el reparto de veredictos por Skill. Cambia también cuando el Veredicto no cambia
+pero sí las entregas. Empieza vacío: con menos de dos versiones no hay diff que
+dar. Lo calcula `diffDeVersiones` (`src/versiones.ts`) y lo enseña
+`npm run diff-versiones`. Ver ADR-0016.
+_Avoid_: llamarlo «baseline»; leer «sin cambios» como «el skill está igual de
+bien».
+
 **Informe por Caso**:
 El documento legible que `npm run suite` y `npm run report` escriben en
 `reports/informe/<skill>/<caso>.md`: por cada Check fallido, su aserción, la línea
@@ -211,6 +228,13 @@ _Avoid_: usar los SVG/PNG de preview de la doc como referencia visual.
 
 **Pin**:
 El commit concreto de desy-skills que se copia a `vendor/desy-skills/` y que se registra en `pin.json`. Todo reporte declara el Pin testeado. Su identidad real, sin embargo, es el `arbolHash` de lo que se copió al sandbox: el commit no verifica que `vendor/` coincida con él (ticket 04).
+
+**Versión de skills**:
+El contenido de `skills/**` que una corrida copió al sandbox, identificado por su
+`arbolHash` (ticket 04). Es la unidad que dos corridas comparan, aunque ninguna
+tenga commit. La **conclusión** que se guarda de una Versión de skills es su
+Scorecard de versión (ADR-0016).
+_Avoid_: usar el commit como sinónimo de versión: un commit no dice lo que se midió.
 
 **Pin local**:
 El Pin de una corrida que mide los skills de un **checkout del usuario** (`.scratch/…`, un clon propio) en vez de `vendor/`, para iterar sobre un skill sin re-pinear por cada frase. Se declara como `local (sin commit)` —en el JSON, en el H1 del Scorecard y por consola— y nunca escribe en `vendor/`. Se activa con `--skills-local <ruta>`; el árbol que se mide `<ruta>/skills/` pasa por el mismo guardarraíl de árbol sucio. Canónico sigue siendo upstream por SHA (ADR-0003): es comodidad declarada, no una segunda vía de verdad. Ver el ticket 05.

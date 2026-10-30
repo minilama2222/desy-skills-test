@@ -27,6 +27,7 @@
     "verificar-mockup": "tsx scripts/verificar-mockup.ts",
     "verificar-captura-gold": "tsx scripts/verificar-captura-gold.ts",
     "report": "tsx src/cli.ts report",
+    "diff-versiones": "tsx scripts/diff-versiones.ts",
     "bump-pin": "tsx src/cli.ts bump-pin"
   },
   "devDependencies": {

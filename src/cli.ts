@@ -12,12 +12,14 @@ import { LOCAL, pinLocal, readPin, rutaEnElRepo } from "./pin.js";
 import {
   escribirInformes,
   escribirScorecard,
+  escribirVersion,
   guardarEjecucion,
   leerEjecuciones,
   REPORTS_DIR,
   rutasDeReporte,
   rutaRelativa,
   vaciarEjecuciones,
+  VERSIONES_DIR,
 } from "./reportes.js";
 import { REPO_ROOT } from "./repo.js";
 import {
@@ -28,7 +30,7 @@ import {
   VENDOR_SKILLS_DIR,
   type RunDeps,
 } from "./runner.js";
-import { agregarScorecard, etiquetaDelPin, renderScorecard } from "./scorecard.js";
+import { agregarScorecard, etiquetaDelPin, renderScorecard, type Scorecard } from "./scorecard.js";
 import { lectorDeSecciones } from "./seccion-skill.js";
 import {
   exitCodeDe,
@@ -38,6 +40,7 @@ import {
   seleccionarCasos,
   type Seleccion,
 } from "./suite.js";
+import { scorecardDeVersion, serializarVersion } from "./versiones.js";
 import { existsSync, readdirSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 function usage(): never {
@@ -370,6 +373,30 @@ async function runCasos(args: string[]): Promise<number> {
 }
 
 /**
+ * Versiona el scorecard de la corrida (ticket 09): escribe
+ * `reports/versiones/<arbolHash>.json` y devuelve su ruta, o `undefined` si la
+ * corrida no declara `arbolHash` —un árbol de Ejecuciones anterior al ticket 04—
+ * porque entonces no hay versión que nombrar (`scorecardDeVersion` lo rechaza).
+ *
+ * Una suite sobre un contenido ya medido **pisa** el fichero de ese hash: es la
+ * misma versión, y las cuentas nuevas son las que valen. No se versiona en el
+ * directorio de la suite, sino en uno fijo del repo: el diff busca por hash, no
+ * por la ruta de la corrida.
+ */
+function escribirVersionDeLaCorrida(scorecard: Scorecard): string | undefined {
+  if (scorecard.arbolHash === undefined) {
+    console.error(
+      "Sin arbolHash en el Scorecard: la corrida no se versiona (no hay versión que nombrar).",
+    );
+    return undefined;
+  }
+  const version = scorecardDeVersion(scorecard);
+  const path = escribirVersion(VERSIONES_DIR, version.arbolHash, serializarVersion(version));
+  console.error(`Versión: ${rutaRelativa(path)}`);
+  return path;
+}
+
+/**
  * La suite entera como comando de CI (ticket 13): corre todos los Casos —o el
  * subconjunto por skill / por Caso— N veces cada uno, agrega el Scorecard
  * (ADR-0007), escribe JSON + markdown y sale con código ≠ 0 si algún Caso
@@ -427,6 +454,7 @@ async function runSuite(args: string[]): Promise<number> {
   const markdown = renderScorecard(scorecard) + "\n";
   escribirScorecard(JSON.stringify(scorecard, null, 2) + "\n", markdown, rutas);
   escribirInformesPorCaso(ejecuciones, rutas);
+  const version = escribirVersionDeLaCorrida(scorecard);
 
   const r = resumen(scorecard, ejecuciones);
   console.error(
@@ -434,6 +462,9 @@ async function runSuite(args: string[]): Promise<number> {
       `PASA ${r.pasados} · SUSPENDE ${r.suspendidos} · INDETERMINADO ${r.indeterminados}`,
   );
   console.error(`JSON: ${rutaRelativa(rutas.scorecardJson)}`);
+  if (version !== undefined) {
+    console.error(`Versión: ${rutaRelativa(version)}`);
+  }
   console.log(markdown.trimEnd());
 
   const code = exitCodeDe(scorecard);
@@ -494,19 +525,37 @@ function hashComun(ejecuciones: ResultadoEjecucion[]): string | undefined {
 }
 
 /**
- * El Pin de un árbol de Ejecuciones: lo declara la primera y una suite lo escribe
- * en todas. `pin` es un único campo (el commit), y una corrida local escribe ahí
- * `LOCAL` —no un SHA a propósito—, así que eso es lo que distingue los dos casos.
+ * El Pin de un árbol de Ejecuciones, **tal como lo declaran ellas**. Lo declara
+ * cada una, y una suite las escribe con el mismo; pero un árbol puede mezclar
+ * corridas —las de `run`, por ejemplo—, y entonces el informe no puede decir el
+ * Pin de la primera como si fuera el de todas: si hay más de uno, se declara
+ * `mixto`, con la fecha del más reciente y sin `ref`.
+ *
+ * `pin` es un único campo (el commit), y una corrida local escribe ahí `LOCAL`
+ * —no un SHA a propósito—, así que eso es lo que distingue los dos casos.
  *
  * La fecha sale de la Ejecución y no de `pin.json`, que daría la de hoy: el
  * scorecard la declara como la del Pin medido. Sin Ejecuciones no hay nada que
- * re-etiquetar.
+ * etiquetar.
  */
+export const PIN_MIXTO = "mixto";
+
 function pinDeLasEjecuciones(ejecuciones: ResultadoEjecucion[]): Pin {
   const declarado = ejecuciones[0];
   if (declarado === undefined) throw new Error("No hay Ejecuciones que agregar.");
+  const distintas = new Set(ejecuciones.map((e) => `${e.pin}\n${e.fecha}`));
+  if (distintas.size > 1) {
+    return { ref: "", commit: PIN_MIXTO, fecha: fechaMasReciente(ejecuciones) };
+  }
   if (declarado.pin === LOCAL) return pinLocal("", declarado.fecha);
   return { ref: "", commit: declarado.pin, fecha: declarado.fecha };
+}
+
+/** La fecha más reciente (`AAAAMMDD` ordena igual que la fecha) de las Ejecuciones. */
+function fechaMasReciente(ejecuciones: ResultadoEjecucion[]): string {
+  return ejecuciones
+    .map((e) => e.fecha)
+    .reduce((ultima, fecha) => (fecha > ultima ? fecha : ultima));
 }
 
 /**
@@ -556,6 +605,14 @@ function runReport(args: string[]): void {
   escribirScorecard(JSON.stringify(scorecard, null, 2) + "\n", markdown, rutas);
   escribirInformesPorCaso(ejecuciones, rutas);
 
+  // Un árbol sin Pin único lo dice antes de la tabla: un scorecard «mixto» no es
+  // una versión, y quien lo lea no puede compararlo con otra sin saberlo.
+  if (pin.commit === PIN_MIXTO) {
+    console.error(
+      `Aviso: las Ejecuciones de ${rutaRelativa(rutas.ejecuciones)} no declaran un Pin único ` +
+        `(${[...new Set(ejecuciones.map((e) => `${e.pin} (${e.fecha})`))].join(", ")}).`,
+    );
+  }
   console.error(
     `Scorecard: ${ejecuciones.length} Ejecución/es → ` +
       `${rutaRelativa(rutas.scorecardJson)} + ${rutaRelativa(rutas.scorecardMd)}`,

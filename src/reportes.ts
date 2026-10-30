@@ -6,7 +6,7 @@ import {
   rmSync,
   writeFileSync,
 } from "node:fs";
-import { dirname, join, relative } from "node:path";
+import { dirname, join, relative, resolve } from "node:path";
 import type { ResultadoEjecucion } from "./ejecutar.js";
 import { REPO_ROOT } from "./repo.js";
 
@@ -32,6 +32,25 @@ export const SCORECARD_MD_PATH = join(REPO_ROOT, "reports", "scorecard.md");
  * para que el trazado no viva en dos sitios.
  */
 export const REPORTS_DIR = join(REPO_ROOT, "reports");
+
+/**
+ * Dónde se versiona el scorecard de cada versión de los skills (ticket 09):
+ * `reports/versiones/<arbolHash>.json`. **Este** subdirectorio de `reports/` sí
+ * se versiona (`reports/` está ignorado y `.gitignore` lo reabre con `!`): es
+ * pequeño, es la conclusión de una suite y dos versiones se diff-ean con `git
+ * diff`. El árbol de Ejecuciones sigue ignorado, que es lo pesado.
+ *
+ * Vive fijo en el repo, no bajo el `--reports` de la corrida: el diff busca por
+ * hash, y la suite puede correr con `--reports` a cualquier parte.
+ *
+ * `DESY_VERSIONES_DIR` lo redirige, y sólo lo usan los tests: la suite real
+ * corre `src/cli.ts` como proceso, y sin una salida así escribiría en el árbol
+ * versionado del mantenedor desde un test.
+ */
+export const VERSIONES_DIR =
+  process.env.DESY_VERSIONES_DIR === undefined
+    ? join(REPO_ROOT, "reports", "versiones")
+    : resolve(process.env.DESY_VERSIONES_DIR);
 
 /**
  * La suite (`npm run suite`) escribe en su propio árbol para que su reporte
@@ -131,6 +150,24 @@ export function escribirScorecard(
   mkdirSync(dirname(rutas.scorecardJson), { recursive: true });
   writeFileSync(rutas.scorecardJson, json, "utf8");
   writeFileSync(rutas.scorecardMd, markdown, "utf8");
+}
+
+/**
+ * Escribe el scorecard de una versión en `<dir>/<arbolHash>.json` (ticket 09).
+ * El nombre **es** la identidad: medir otra vez el mismo contenido pisa el
+ * fichero con las cuentas nuevas en vez de dejar dos verdades del mismo hash.
+ * Devuelve la ruta escrita, para que el CLI la anuncie.
+ */
+export function escribirVersion(dir: string, arbolHash: string, json: string): string {
+  if (!/^[0-9A-Za-z._-]+$/.test(arbolHash) || arbolHash.startsWith(".")) {
+    throw new Error(
+      `arbolHash no es un nombre de fichero válido: "${arbolHash}" (no puede salir del directorio)`,
+    );
+  }
+  const path = join(dir, `${arbolHash}.json`);
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(path, json, "utf8");
+  return path;
 }
 
 /** El informe de un Caso, tal como se escribe a disco. */

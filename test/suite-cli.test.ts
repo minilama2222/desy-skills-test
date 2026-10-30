@@ -14,9 +14,10 @@ import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
 import { REPO_ROOT } from "../src/repo.js";
 import { readPin } from "../src/pin.js";
-import { leerEjecuciones } from "../src/reportes.js";
+import { leerEjecuciones, VERSIONES_DIR } from "../src/reportes.js";
 import type { ResultadoEjecucion } from "../src/ejecutar.js";
 import type { Scorecard } from "../src/scorecard.js";
+import type { ScorecardDeVersion } from "../src/versiones.js";
 
 /**
  * Aceptación del comando de CI (ticket 13): corre la CLI **de verdad**, como la
@@ -150,11 +151,21 @@ interface Corrida {
   markdown?: string;
   /** El informe por Caso, tal como quedó en disco. */
   informe?: string;
+  /** La versión que dejó la suite en `reports/versiones/<arbolHash>.json`, si la dejó. */
+  version?: ScorecardDeVersion;
   /** El árbol temporal de la corrida, para leer sus Ejecuciones antes de borrarlo. */
   ejecuciones: ResultadoEjecucion[];
 }
 
 const TSX = join(REPO_ROOT, "node_modules", "tsx", "dist", "cli.mjs");
+
+/** La versión que dejó la suite para `arbolHash`, tal cual quedó en disco. */
+function versionEnDisco(dir: string, arbolHash: string): ScorecardDeVersion | undefined {
+  const path = join(dir, `${arbolHash}.json`);
+  return existsSync(path)
+    ? (JSON.parse(readFileSync(path, "utf8")) as ScorecardDeVersion)
+    : undefined;
+}
 
 /**
  * Corre `src/cli.ts suite` con el SUT falso. `--reports` apunta a un directorio
@@ -162,6 +173,7 @@ const TSX = join(REPO_ROOT, "node_modules", "tsx", "dist", "cli.mjs");
  */
 async function correrSuite(args: string[], entregas: string[] = ["bueno"]): Promise<Corrida> {
   const dir = mkdtempSync(join(tmpdir(), "suite-cli-"));
+  const versionsDirDeLaCorrida = join(dir, "versiones");
   try {
     writeFileSync(join(dir, "opencode-falso.cjs"), GUION, "utf8");
     writeFileSync(join(dir, "preludio.cjs"), PRELUDIO, "utf8");
@@ -176,6 +188,9 @@ async function correrSuite(args: string[], entregas: string[] = ["bueno"]): Prom
       // `NODE_OPTIONS` parsea comillas y barras: la ruta va con `/` o Windows
       // se come los `\` y Node no encuentra el preludio.
       NODE_OPTIONS: `${process.env.NODE_OPTIONS ?? ""} --require "${join(dir, "preludio.cjs").replace(/\\/g, "/")}"`.trim(),
+      // Las versiones de esta corrida, en el temporal: el test no escribe en el
+      // `reports/versiones/` que se versiona (ticket 09).
+      DESY_VERSIONES_DIR: versionsDirDeLaCorrida,
     };
     const reports = join(dir, "reports");
     const inicio = Date.now();
@@ -204,6 +219,13 @@ async function correrSuite(args: string[], entregas: string[] = ["bueno"]): Prom
     // Las Ejecuciones se leen antes del `finally`: el test necesita la salida
     // cruda del SUT (`salida.stdout`), no sólo el agregado.
     const ejecuciones = leerEjecuciones(join(reports, "ejecuciones"));
+    const version =
+      existsSync(json) && (JSON.parse(readFileSync(json, "utf8")) as Scorecard).arbolHash !== undefined
+        ? versionEnDisco(
+            versionsDirDeLaCorrida,
+            (JSON.parse(readFileSync(json, "utf8")) as Scorecard).arbolHash!,
+          )
+        : undefined;
     return {
       code: r.status ?? -1,
       stdout: r.stdout ?? "",
@@ -214,6 +236,7 @@ async function correrSuite(args: string[], entregas: string[] = ["bueno"]): Prom
       ...(existsSync(json) ? { scorecard: JSON.parse(readFileSync(json, "utf8")) as Scorecard } : {}),
       ...(existsSync(md) ? { markdown: readFileSync(md, "utf8") } : {}),
       ...(existsSync(informe) ? { informe: readFileSync(informe, "utf8") } : {}),
+      ...(version === undefined ? {} : { version }),
     };
   } finally {
     rmSync(dir, { recursive: true, force: true });
@@ -260,6 +283,17 @@ describe("suite (comando de CI, ticket 13)", () => {
       // El Scorecard legible queda en disco y en stdout.
       expect(corrida.markdown).toContain(`Scorecard — Pin ${pin.commit}`);
       expect(corrida.stdout).toContain(`Scorecard — Pin ${pin.commit}`);
+      // Y la corrida se versiona (ticket 09): el fichero de su `arbolHash` es el
+      // scorecard con su identidad al lado.
+      const hash = corrida.scorecard?.arbolHash;
+      expect(hash).toMatch(/^[0-9a-f]{64}$/);
+      expect(corrida.version?.arbolHash).toBe(hash);
+      expect(corrida.version?.skills).toEqual(corrida.scorecard?.skills);
+      expect(corrida.version?.pin).toEqual({
+        ref: pin.ref,
+        commit: pin.commit,
+        fecha: pin.fecha,
+      });
     },
     180_000,
   );

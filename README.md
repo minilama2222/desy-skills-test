@@ -26,6 +26,7 @@ npm run verificar-mockup  # valida los mockup.png commiteados (sin navegador; --
 npm run capturar-gold -- --skill <skill> --case <caso>  # genera/valida la Captura de Gold
 npm run capturar-mockup  # genera el mockup (input/mockup.png) de los Casos-decisión
 npm run report    # agrega las Ejecuciones de `run` y renderiza el Scorecard (JSON + markdown)
+npm run diff-versiones  # diff entre las dos versiones más recientes (o `-- <a> <b>`)
 npm run bump-pin <ref>  # actualiza vendor/ + pin.json al ref dado
 ```
 
@@ -132,6 +133,10 @@ Qué deja y qué devuelve:
 - **`reports/suite/informe/<skill>/<caso>.md`** — el **informe por Caso**: por cada
   Check fallido, la aserción, la línea del artefacto que la tumba y la sección del
   skill de la que el Caso dice depender (ver [Informe por Caso](#informe-por-caso)).
+- **`reports/versiones/<arbolHash>.json`** — el **Scorecard de versión**: la
+  conclusión de la corrida, versionada en git y en un directorio **fijo** (no bajo
+  `--reports`). Es lo que compara `npm run diff-versiones` (ver
+  [Comparar dos versiones](#comparar-dos-versiones)).
 - Las Ejecuciones persistidas en `reports/suite/ejecuciones/<skill>/<caso>/<n>.json`
   (tantas como intentos costó llegar a las N entregas, o al tope).
 
@@ -172,6 +177,29 @@ Cada `npm run suite` escribe en su propio árbol y vacía el anterior, así que 
 veredicto no mezcla Ejecuciones de corridas distintas. Las corridas sueltas de
 `npm run run` siguen en `reports/ejecuciones/` y su reporte es `npm run report`.
 
+## Comparar dos versiones
+
+`reports/` está ignorado por git **salvo** `reports/versiones/`, donde cada
+`npm run suite` deja el scorecard de la versión que midió, nombrado por su
+`arbolHash` (el hash del contenido de los skills, no el commit — ADR-0016). Dos
+de esos JSON se comparan con:
+
+```bash
+npm run diff-versiones                       # las dos versiones más recientes
+npm run diff-versiones -- <a> <b>            # dos hashes, o dos rutas a JSON
+```
+
+Da, por Caso, el antes → después del veredicto y de **correctas / entregó mal /
+sin entregar**, y por Skill el reparto PASA / SUSPENDE / INDETERMINADO. Cambia
+también cuando el veredicto sigue igual y lo que cambió fue la tasa de entrega
+(«sin cambios» es que la medida es la misma, no que el skill esté bien). Un Caso
+que solo existe en una versión se pinta con `—`, no como «no cambió».
+
+**Empieza vacío**: con menos de dos versiones el comando lo dice y sale con `0`.
+Medir el mismo contenido dos veces pisa el fichero de su hash: es la misma
+versión. Una versión medida con `--skills-local` se avisa como tal (no es lo que
+se medirá en CI), y `reports/legado/` queda fuera del diff a propósito.
+
 ## Reporte
 
 Cada `npm run run` persiste la Ejecución en `reports/ejecuciones/<skill>/<caso>/<n>.json`
@@ -193,7 +221,9 @@ Ejecuciones las que llenan el presupuesto de entregas: un Artefacto EXCELENTE
 entregado **sin invocar el skill** es un hallazgo de trigger, no una entrega del
 Caso, así que no cierra el presupuesto ni aprueba. El Scorecard separa además «no
 entregó» de «entregó mal», cuenta intentos junto a entregas y declara el
-`arbolHash` de los skills medidos.
+`arbolHash` de los skills medidos. El Pin que declara sale de las **Ejecuciones**
+(nunca de `pin.json` del momento); si el árbol mezcla corridas con Pins distintos,
+declara **`mixto`** y lo avisa, en vez de re-etiquetar con el de la primera.
 
 ## Informe por Caso
 
