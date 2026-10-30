@@ -35,6 +35,41 @@ describe("el hook de pre-commit delega en `npm run precommit`", () => {
   });
 });
 
+/**
+ * Retro de la sesión del ticket 03: el gate corría `vitest` pelado, que escribe
+ * el detalle de los fallos por **stderr**, y PowerShell convierte stderr en un
+ * `NativeCommandError` que deja el exit 1 aunque el proceso haya salido con 0.
+ * El «rojo de Windows» costaba un `git log` por commit para saber si había
+ * entrado, y `AGENTS.md` sólo podía pedir que se leyera con cuidado.
+ *
+ * `test:gate` corre vitest como hijo, por tubería, y reproduce su exit code: el
+ * exit **es** el veredicto, sin ambigüedad. Si el gate vuelve a llamar a vitest
+ * directamente, el ruido regresa y este test lo dice.
+ */
+describe("el gate corre la suite por `test:gate`, no por vitest pelado", () => {
+  const pkg = JSON.parse(readFileSync(join(REPO_ROOT, "package.json"), "utf8")) as {
+    scripts: Record<string, string>;
+  };
+
+  it("el `precommit` termina en `test:gate`", () => {
+    expect(pkg.scripts.precommit).toMatch(/&& npm run test:gate$/);
+  });
+
+  it("`test:gate` no es a su vez un `vitest` pelado", () => {
+    // Un `test:gate` que llamase a `vitest` directo conservaría el ruido: tiene
+    // que pasar por el lanzador que recoge los dos canales.
+    expect(pkg.scripts["test:gate"]).toBe("node scripts/test-gate.mjs");
+  });
+
+  it("el lanzador existe y reproduce el exit code de vitest", () => {
+    const lanzador = readFileSync(join(REPO_ROOT, "scripts", "test-gate.mjs"), "utf8");
+    // La propiedad que quita el ruido: los dos canales van por tubería al
+    // lanzador, así que PowerShell no ve stderr de vitest.
+    expect(lanzador).toContain('spawnSync(');
+    expect(lanzador).toMatch(/process\.exit\(status \?\? 1\)/);
+  });
+});
+
 describe("pruebasConNavegador", () => {
   it("una suite sin navegador no tiene hallazgos", () => {
     const ficheros = [

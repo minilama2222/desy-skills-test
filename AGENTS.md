@@ -36,16 +36,12 @@ checks the titles exist. The report presents; it never decides skill-vs-check.
 step to `package.json`, never to the hook: a hook that repeats the list drops a
 step in silence, and it already did (retro del ticket 06).
 
-### Windows shell noise
+### The gate exits 0 or 1, and nothing else
 
-On Windows, `npm test` / `npm run precommit` and `git commit` can exit 1 because
-vitest writes to stderr, which PowerShell reads as `NativeCommandError`. The work
-succeeded; confirm with `git log` / `git status`, don't re-run to "fix" it.
-
-That only holds for **noise**: an exit 1 with no `FAIL` / `Test Files … failed`
-line is the stderr false alarm. A `failed` count is a **real failure** — read it
-and fix it; do not write it off as the noise case. (The framing above once nearly
-had a real red dismissed as noise.)
+`npm run precommit` (and the commit hook) runs the suite through `test:gate`,
+which reproduces vitest's exit code with both channels piped. On Windows an
+exit 1 is a **real** failure: read the `failed` count and fix it. There is no
+stderr false alarm left to tell apart from one.
 
 PowerShell has no heredoc: `git commit -F -` with a `<<'EOF'` body fails to parse,
 and the retry mangles the accents. Write the message to a file and pass

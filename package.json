@@ -6,9 +6,10 @@
   "description": "Harness de tests de capacidad para los skills DESY",
   "scripts": {
     "test": "vitest run",
+    "test:gate": "node scripts/test-gate.mjs",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
-    "precommit": "npm run typecheck && npm run verificar-tests && npm run verificar-codificacion && npm run verificar-acentos && npm run verificar-tracker && npm run verificar-casos && npm run verificar-mockup && npm run verificar-readme && npm run verificar-pin && npm test",
+    "precommit": "npm run typecheck && npm run verificar-tests && npm run verificar-codificacion && npm run verificar-acentos && npm run verificar-tracker && npm run verificar-casos && npm run verificar-mockup && npm run verificar-readme && npm run verificar-pin && npm run test:gate",
     "verificar-tests": "tsx scripts/verificar-tests.ts",
     "verificar-codificacion": "tsx scripts/verificar-codificacion.ts",
     "verificar-acentos": "tsx scripts/verificar-acentos.ts",

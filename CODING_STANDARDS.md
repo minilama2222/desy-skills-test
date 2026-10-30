@@ -76,11 +76,13 @@ it. A new synonym for an existing term, or a term used in the sense the glossary
 marks `_Avoid_:`, is a finding. If the concept is genuinely missing, the diff
 adds it to the glossary rather than letting the reader infer it.
 
-The places where the old word still lies are **code**, not prose: a field, a
-constant or a comment that says «Ejecuciones» where the glossary says
-«attempts». Those are counted in **intentos** until the ticket 03 turns the
-budget into one of **entregas**; a name that says otherwise is a finding even
-when the count is right.
+A **name** says what it counts. A field, a local or a rendered column carries
+the glossary's word for the thing it holds: `entregas` for deliveries,
+`intentos` for attempts, and `ejecuciones` only where it means the Ejecución
+objects themselves. The two are not synonyms: an Ejecución is an attempt, and
+only some attempts deliver. One name covering both is a finding even when the
+number under it is right. (The ticket 03 turned the budget from attempts into
+deliveries; it did not retire the rule, it made it matter.)
 
 ## A decision-Caso's Guard is the positive decision
 
