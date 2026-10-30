@@ -1,4 +1,7 @@
 import { describe, expect, it } from "vitest";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { problemasDelTracker } from "../src/guardarrail-tracker.js";
 
 const ticket = (path: string, status: string, cuerpo = ""): { path: string; contenido: string } => ({
@@ -117,5 +120,95 @@ describe("problemasDelTracker", () => {
       ticket("sin2.md", "wontfix"),
     ];
     expect(problemasDelTracker(tickets)).toEqual([]);
+  });
+});
+
+/**
+ * Retro de la sesión del ticket 03: se marcó `done` con una casilla que se
+ * excusaba («no hizo falta») y con un `## Comments` que citaba dos tests en rojo
+ * como causa. El diagnóstico de esa causa era falso, y ningún check podía saberlo;
+ * lo que sí se puede es exigir que la casilla apunte a algo y que el test que
+ * nombra exista.
+ */
+describe("una casilla hecha que se excusa en vez de apuntar a algo", () => {
+  it("marca la casilla que sólo dice «no hizo falta»", () => {
+    const tickets = [
+      ticket("03.md", "done", "- [x] test real, si hace falta (no hizo falta: los dobles bastan)"),
+    ];
+    const hallazgos = problemasDelTracker(tickets);
+
+    expect(hallazgos).toHaveLength(1);
+    expect(hallazgos[0]).toContain("se excusa");
+  });
+
+  it("no marca la casilla que apunta a lo que la cubre", () => {
+    // Control positivo de la regla: el mismo criterio, señalando el test que lo
+    // cubre. Si esto se marcara, la regla prohibiría justificar, no excusarse.
+    const tickets = [
+      ticket("03.md", "done", "- [x] test real, si hace falta (lo cubre `test/x.test.ts`)"),
+    ];
+    expect(problemasDelTracker(tickets)).toEqual([]);
+  });
+
+  it("no juzga la excusa en un ticket que no está `done`", () => {
+    // Un ticket abierto puede estar explicando por qué algo espera. Se le deja una
+    // casilla abierta a propósito: con todas hechas caería en la regla de
+    // «construido con el estado mintiendo», que es otra y no es la que se prueba.
+    const tickets = [
+      ticket("05.md", "ready-for-human", "- [x] uno (no hizo falta)\n- [ ] dos"),
+    ];
+    expect(problemasDelTracker(tickets)).toEqual([]);
+  });
+});
+
+describe("el comentario cita un test que existe", () => {
+  it("marca un `done` cuyo comentario nombra un test que no está", () => {
+    const raiz = mkdtempSync(join(tmpdir(), "tracker-citas-"));
+    const ticket = {
+      path: "03.md",
+      raiz,
+      contenido:
+        "# T\n\n**Status:** done\n\n- [x] uno\n\n## Comments\n\n" +
+        "- 29/10 — fallan dos tests de `test/no-existe.test.ts`.\n",
+    };
+
+    const hallazgos = problemasDelTracker([ticket]);
+
+    expect(hallazgos).toHaveLength(1);
+    expect(hallazgos[0]).toContain("no-existe.test.ts");
+    expect(hallazgos[0]).toContain("no existe en el repo");
+    rmSync(raiz, { recursive: true, force: true });
+  });
+
+  it("no marca el comentario que cita un test que sí existe", () => {
+    // Control positivo: con el fichero en su sitio, la misma cita pasa. Sin esta
+    // prueba, un verde podría ser un chequeo que no mira nada.
+    const raiz = mkdtempSync(join(tmpdir(), "tracker-citas-"));
+    mkdirSync(join(raiz, "test"), { recursive: true });
+    writeFileSync(join(raiz, "test", "existe.test.ts"), "", "utf8");
+    const ticket = {
+      path: "03.md",
+      raiz,
+      contenido:
+        "# T\n\n**Status:** done\n\n- [x] uno\n\n## Comments\n\n" +
+        "- 29/10 — fallan dos tests de `test/existe.test.ts`.\n",
+    };
+
+    expect(problemasDelTracker([ticket])).toEqual([]);
+    rmSync(raiz, { recursive: true, force: true });
+  });
+
+  it("no mira los nombres de test que aparecen fuera de `## Comments`", () => {
+    // El cuerpo del ticket describe trabajo; sólo el diagnóstico del comentario es
+    // una afirmación sobre el repo que se puede contrastar.
+    const raiz = mkdtempSync(join(tmpdir(), "tracker-citas-"));
+    const ticket = {
+      path: "03.md",
+      raiz,
+      contenido: "# T\n\n**Status:** done\n\n- [x] crear `test/futuro.test.ts`\n",
+    };
+
+    expect(problemasDelTracker([ticket])).toEqual([]);
+    rmSync(raiz, { recursive: true, force: true });
   });
 });

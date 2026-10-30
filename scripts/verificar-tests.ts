@@ -1,7 +1,11 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { REPO_ROOT } from "../src/repo.js";
-import { pruebasConNavegador, type FicheroDeTest } from "../src/guardarrail-tests.js";
+import {
+  ficherosQueNoSonTests,
+  pruebasConNavegador,
+  type FicheroDeTest,
+} from "../src/guardarrail-tests.js";
 
 /**
  * Guardarraíl: ningún test de la suite abre un navegador **ni lanza un binario
@@ -53,10 +57,39 @@ function ficherosDeTest(): FicheroDeTest[] {
   return ficheros;
 }
 
-const hallazgos = pruebasConNavegador(ficherosDeTest());
+/**
+ * Fixture declarada: lo que vive en `test/` sin ser un test. Hoy no hay nada; si
+ * algún test necesita un fichero de apoyo, se declara aquí **con su motivo**, igual
+ * que los binarios exentos.
+ */
+const FIXTURE_DECLARADA = new Set<string>([]);
+
+function ficherosDeTestDir(): { path: string; esTest: boolean }[] {
+  const ficheros: { path: string; esTest: boolean }[] = [];
+  const walk = (dir: string): void => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const full = join(dir, entry.name);
+      if (entry.isDirectory()) {
+        walk(full);
+        continue;
+      }
+      const path = relative(REPO_ROOT, full).split("\\").join("/");
+      ficheros.push({ path, esTest: entry.name.endsWith(".test.ts") || FIXTURE_DECLARADA.has(path) });
+    }
+  };
+  walk(TEST_DIR);
+  return ficheros;
+}
+
+const hallazgos = [
+  ...pruebasConNavegador(ficherosDeTest()),
+  ...ficherosQueNoSonTests(ficherosDeTestDir()),
+];
 
 if (hallazgos.length === 0) {
-  console.log("OK: ningún test abre un navegador ni lanza un binario externo.");
+  console.log(
+    "OK: ningún test abre un navegador ni lanza un binario externo, y test/ no tiene restos.",
+  );
   process.exit(0);
 }
 

@@ -24,6 +24,29 @@ export interface FicheroDeTest {
 }
 
 /**
+ * Retro de la sesión del ticket 03: un temporal de depuración (`test/_dbg.test.ts`)
+ * sobrevivió a la vuelta en que se escribió, y `npx vitest` lo cargó y arrastró la
+ * CLI entera (`process.exit unexpectedly called with "2"`), que casi hizo pasar un
+ * rojo por ruido. En `test/` sólo vive lo que es test o fixture declarada: un
+ * fichero con otra forma no es un test a medias, es basura de una sesión.
+ *
+ * Los dobles de `suite-cli.test.ts` no cuentan: se escriben en un directorio
+ * temporal en tiempo de ejecución, no en el árbol.
+ */
+export function ficherosQueNoSonTests(
+  ficheros: { path: string; esTest: boolean }[],
+): string[] {
+  return ficheros
+    .filter((f) => !f.esTest)
+    .map(
+      (f) =>
+        `${f.path}: no es un test y no está en la fixture declarada de ` +
+        "test/. Un temporal de una sesión (`_diag/`, `_dbg.test.ts`) " +
+        "se borra al terminar: si se queda, vitest lo carga y arrastra la suite.",
+    );
+}
+
+/**
  * Marcadores de "algo que abre un navegador". Deliberadamente concretos:
  * `agent-browser` es el binario, `capturarConAgentBrowser` es el adaptador real
  * de la Captura de Gold, y `playwright`/`puppeteer` son librerías de navegador.

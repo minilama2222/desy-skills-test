@@ -11,22 +11,43 @@ import { REPO_ROOT } from "../src/repo.js";
  * tener casillas sin marcar. `done` significa «hecho de verdad»; un criterio que
  * depende de trabajo no construido deja el ticket en `ready-for-human`
  * (`CODING_STANDARDS.md`). Corre en el pre-commit. `npm run verificar-tracker`.
+ *
+ * Recorre **todas** las features de `.scratch/`, no una: antes miraba sólo
+ * `desy-skills-test-harness`, y los 13 tickets de `bucle-de-refinamiento` —con
+ * casillas y `Status`— iban sin vigilar. Una feature nueva no se queda fuera por
+ * olvido.
  */
-const ISSUES_DIR = join(REPO_ROOT, ".scratch", "desy-skills-test-harness", "issues");
+const SCRATCH_DIR = join(REPO_ROOT, ".scratch");
 
 function tickets(): Ticket[] {
-  return readdirSync(ISSUES_DIR)
-    .filter((f) => f.endsWith(".md"))
-    .map((f) => ({
-      path: relative(REPO_ROOT, join(ISSUES_DIR, f)).split("\\").join("/"),
-      contenido: readFileSync(join(ISSUES_DIR, f), "utf8"),
-    }));
+  const tickets: Ticket[] = [];
+  for (const feature of readdirSync(SCRATCH_DIR, { withFileTypes: true })) {
+    if (!feature.isDirectory()) continue;
+    const issuesDir = join(SCRATCH_DIR, feature.name, "issues");
+    let ficheros: string[];
+    try {
+      ficheros = readdirSync(issuesDir).filter((f) => f.endsWith(".md"));
+    } catch {
+      continue; // una feature sin `issues/` (sólo spec, o sólo peticiones)
+    }
+    for (const f of ficheros) {
+      tickets.push({
+        path: relative(REPO_ROOT, join(issuesDir, f)).split("\\").join("/"),
+        contenido: readFileSync(join(issuesDir, f), "utf8"),
+        raiz: REPO_ROOT,
+      });
+    }
+  }
+  return tickets;
 }
 
-const hallazgos = problemasDelTracker(tickets());
+const revisados = tickets();
+const hallazgos = problemasDelTracker(revisados);
 
 if (hallazgos.length === 0) {
-  console.log("OK: ningún ticket `done` tiene casillas sin marcar.");
+  console.log(
+    `OK: ninguno de los ${revisados.length} tickets tiene el Status o las casillas mintiendo.`,
+  );
   process.exit(0);
 }
 

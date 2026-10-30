@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { pruebasConNavegador } from "../src/guardarrail-tests.js";
+import { ficherosQueNoSonTests, pruebasConNavegador } from "../src/guardarrail-tests.js";
 import { REPO_ROOT } from "../src/repo.js";
 
 /**
@@ -185,6 +185,27 @@ describe("pruebasConNavegador", () => {
     const ficheros = [{ path: "grader.test.ts", contenido: "const x = 1;" }];
 
     expect(pruebasConNavegador(ficheros)).toEqual([]);
+  });
+
+  it("marca el fichero de test/ que no es un test (un temporal de sesión)", () => {
+    // El caso real: `test/_dbg.test.ts` sobrevivió y `npx vitest` lo cargó.
+    const hallazgos = ficherosQueNoSonTests([
+      { path: "test/_dbg.test.ts", esTest: false },
+      { path: "test/grader.test.ts", esTest: true },
+    ]);
+
+    expect(hallazgos).toHaveLength(1);
+    expect(hallazgos[0]).toContain("test/_dbg.test.ts");
+  });
+
+  it("no marca ningún fichero cuando todos son tests o fixture declarada", () => {
+    // Control positivo: con todo declarado, la regla calla.
+    expect(
+      ficherosQueNoSonTests([
+        { path: "test/grader.test.ts", esTest: true },
+        { path: "test/fixture/esperado.json", esTest: true },
+      ]),
+    ).toEqual([]);
   });
 
   it("reporta un navegador como navegador, no como binario genérico", () => {
