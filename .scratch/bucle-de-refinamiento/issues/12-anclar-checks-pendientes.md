@@ -78,6 +78,44 @@ Antes de dar una sección por buena, `npm run verificar-casos` confirma que el t
 existe **literal** en el `SKILL.md` de `vendor/`; la comparación es exacta a
 propósito (un título mal copiado citaría otra sección).
 
+## Hallazgo declarable: `espaciado-del-sistema` y el `gap-x-4` del skill
+
+`implement-layout-patterns/componente/fieldset-grid-acciones` mide un Check contra una
+sección que **dice lo contrario**. Eso no es un estorbo para el anclaje: es un
+**hallazgo sobre el skill** —del mismo género que el de trigger del ticket 07— y el
+ticket lo deja escrito aquí porque hoy no hay otro sitio que lo presente.
+
+- El Check (`expected/checks.json`) es `espaciado_del_sistema`: exige la escala
+  canónica (`gap-x-base`, `mt-base mb-base lg:mt-0 lg:mb-0`).
+- La sección obvia, «Grid responsivo del formulario» (`SKILL.md:132`), dice al revés:
+  «**`gap-x-4`** (1rem horizontal). NO `gap-lg`». El `gap-x-4` aparece **tres veces**
+  en ese `SKILL.md` (`:126`, `:132` y `:236`, esta última como razón para quitar los
+  márgenes en desktop).
+- La autoridad es `desy-styles-reference` (`SKILL.md:50`), que lista `gap-x-4` entre
+  **lo que hay que corregir**: «la escala numérica de Tailwind no es la de DESY».
+  El propio `AGENTS.md` (§ Token authority) fija que la referencia gana.
+- La rúbrica del Caso ya lo declara en «Tensión conocida con el skill» y su Quality lo
+  mide en el sentido de la referencia. **No es un error del Caso**: es el Caso haciendo
+  su trabajo, y el que se va a llevar el rojo es el SUT que copie el ejemplo.
+
+Quién decide, y qué es de quién:
+
+- **El autor del skill** decide si el ejemplo cambia a `gap-x-base`. Ese es el hallazgo,
+  y va al autor, no a quien ancla.
+- **Quien ancla** sólo tiene que no atribuirle al skill lo que el Check niega: el ancla
+  va al skill que manda (`desy-styles-reference` → la sección de la escala), no a la
+  sección del `gap-x-4`. Si se cita esta última, la línea dice que se cita **como
+  contra-ejemplo**. Un ancla que la cite como origen de `espaciado-del-sistema` hace
+  que el informe señale justo la línea que el Check suspende.
+
+Hoy este hallazgo vive en el `## Tensión conocida con el skill` de la rúbrica y en este
+ticket: dos sitios que **sólo lee quien ya está trabajando en el Caso**. Que cada
+corrida lo destaque en el informe —para que lo vea el autor del skill— es el ticket 13.
+
+Lo que el ticket 12 no va a resolver: el guardarraíl no distingue «la sección dice lo
+que el Check mide» de «la sección tiene ese título». La casilla «la sección elegida
+**dice** lo que el Check mide» se cumple a mano; ninguna comprobación la respalda.
+
 ## Cómo cerrarlo
 
 Los anclajes se hacen **al tocar cada skill**, no en una pasada, porque cada uno
