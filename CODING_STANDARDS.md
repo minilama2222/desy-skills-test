@@ -164,7 +164,48 @@ stated ceiling (`SEGUNDOS_POR_EJECUCION` in `test/suite-cli.test.ts`), with the
 measured baseline in the comment. The tell: if you cannot say what the number is
 and why, you do not know whether a change made it worse.
 
+Count the units **from the run**, never from a literal. Since the budget is per
+attempt, the attempt count has to come from what happened (`corrida.vistas`), not
+from what the test expected: a `--n 2` whose delivery fails runs up to the hard
+cap, so a test that wrote `2` got four copies of the scaffold against a budget
+for two and passed only on fast days. The count and the cost are two checks: the
+`expect(corrida.vistas)` fixes how many attempts there should be, the budget
+fixes what each one may cost.
+
 The fixture that dominates this repo is the scaffold copy in `createSandbox`
 (~85 MB / 5.260 files per sandbox), so a regression there shows up here first.
-When a test's budget trips, profile the fixture before raising the ceiling.
+When a test's budget trips, profile the fixture before **measuring against the
+copy**: the count is a share of one Execution, not the whole of it, so a budget
+expressed as "a copy × K" says nothing. Measure the parts (copy, `tsx` start,
+grader) and compare the same test isolated against the full suite. A budget that
+only trips in the suite is **contention, not the code**: fix where it competes
+(`maxWorkers` in `vitest.config.ts`), not the ceiling.
+
+## A test that needs the repo's own state redirects it
+
+A test that writes to a directory the product also uses (`reports/`, a cache, a
+config file) **redirects** that directory to its own temp. The failure this
+prevents happened in the ticket-09 build: two test files renamed the real
+`reports/versiones/` and put it back in a `finally`. Each passed alone, and under
+parallel workers one saw the directory another had moved mid-run, plus a crash
+could leave the maintainer's tree changed.
+
+The redirect is an environment variable the module reads at startup
+(`DESY_VERSIONES_DIR` in `src/reportes.ts`), passed down to any child process the
+test spawns. The tell: if the test has a `finally` whose job is to put the repo
+back, it is touching state it does not own. With the redirect the repo is never
+changed, so there is nothing to restore.
+
+## A `.gitignore` exception hangs off `*`, never off a bare directory
+
+A negation (`!reports/versiones/`) cannot reopen a directory that an earlier
+pattern ignored **as a directory** (`reports/`, `/reports/`): git does not
+descend into it, so it never reaches the negation. The `.gitignore` entry that
+works is `/reports/*` then `!/reports/versiones/`, and the assertion that guards
+it asks git (`git check-ignore`) rather than restating the pattern.
+
+The same holds for the next exception: an ignored-and-reopened tree (`versiones`,
+then `legado`) hangs off the `*` line and gets its own `!` line above the one
+that closes the block. The tell: if `git status` does not list a file the pattern
+says is tracked, the pattern is the suspect, not git.
 

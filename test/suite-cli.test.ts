@@ -250,17 +250,43 @@ const BOTON = ["--skill", "implement-component", "--case", "boton-primario"];
 const MARCA_LOCAL = "mi-desy-skills-42";
 
 /**
- * Presupuesto de tiempo por Ejecución. No es un adorno: la copia del starter al
- * sandbox (~85 MB / 5.260 ficheros, ver `SandboxOptions.scaffoldDir`) domina el
- * coste, y una regresión ahí infla el CI en silencio — pasó en la primera
+ * Presupuesto de tiempo por **intento**. No es un adorno: la copia del starter
+ * al sandbox (~85 MB / 5.260 ficheros, ver `SandboxOptions.scaffoldDir`) domina
+ * el coste, y una regresión ahí infla el CI en silencio — pasó en la primera
  * versión de este test, que tardaba 4× más y nadie lo notaba. Medido: ~19 s por
  * Ejecución con `robocopy` (antes ~66 s con `cpSync`). El techo deja aire para
  * una máquina cargada, pero no para volver al `cpSync`.
+ *
+ * Cuántos intentos entran en el techo lo dice `expectDentroDelPresupuesto`, que
+ * los lee de la corrida: el número no se escribe a mano (ver allí el fallo que
+ * costó el test del ticket 07).
  */
 const SEGUNDOS_POR_EJECUCION = 35;
 
-function expectDentroDelPresupuesto(corrida: Corrida, ejecuciones: number): void {
-  const techo = SEGUNDOS_POR_EJECUCION * ejecuciones;
+/**
+ * El presupuesto de una corrida: `SEGUNDOS_POR_EJECUCION` por cada **intento que
+ * de verdad ocurrió**. El número se lee de la corrida (`vistas`: una marca por
+ * Ejecución del guion) y no se pasa a mano.
+ *
+ * Desde el ticket 03 el coste de un test es **variable**: con `--n 2` se corre
+ * hasta tener 2 entregas o agotar el tope, así que una respuesta que no entrega
+ * añade intentos. El test del hallazgo de trigger hacía 4 y declaraba `2` —el
+ * número estaba en su propio comentario—, y sólo pasaba cuando el disco iba tan
+ * rápido que 4 copias cabían en el techo de 2 (medido: 78 s contra 70 s).
+ *
+ * Leerlo de la corrida quita el desfase de raíz. Lo que el techo deja de vigilar
+ * —que los intentos sean los debidos— lo fijan los `expect(corrida.vistas)`
+ * de cada test, que es donde ese fallo se lee con un mensaje claro.
+ */
+function expectDentroDelPresupuesto(corrida: Corrida): void {
+  const intentos = corrida.vistas.length;
+  // Sin marcas no hubo Ejecuciones: el techo sería 0 y el fallo diría «tardó 3 s,
+  // techo 0 s». Se dice lo que pasó, que es que el guion no corrió.
+  expect(
+    intentos,
+    "el guion no dejó ninguna marca: la suite no llegó a correr una Ejecución",
+  ).toBeGreaterThan(0);
+  const techo = SEGUNDOS_POR_EJECUCION * intentos;
   expect(corrida.segundos, `la suite tardó ${corrida.segundos}s (techo ${techo}s)`).toBeLessThan(
     techo,
   );
@@ -274,7 +300,7 @@ describe("suite (comando de CI, ticket 13)", () => {
 
       // El guion corrió de verdad: sin esta marca, el verde sería del test.
       expect(corrida.vistas).toEqual(["bueno"]);
-      expectDentroDelPresupuesto(corrida, 1);
+      expectDentroDelPresupuesto(corrida);
       expect(corrida.code).toBe(0);
       // El JSON es la fuente de verdad y declara siempre el Pin testeado.
       expect(corrida.scorecard?.pin.commit).toBe(pin.commit);
@@ -305,7 +331,7 @@ describe("suite (comando de CI, ticket 13)", () => {
       const corrida = await correrSuite([...BOTON, "--n", "3"], ["malo", "malo", "malo"]);
 
       expect(corrida.vistas).toEqual(["malo", "malo", "malo"]);
-      expectDentroDelPresupuesto(corrida, 3);
+      expectDentroDelPresupuesto(corrida);
       expect(corrida.code, corrida.stderr).not.toBe(0);
       expect(corrida.scorecard?.skills[0]?.casos[0]?.veredicto).toBe("SUSPENDE");
       expect(corrida.stderr).toContain("SUSPENDIDO");
@@ -328,7 +354,7 @@ describe("suite (comando de CI, ticket 13)", () => {
       // Pedir 3 entregas no es correr 3 veces: sin un solo Artefacto se agota el
       // tope duro —6 intentos, el doble de n— y ahí se para (ticket 03).
       expect(corrida.vistas).toEqual(["nada", "nada", "nada", "nada", "nada", "nada"]);
-      expectDentroDelPresupuesto(corrida, 6);
+      expectDentroDelPresupuesto(corrida);
       expect(corrida.code).toBe(0);
       const caso = corrida.scorecard?.skills[0]?.casos[0];
       expect(caso?.veredicto).toBe("INDETERMINADO");
@@ -351,7 +377,7 @@ describe("suite (comando de CI, ticket 13)", () => {
       // entregas en la lista, repite la última («nada»)— hasta agotar el tope
       // duro de 6. Las entregas cortan el bucle; el tope, la falta de ellas.
       expect(corrida.vistas).toEqual(["malo", "bueno", "nada", "nada", "nada", "nada"]);
-      expectDentroDelPresupuesto(corrida, 6);
+      expectDentroDelPresupuesto(corrida);
       expect(corrida.code).toBe(0);
       const caso = corrida.scorecard?.skills[0]?.casos[0];
       expect(caso?.veredicto).toBe("PASA");
@@ -392,7 +418,7 @@ describe("suite (comando de CI, ticket 13)", () => {
       // el guion se queda sin entregas y agota el tope de 4 intentos. Las dos
       // últimas no aportan entregas que el Caso pueda contar.
       expect(corrida.vistas).toEqual(["malo", "sin-skill", "sin-skill", "sin-skill"]);
-      expectDentroDelPresupuesto(corrida, 2);
+      expectDentroDelPresupuesto(corrida);
 
       // El veredicto sigue descartándola como dato: entrega mala y nada más.
       const caso = corrida.scorecard?.skills[0]?.casos[0];
@@ -479,7 +505,7 @@ describe("suite --skills-local: un checkout local declarado (ticket 05)", () => 
       const corrida = await correrSuite([...BOTON, "--n", "1", "--skills-local", "@CHECKOUT_LIMPIO@"]);
 
       expect(corrida.vistas).toEqual(["bueno"]);
-      expectDentroDelPresupuesto(corrida, 1);
+      expectDentroDelPresupuesto(corrida);
       expect(corrida.code).toBe(0);
 
       // Ni un SHA: el Pin es local y así se lee en JSON, en el H1 y por consola.

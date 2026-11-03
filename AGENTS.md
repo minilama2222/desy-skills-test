@@ -35,9 +35,14 @@ step in silence, and it already did (retro del ticket 06).
 ### The gate exits 0 or 1, and nothing else
 
 `npm run precommit` (and the commit hook) runs the suite through `test:gate`,
-which reproduces vitest's exit code with both channels piped. On Windows an
-exit 1 is a **real** failure: read the `failed` count and fix it. There is no
-stderr false alarm left to tell apart from one.
+which reproduces vitest's exit code with both channels piped. Take the exit code
+as the verdict: read the `failed` count, not the terminal.
+
+A visible stderr block does not decide it. `test:gate` filters vitest's channels,
+but the other `verificar-*` steps and the CLI writing `usage()` print to stderr
+outside it, so a commit can show one and still be green. The check that settles
+it: the commit exists (`[master <sha>]`) or it does not — `set -e` in the hook
+means a real failure leaves no commit behind.
 
 PowerShell has no heredoc: `git commit -F -` with a `<<'EOF'` body fails to parse,
 and the retry mangles the accents. Write the message to a file and pass

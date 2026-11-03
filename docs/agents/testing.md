@@ -27,6 +27,14 @@ importe y un rojo de verdad pasa por ruido del terminal. `verificar-tests` lo ca
 La fixture se declara en `FIXTURE_DECLARADA` (`scripts/verificar-tests.ts`) con su
 motivo, igual que los binarios exentos.
 
+## Un test que toca el estado del repo
+
+Un test que escribe donde escribe el producto **redirige** ese directorio a su
+temporal (`DESY_VERSIONES_DIR` en `src/reportes.ts` es el caso hecho), y pasa la
+misma variable al proceso hijo que lance. La regla y el fallo que la originó
+están en `CODING_STANDARDS.md` → «A test that needs the repo's own state redirects
+it»; aquí sólo el puntero.
+
 ## El gate
 
 `vitest run [fichero]` para mirar un fichero mientras se trabaja. `npm run test:gate`
