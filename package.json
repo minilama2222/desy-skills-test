@@ -28,6 +28,7 @@
     "verificar-captura-gold": "tsx scripts/verificar-captura-gold.ts",
     "report": "tsx src/cli.ts report",
     "diff-versiones": "tsx scripts/diff-versiones.ts",
+    "archivar-legado": "tsx scripts/archivar-legado.ts",
     "bump-pin": "tsx src/cli.ts bump-pin"
   },
   "devDependencies": {

@@ -50,7 +50,10 @@ El ticket 09 añade dos cosas pequeñas, sin infraestructura nueva:
   comodidad declarada, como el propio Pin local.
 - **El legado queda fuera** (ticket 10): el diff no lee `reports/legado/`, porque
   esa evidencia se midió con otra regla y compararla es justo la comparación que
-  no significa nada.
+  no significa nada. El archivo se versiona (`!/reports/legado/`, hermana de la
+  negación de `versiones/`), cada corrida lleva una cabecera `LEGADO.md` con la
+  regla con la que se midió, y ninguno de sus ficheros declara `arbolHash`: ni
+  pasado a mano se puede leer como versión. Lo fija `test/legado-cli.test.ts`.
 - **`npm run report` deja de re-etiquetar**, y esto es el otro lado del ticket:
   el Pin de un informe sale de **cada Ejecución**. Un árbol que mezcla corridas
   —las de `run`— no puede declarar el Pin de la primera como el de todas: sale

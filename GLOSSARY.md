@@ -190,6 +190,17 @@ dar. Lo calcula `diffDeVersiones` (`src/versiones.ts`) y lo enseña
 _Avoid_: llamarlo «baseline»; leer «sin cambios» como «el skill está igual de
 bien».
 
+**Legado**:
+La evidencia que se midió **antes** de la regla del ticket 01 (Veredicto sobre
+Entregas, ADR-0014), guardada en `reports/legado/` con una cabecera que declara con
+qué regla se midió. Se versiona pero **no se compara**: el Diff de versiones no lo
+lee, porque un Veredicto de entonces y uno de hoy no miden lo mismo. Un `SUSPENDE`
+del legado suele significar «el SUT no entregó» —con la regla de hoy sería
+INDETERMINADO—, no «el skill está mal». Ver ADR-0016 y
+`reports/legado/README.md`.
+_Avoid_: usarlo como línea base o como caso de regresión; leer su Veredicto con el
+significado de hoy.
+
 **Informe por Caso**:
 El documento legible que `npm run suite` y `npm run report` escriben en
 `reports/informe/<skill>/<caso>.md`: por cada Check fallido, su aserción, la línea

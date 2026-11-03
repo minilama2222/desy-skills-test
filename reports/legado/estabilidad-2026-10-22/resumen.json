@@ -1,0 +1,60 @@
+[
+  {
+    "ejecucion": 1,
+    "segundos": 54,
+    "grade": "INACEPTABLE",
+    "entrega": "sin-artefacto",
+    "flujoAlcanzoSkill": true,
+    "flujoObservado": [
+      "preflight-check",
+      "implement-component"
+    ],
+    "runnerDevuelve": [],
+    "fuenteEscrita": [],
+    "distEscrito": [],
+    "fuenteTieneMacro": null,
+    "fuenteTieneVariante": null,
+    "fallos": [
+      "usa-macro-boton",
+      "variante-primaria"
+    ]
+  },
+  {
+    "ejecucion": 2,
+    "segundos": 188,
+    "grade": "EXCELENTE",
+    "entrega": "con-artefacto",
+    "flujoAlcanzoSkill": true,
+    "flujoObservado": [
+      "preflight-check",
+      "implement-component"
+    ],
+    "runnerDevuelve": [
+      "src/pages/boton-enviar.html"
+    ],
+    "fuenteEscrita": [
+      "src/pages/boton-enviar.html"
+    ],
+    "distEscrito": [],
+    "fuenteTieneMacro": true,
+    "fuenteTieneVariante": true,
+    "fallos": []
+  },
+  {
+    "ejecucion": 3,
+    "segundos": 102,
+    "grade": "INACEPTABLE",
+    "entrega": "sin-artefacto",
+    "flujoAlcanzoSkill": false,
+    "flujoObservado": [],
+    "runnerDevuelve": [],
+    "fuenteEscrita": [],
+    "distEscrito": [],
+    "fuenteTieneMacro": null,
+    "fuenteTieneVariante": null,
+    "fallos": [
+      "usa-macro-boton",
+      "variante-primaria"
+    ]
+  }
+]

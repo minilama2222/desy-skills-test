@@ -1,0 +1,46 @@
+{
+  "skill": "implement-component",
+  "caso": "boton-primario",
+  "tipo": "caso-componente",
+  "pin": "b523ca7df8594532f5fd47376894c16bc8f1b5df",
+  "grade": "INACEPTABLE",
+  "detalle": [
+    {
+      "id": "tokens-del-sistema",
+      "severity": "guard",
+      "passed": true
+    },
+    {
+      "id": "usa-macro-boton",
+      "severity": "guard",
+      "passed": false
+    },
+    {
+      "id": "variante-primaria",
+      "severity": "guard",
+      "passed": false
+    },
+    {
+      "id": "sin-props-inventados",
+      "severity": "guard",
+      "passed": true
+    },
+    {
+      "id": "tamano-base",
+      "severity": "quality",
+      "passed": true
+    },
+    {
+      "id": "tamano-base-no-grande",
+      "severity": "quality",
+      "passed": true
+    }
+  ],
+  "flujoObservado": [
+    "preflight-check",
+    "implement-component"
+  ],
+  "artefactos": {},
+  "entrega": "sin-artefacto",
+  "flujoAlcanzoSkill": true
+}

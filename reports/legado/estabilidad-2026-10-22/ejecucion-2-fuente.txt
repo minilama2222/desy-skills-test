@@ -1,0 +1,15 @@
+{% extends "pages/_template.home.njk" %}
+
+{% from "components/button/_macro.button.njk" import componentButton %}
+
+{% block contentBlock %}
+  <section aria-labelledby="acciones-formulario">
+    <h2 id="acciones-formulario" class="sr-only">Acciones del formulario</h2>
+
+    {{ componentButton({
+      "text": "Enviar",
+      "type": "submit",
+      "classes": "c-button--primary"
+    }) }}
+  </section>
+{% endblock %}

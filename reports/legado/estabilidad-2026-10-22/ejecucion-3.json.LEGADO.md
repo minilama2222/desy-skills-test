@@ -1,0 +1,37 @@
+# Legado — reports/estabilidad-v2/ejecucion-3.json
+
+> **Este directorio no se compara.** Se midió con otra regla y no es un Scorecard de
+> versión: `npm run diff-versiones` no lo lee, y compararlo con una Versión de skills de
+> hoy es comparar dos medidas que no dicen lo mismo (ticket 10).
+
+- origen: `reports/estabilidad-v2/ejecucion-3.json`
+- fecha de la corrida: 2026-10-22
+- qué es: Una Ejecución persistida.
+- regla de medida: **ADR-0007** — `docs/adr/0007-politica-de-n-ejecuciones.md`
+- Pin: b523ca7df8594532f5fd47376894c16bc8f1b5df — **declarado** por la corrida, no comprobado contra el árbol medido
+
+## Con qué regla se midió
+
+El veredicto de un Caso se calcula sobre las Ejecuciones que **alcanzaron el skill** (`flujoAlcanzoSkill: true`). Las que lo alcanzaron y no entregaron no se separaban: contaban como dato y condenaban el Caso.
+
+Entonces, un Caso que alcanzó el skill y **no entregó nada** era **SUSPENDE**.
+Y **ninguna** Ejecución alcanzó el skill era INDETERMINADO: sin dato, no había juicio.
+
+## Qué hizo esta Ejecución
+
+- Skill y Caso: `implement-component/boton-primario`
+- Grade: **INACEPTABLE**
+- Entrega: `sin-artefacto`
+- Alcanzó el skill: no
+
+Es **una** Ejecución: no tiene veredicto de Caso. El Veredicto de un Caso lo agrega el
+scorecard sobre todas sus Ejecuciones, y aquí no hay ninguno que agregar.
+
+## Qué se conserva y qué no
+
+Se conserva el **porqué** del bucle de refinamiento —los dos HALLAZGOS y la tasa de
+entrega que se midió—; sus diagnósticos están en
+`.scratch/desy-skills-test-harness/issues/HALLAZGO-*.md`, que no se copian aquí. Lo que
+se copia es la **evidencia** de esta corrida. No se conserva el **qué**: los veredictos
+viejos como si fueran una línea base. La línea base arranca vacía en la primera corrida
+con la regla nueva (`reports/versiones/`).

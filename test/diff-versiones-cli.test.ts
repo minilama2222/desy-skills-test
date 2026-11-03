@@ -228,7 +228,7 @@ describe("npm run diff-versiones (ticket 09)", () => {
   }, 60_000);
 });
 
-describe(".gitignore: se versiona reports/versiones/ y nada más de reports/ (ticket 09)", () => {
+describe(".gitignore: se versionan reports/versiones/ y reports/legado/, y nada más (tickets 09 y 10)", () => {
   /**
    * La excepción del `.gitignore` es frágil de una forma que no se ve leyéndola:
    * `reports/` —o `/reports/`— es un patrón de **directorio**, y git no desciende
@@ -246,6 +246,13 @@ describe(".gitignore: se versiona reports/versiones/ y nada más de reports/ (ti
 
   it("el JSON de una versión NO está ignorado (se puede commitar)", () => {
     expect(ignorado(`reports/versiones/${HASH_A}.json`)).toBe(false);
+  });
+
+  it("el archivo de legado tampoco: la evidencia versionada se commitea", () => {
+    // Ticket 10: el legado se versiona, sin `git add -f`. La segunda negación
+    // cuelga de la misma línea `*` que la primera.
+    expect(ignorado("reports/legado/README.md")).toBe(false);
+    expect(ignorado("reports/legado/suite-2026-10-27/scorecard.json")).toBe(false);
   });
 
   it("el resto de reports/ sí lo está: Ejecuciones, scorecards de corrida, informes", () => {

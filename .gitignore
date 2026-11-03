@@ -1,11 +1,13 @@
 node_modules/
 # .gitignore is ASCII on purpose: it is read by git, not by the Spanish prose
 # guardrail, and a comment with tildes broke its encoding once (ticket 09).
-# Everything under reports/ is ignored EXCEPT the scorecard of each version.
-# The pattern is `/reports/*` and not `/reports/`: git does not descend into an
-# ignored directory, so a later `!reports/versiones/` never gets evaluated.
+# Everything under reports/ is ignored EXCEPT the scorecard of each version and
+# the legacy archive. The pattern is `/reports/*` and not `/reports/`: git does
+# not descend into an ignored directory, so a later `!reports/versiones/` never
+# gets evaluated.
 /reports/*
 !/reports/versiones/
+!/reports/legado/
 sandbox/
 .vendor-tmp/
 .scaffold-cache/

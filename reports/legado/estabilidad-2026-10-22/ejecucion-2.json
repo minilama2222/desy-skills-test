@@ -1,0 +1,48 @@
+{
+  "skill": "implement-component",
+  "caso": "boton-primario",
+  "tipo": "caso-componente",
+  "pin": "b523ca7df8594532f5fd47376894c16bc8f1b5df",
+  "grade": "EXCELENTE",
+  "detalle": [
+    {
+      "id": "tokens-del-sistema",
+      "severity": "guard",
+      "passed": true
+    },
+    {
+      "id": "usa-macro-boton",
+      "severity": "guard",
+      "passed": true
+    },
+    {
+      "id": "variante-primaria",
+      "severity": "guard",
+      "passed": true
+    },
+    {
+      "id": "sin-props-inventados",
+      "severity": "guard",
+      "passed": true
+    },
+    {
+      "id": "tamano-base",
+      "severity": "quality",
+      "passed": true
+    },
+    {
+      "id": "tamano-base-no-grande",
+      "severity": "quality",
+      "passed": true
+    }
+  ],
+  "flujoObservado": [
+    "preflight-check",
+    "implement-component"
+  ],
+  "artefactos": {
+    "src/pages/boton-enviar.html": "{% extends \"pages/_template.home.njk\" %}\n\n{% from \"components/button/_macro.button.njk\" import componentButton %}\n\n{% block contentBlock %}\n  <section aria-labelledby=\"acciones-formulario\">\n    <h2 id=\"acciones-formulario\" class=\"sr-only\">Acciones del formulario</h2>\n\n    {{ componentButton({\n      \"text\": \"Enviar\",\n      \"type\": \"submit\",\n      \"classes\": \"c-button--primary\"\n    }) }}\n  </section>\n{% endblock %}\n"
+  },
+  "entrega": "con-artefacto",
+  "flujoAlcanzoSkill": true
+}

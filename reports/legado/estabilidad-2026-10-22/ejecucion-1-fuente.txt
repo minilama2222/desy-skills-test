@@ -1,0 +1,21 @@
+{% set title = "Botón Enviar. Gobierno de Aragón" %}
+
+{% extends "pages/_template.test.njk" %}
+
+{% block contentBlock %}
+  <div class="pb-lg"></div>
+  <h1 class="c-h1">Botón primario de envío</h1>
+
+  {% from "components/button/_macro.button.njk" import componentButton %}
+
+  <form action="#" novalidate>
+    {{ componentButton({
+      "text": "Enviar",
+      "type": "submit",
+      "classes": "c-button--primary",
+      "preventDoubleClick": true
+    }) }}
+  </form>
+
+  <div class="pb-lg"></div>
+{% endblock %}

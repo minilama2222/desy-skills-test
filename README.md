@@ -27,6 +27,7 @@ npm run capturar-gold -- --skill <skill> --case <caso>  # genera/valida la Captu
 npm run capturar-mockup  # genera el mockup (input/mockup.png) de los Casos-decisión
 npm run report    # agrega las Ejecuciones de `run` y renderiza el Scorecard (JSON + markdown)
 npm run diff-versiones  # diff entre las dos versiones más recientes (o `-- <a> <b>`)
+npm run archivar-legado  # archiva la evidencia previa a la regla del ticket 01 en reports/legado
 npm run bump-pin <ref>  # actualiza vendor/ + pin.json al ref dado
 ```
 
@@ -137,6 +138,9 @@ Qué deja y qué devuelve:
   conclusión de la corrida, versionada en git y en un directorio **fijo** (no bajo
   `--reports`). Es lo que compara `npm run diff-versiones` (ver
   [Comparar dos versiones](#comparar-dos-versiones)).
+- **`reports/legado/`** — la evidencia anterior a la regla del ticket 01, versionada
+  pero **fuera** del diff, con la regla con la que se midió en su cabecera (ver
+  [El legado queda fuera del diff](#el-legado-queda-fuera-del-diff)).
 - Las Ejecuciones persistidas en `reports/suite/ejecuciones/<skill>/<caso>/<n>.json`
   (tantas como intentos costó llegar a las N entregas, o al tope).
 
@@ -179,10 +183,10 @@ veredicto no mezcla Ejecuciones de corridas distintas. Las corridas sueltas de
 
 ## Comparar dos versiones
 
-`reports/` está ignorado por git **salvo** `reports/versiones/`, donde cada
-`npm run suite` deja el scorecard de la versión que midió, nombrado por su
-`arbolHash` (el hash del contenido de los skills, no el commit — ADR-0016). Dos
-de esos JSON se comparan con:
+`reports/` está ignorado por git **salvo** `reports/versiones/` y `reports/legado/`.
+En `versiones/`, cada `npm run suite` deja el scorecard de la versión que midió,
+nombrado por su `arbolHash` (el hash del contenido de los skills, no el commit —
+ADR-0016). Dos de esos JSON se comparan con:
 
 ```bash
 npm run diff-versiones                       # las dos versiones más recientes
@@ -198,7 +202,20 @@ que solo existe en una versión se pinta con `—`, no como «no cambió».
 **Empieza vacío**: con menos de dos versiones el comando lo dice y sale con `0`.
 Medir el mismo contenido dos veces pisa el fichero de su hash: es la misma
 versión. Una versión medida con `--skills-local` se avisa como tal (no es lo que
-se medirá en CI), y `reports/legado/` queda fuera del diff a propósito.
+se medirá en CI).
+
+### El legado queda fuera del diff
+
+`reports/legado/` guarda la evidencia anterior a la regla del ticket 01 (la que
+declara INDETERMINADO un Caso sin entregas), con la regla con la que se midió
+escrita en su cabecera. Se versiona, pero **no se compara**: el diff sólo lee
+`reports/versiones/`, y ninguno de sus ficheros declara `arbolHash`, así que ni
+pasado a mano se puede tomar por una versión. Lo que hay y por qué su `SUSPENDE`
+no significa lo de hoy: [`reports/legado/README.md`](reports/legado/README.md).
+
+```bash
+npm run archivar-legado                      # una vez, a mano: no se re-genera
+```
 
 ## Reporte
 

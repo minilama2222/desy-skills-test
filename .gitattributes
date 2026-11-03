@@ -6,3 +6,8 @@
 
 # Los scripts del SUT (fixtures de test) también se ejecutan directamente.
 test/**/*.sh  text eol=lf
+
+# El legado se copia byte a byte y se versiona tal cual: con `core.autocrlf=true`
+# en Windows, git lo convertiría al hacer checkout y dejaría de ser la copia que
+# el `README.md` dice que es. `-text` lo deja como binario para git. (Ticket 10.)
+reports/legado/**  -text
