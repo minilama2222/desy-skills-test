@@ -533,15 +533,23 @@ export function entornoDelSandbox(sandbox: {
 
 /**
  * Directorio de datos de OpenCode V2: ahí viven `auth.json` (las cuentas
- * conectadas) y la base de datos de sesiones. En Linux y Windows depende del
- * `HOME`; en macOS es `~/Library/Application Support/opencode` y no sigue a
- * `HOME` (ver ADR-0013).
+ * conectadas) y la base de datos de sesiones. El SUT lo resuelve desde `HOME` en
+ * las tres plataformas —medido con `opencode debug paths` en la 2.2.1—, así que
+ * esta función es una sola regla y no una por sistema operativo.
+ *
+ * La primera versión de esta función decía que macOS no mueve
+ * `~/Library/Application Support` con `HOME` y componía esa ruta. Era cierto en
+ * la 2.1.2 y dejó de serlo: con la 2.2.1 el fichero vive en
+ * `~/.local/share/opencode`, y el sandbox buscaba un `auth.json` que ya no
+ * estaba. Una ruta de plataforma copiada de una medición caduca con el binario;
+ * si vuelve a cambiar, el test de esta función lo dice antes que un rojo de
+ * diez tests (ADR-0013).
  */
-export function datosDirDeHome(home: string, plataforma: string = process.platform): string {
+export function datosDirDeHome(home: string, _plataforma: string = process.platform): string {
   // Se compone a mano y no con `join`: `join` usa el separador de la máquina
-  // actual, y esta ruta debe ser la de la plataforma pedida (`plataforma`).
+  // actual, y esta ruta debe ser la del `home` que se pasa (puede ser el de un
+  // sandbox, o la ruta de otra plataforma en un test).
   const base = home.replace(/[\\/]+$/, "");
-  if (plataforma === "darwin") return `${base}/Library/Application Support/opencode`;
   return `${base}/.local/share/opencode`;
 }
 

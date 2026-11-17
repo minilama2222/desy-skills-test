@@ -32,19 +32,29 @@ ficheros a la ruta de arriba.
 ## Las credenciales no viajan con el sandbox
 
 Las cuentas conectadas (`opencode auth login`) viven en el directorio de datos
-(`auth.json`), que en V2 depende del `HOME`: `~/.local/share/opencode` en Linux y
-Windows, y `~/Library/Application Support/opencode` en macOS (macOS **no** mueve
-`Application Support` con `HOME`). Con un `HOME` vacío el modelo sale
+(`auth.json`), que en V2 depende del `HOME` en las tres plataformas:
+`~/.local/share/opencode`. Con un `HOME` vacío el modelo sale
 `Model unavailable`. Como el proveedor `deepinfra` del catálogo no declara
 variable de entorno, un `DEEPINFRA_API_KEY` tampoco lo resuelve.
+
+> **Corregido el 17/11/2026, con la 2.2.1.** Este ADR afirmaba que en macOS el
+> directorio de datos era `~/Library/Application Support/opencode` y que macOS no
+> movía `Application Support` con `HOME`. Eso era la 2.1.2: en la 2.2.1
+> `opencode debug paths` da `data <HOME>/.local/share/opencode` en macOS, y sigue
+> al `HOME` inyectado como en Linux. La regla por plataforma se quedó sin base y
+> rompía los diez tests que crean un sandbox con
+> «no existe …/Application Support/opencode/auth.json». `datosDirDeHome` pasa a
+> tener una sola regla; `test/sandbox.test.ts` la fija en las tres plataformas.
+> Lección: una ruta copiada de una medición caduca con el binario, así que se
+> vuelve a medir con `opencode debug paths` al subir de versión.
 
 Por eso `configurar()` **copia solo `auth.json`** al sandbox (`SandboxOptions.authOrigen`,
 por defecto el del `HOME` real; `homeReal` permite sustituirlo en tests). No entra
 ningún otro estado del usuario: ni sesiones, ni plugins, ni skills, ni config.
-`datosDirDeHome(home, plataforma)` compone la ruta por plataforma —se prueba con
-las tres, aunque el CI corra en una— y `entornoDelSandbox` fija además
-`OPENCODE_HOME` al directorio de datos del sandbox, para que la base de datos de
-sesiones tampoco acabe en la del usuario.
+`datosDirDeHome(home)` compone la ruta desde `HOME` —se prueba con las tres
+plataformas declaradas, aunque el CI corra en una— y `entornoDelSandbox` fija
+además `OPENCODE_HOME` al directorio de datos del sandbox, para que la base de
+datos de sesiones tampoco acabe en la del usuario.
 
 ## Configuración que encierra el sandbox
 

@@ -139,15 +139,41 @@ describe("createSandbox", () => {
     expect(existsSync(join(sandbox.home, "no-copiar.txt"))).toBe(false);
   });
 
-  it("datosDirDeHome sigue a HOME en Linux/Windows y usa Application Support en macOS", () => {
-    // En macOS `HOME` no mueve `~/Library/Application Support`: se compone a mano
-    // (ADR-0013). Las dos ramas se prueban sin depender de la plataforma actual.
+  it("datosDirDeHome sigue a HOME en las tres plataformas, macOS incluida", () => {
+    // Medido con `opencode debug paths` en la 2.2.1: el directorio de datos sale
+    // de `HOME` también en macOS (`~/.local/share/opencode`), no de
+    // `~/Library/Application Support`. La regla de la 2.1.2 caducó con el binario,
+    // y una ruta que caduca en silencio rompe los tests con un error que habla de
+    // la máquina (ADR-0013). Las tres ramas se prueban sin depender de la
+    // plataforma actual.
     expect(datosDirDeHome("/home/ana", "linux")).toBe("/home/ana/.local/share/opencode");
     expect(datosDirDeHome("C:\\Users\\ana", "win32")).toBe(
       "C:\\Users\\ana/.local/share/opencode",
     );
-    expect(datosDirDeHome("/Users/ana/", "darwin")).toBe(
-      "/Users/ana/Library/Application Support/opencode",
-    );
+    expect(datosDirDeHome("/Users/ana/", "darwin")).toBe("/Users/ana/.local/share/opencode");
+  });
+
+  it("un auth.json en la ruta que usaba la 2.1.2 no cuenta: el de macOS es el de HOME", () => {
+    // El escenario adversario, entero: el fichero que la ruta vieja buscaba
+    // **existe**, y el de la ruta real **no**. Un `configurar()` que siguiera
+    // mirando `Application Support` copiaría el viejo y este test pasaría por el
+    // motivo equivocado; con la regla nueva se niega y lo dice.
+    const homeReal = mkdtempSync(join(tmpdir(), "home-real-viejo-"));
+    const authViejo = join(homeReal, "Library", "Application Support", "opencode", "auth.json");
+    mkdirSync(dirname(authViejo), { recursive: true });
+    writeFileSync(authViejo, '{"deepinfra":{"type":"api"}}');
+    const sandbox = createSandbox({ homeReal });
+    cleanup = () => {
+      rmSync(homeReal, { recursive: true, force: true });
+    };
+
+    try {
+      sandbox.copySkills();
+      expect(() => sandbox.configurar()).toThrow(/auth\.json/);
+      expect(existsSync(join(datosDirDeHome(sandbox.home), "auth.json"))).toBe(false);
+    } finally {
+      sandbox.cleanup();
+      cleanup = undefined;
+    }
   });
 });
