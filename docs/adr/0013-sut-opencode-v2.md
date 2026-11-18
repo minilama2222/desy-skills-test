@@ -55,10 +55,12 @@ variable de entorno, un `DEEPINFRA_API_KEY` tampoco lo resuelve.
 > proveedores**, que la 2.2.1 guarda en `opencode.db` (tabla `kv`, clave
 > `models-dev:v2:catalog`) y **no** en `~/.cache/opencode/models.json`. Copiar esa
 > base de datos resolvería el arranque y rompería la frase de abajo: lleva las
-> sesiones del mantenedor y credenciales en claro. El
-> `.scratch/bucle-de-refinamiento/issues/15-sut-no-resuelve-el-modelo-en-sandbox-limpio.md`
-> deja el hallazgo y lo que falta para arreglarlo. Hasta entonces, esta sección
-> describe lo que el código hace, **no** una garantía de que el SUT arranque.
+> sesiones del mantenedor y credenciales en claro.
+>
+> **Arreglado en el ticket 15 (ADR-0018):** lo que sí resuelve el modelo es la
+> **variable de entorno** del proveedor, y `entornoDelSandbox` la pone a partir del
+> `auth.json` que ya se copiaba. Esta sección sigue siendo cierta sobre lo que el
+> sandbox copia; lo que cambió es que copiar ya no es lo único que necesita.
 
 Por eso `configurar()` **copia solo `auth.json`** al sandbox (`SandboxOptions.authOrigen`,
 por defecto el del `HOME` real; `homeReal` permite sustituirlo en tests). No entra

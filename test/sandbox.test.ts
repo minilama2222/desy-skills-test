@@ -6,6 +6,7 @@ import { readPin } from "../src/pin.js";
 import {
   createSandbox,
   datosDirDeHome,
+  entornoDelSandbox,
   skillsDirDeConfig,
   VENDOR_SKILLS_DIR,
 } from "../src/runner.js";
@@ -171,6 +172,39 @@ describe("createSandbox", () => {
       sandbox.copySkills();
       expect(() => sandbox.configurar()).toThrow(/auth\.json/);
       expect(existsSync(join(datosDirDeHome(sandbox.home), "auth.json"))).toBe(false);
+    } finally {
+      sandbox.cleanup();
+      cleanup = undefined;
+    }
+  });
+
+  it("entornoDelSandbox lleva la clave de cada proveedor que el auth.json declare", () => {
+    // Ticket 15: con la 2.2.1, copiar `auth.json` no basta para que el SUT
+    // resuelva el modelo, porque el catálogo de proveedores no viaja. Lo que sí
+    // funciona —medido, y con la clave incorrecta da otro error— es la
+    // **variable de entorno** del proveedor. El sandbox ya hereda `process.env`,
+    // así que la clave se pone ahí desde el `auth.json` que el propio sandbox
+    // copia: no viaja nada nuevo del usuario, y el mantenedor no exporta nada.
+    const homeReal = mkdtempSync(join(tmpdir(), "home-real-entorno-"));
+    const authReal = join(datosDirDeHome(homeReal), "auth.json");
+    mkdirSync(dirname(authReal), { recursive: true });
+    writeFileSync(
+      authReal,
+      JSON.stringify({ deepinfra: { type: "api", key: "clave-de-fixture" } }),
+    );
+    const sandbox = createSandbox({ homeReal });
+    cleanup = () => {
+      rmSync(homeReal, { recursive: true, force: true });
+    };
+
+    try {
+      const entorno = entornoDelSandbox({
+        home: sandbox.home,
+        configDir: sandbox.configDir,
+        authOrigen: authReal,
+      });
+
+      expect(entorno["DEEPINFRA_API_KEY"]).toBe("clave-de-fixture");
     } finally {
       sandbox.cleanup();
       cleanup = undefined;

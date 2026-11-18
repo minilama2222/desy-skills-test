@@ -174,6 +174,13 @@ export interface Sandbox {
    */
   configurar(): void;
   /**
+   * De dónde se leen las claves de proveedor para el entorno del SUT (ticket 15).
+   * Es el `auth.json` del usuario, no la copia del sandbox: la copia puede no
+   * existir todavía cuando se compone el entorno. Opcional: sin él, se usa la del
+   * sandbox.
+   */
+  authOrigen?: string;
+  /**
    * Artefactos que el SUT produjo en `dir` (relativo al `workDir`). El directorio
    * lo decide el tipo de Caso (`dirArtefactoDeCaso`), no el sandbox.
    */
@@ -308,8 +315,10 @@ export async function runCaso(
       cwd: sandbox.workDir,
       // `XDG_CONFIG_HOME` es la ruta de config de `opencode.jsonc`; `OPENCODE_HOME`
       // la del par `auth.json`/base de datos en V2. Se fijan las dos para que no
-      // quede ninguna parte del HOME fuera del sandbox.
-      env: entornoDelSandbox(sandbox),
+      // quede ninguna parte del HOME fuera del sandbox. `authOrigen` va aparte
+      // porque de ahí salen las claves de proveedor: el `auth.json` del sandbox
+      // es una copia y solo existe después de `configurar()` (ticket 15).
+      env: entornoDelSandbox({ ...sandbox, authOrigen: sandbox.authOrigen }),
     });
     const transcript = mergeTranscript(stdout, stderr);
     const dir = dirArtefactoDeCaso(caso.tipo);
@@ -523,12 +532,61 @@ export function skillsDirDeConfig(configRaiz: string): string {
 export function entornoDelSandbox(sandbox: {
   home: string;
   configDir: string;
+  /**
+   * `auth.json` del que salen las claves de proveedor. Por defecto, el del
+   * `HOME` del sandbox (la copia que `configurar()` dejó); el runner le pasa el
+   * del usuario para no depender del orden de las llamadas.
+   */
+  authOrigen?: string;
 }): Record<string, string> {
+  const auth = sandbox.authOrigen ?? join(datosDirDeHome(sandbox.home), "auth.json");
   return {
     HOME: sandbox.home,
     XDG_CONFIG_HOME: sandbox.configDir,
     OPENCODE_HOME: datosDirDeHome(sandbox.home),
+    ...clavesDeProveedores(auth),
   };
+}
+
+/**
+ * Las claves de `auth.json` como variables de entorno del proveedor
+ * (`deepinfra` → `DEEPINFRA_API_KEY`).
+ *
+ * Ticket 15: en la 2.2.1, copiar `auth.json` **no basta** para que el sandbox
+ * resuelva el modelo —el catálogo de proveedores vive en `opencode.db`, que no
+ * se copia—, pero la variable de entorno sí: medido con `HOME` limpio, la env
+ * resuelve el modelo sin `auth.json`, y una clave incorrecta da otro error
+ * («not authorized»), así que no es un falso verde.
+ *
+ * Se ponen **todas** las que el fichero declare, no solo la del SUT: el sandbox
+ * ya limita qué proveedores puede usar (`policies.provider.use`), así que esta
+ * lista no abre ninguna puerta. Lo que no se incluye es nada que no sea una
+ * clave de tipo `api`: una sesión OAuth no se puede expresar como variable.
+ *
+ * Un `auth.json` ausente o ilegible devuelve vacío a propósito: el error de «no
+ * hay credencial» lo da `configurar()`, con el nombre del fichero, en vez de
+ * lanzar aquí desde un derivador de entorno.
+ */
+export function clavesDeProveedores(authPath: string): Record<string, string> {
+  let crudo: unknown;
+  try {
+    crudo = JSON.parse(readFileSync(authPath, "utf8")) as unknown;
+  } catch {
+    return {};
+  }
+  if (typeof crudo !== "object" || crudo === null) return {};
+  const claves: Record<string, string> = {};
+  // **Solo la del proveedor del SUT.** Se probó primero con todas las `api`, y el
+  // smoke del runner volcó las otras tres en el log de la suite al comparar el
+  // entorno: una clave que el SUT no necesita no tiene por qué salir de su
+  // usuario. El sandbox ya limita los proveedores a `PROVEEDOR_DEL_SUT`
+  // (`policies.provider.use`), así que la lista corta y la larga usan lo mismo.
+  const valor = (crudo as Record<string, unknown>)[PROVEEDOR_DEL_SUT];
+  if (typeof valor !== "object" || valor === null) return {};
+  const { type, key } = valor as { type?: unknown; key?: unknown };
+  if (type !== "api" || typeof key !== "string" || key.length === 0) return {};
+  claves[`${PROVEEDOR_DEL_SUT.toUpperCase().replace(/[^A-Z0-9]/g, "_")}_API_KEY`] = key;
+  return claves;
 }
 
 /**
@@ -630,6 +688,7 @@ export function createSandbox(opciones: string | SandboxOptions = {}): Sandbox {
     home,
     configDir,
     skillsDir,
+    authOrigen,
     copySkills(origen: string = VENDOR_SKILLS_DIR): void {
       // El origen es un directorio **de skills** (el `skills/` del vendor): se
       // copian sus subdirectorios, que son las skills. Un `.git/` —que un vendor

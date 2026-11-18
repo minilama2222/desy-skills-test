@@ -1,4 +1,5 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import type { CasoComponente } from "../src/caso.js";
@@ -6,6 +7,23 @@ import { readPin } from "../src/pin.js";
 import { createSandbox, datosDirDeHome, runCaso, type CommandRunner, type Entorno } from "../src/runner.js";
 
 const pin = readPin(join(process.cwd(), "pin.json"));
+
+/**
+ * Un `auth.json` de fixture: el smoke nunca lee el del usuario. Si lo leyera, su
+ * clave entraría en el entorno del SUT y una aserción fallida la volcaría en el
+ * log de la suite (ticket 15).
+ */
+/**
+ * Un `auth.json` de fixture: el smoke nunca lee el del usuario. Si lo leyera, su
+ * clave entraría en el entorno del SUT y una aserción fallida la volcaría en el
+ * log de la suite (ticket 15).
+ */
+function authDeFixture(): string {
+  const dir = mkdtempSync(join(tmpdir(), "auth-fixture-"));
+  const path = join(dir, "auth.json");
+  writeFileSync(path, JSON.stringify({ deepinfra: { type: "api", key: "clave-de-fixture" } }));
+  return path;
+}
 
 const caso: CasoComponente = {
   tipo: "caso-componente",
@@ -53,14 +71,20 @@ describe("runCaso (smoke de integración con sandbox real)", () => {
       },
     };
 
+    const auth = authDeFixture();
     const sandboxFactory = {
       create: () => {
-        sandboxCreado = createSandbox();
+        sandboxCreado = createSandbox({ authOrigen: auth });
         return sandboxCreado;
       },
     };
 
-    const resultado = await runCaso(caso, pin, { sandbox: sandboxFactory, command });
+    let resultado;
+    try {
+      resultado = await runCaso(caso, pin, { sandbox: sandboxFactory, command });
+    } finally {
+      rmSync(join(auth, ".."), { recursive: true, force: true });
+    }
 
     const sandbox = sandboxCreado;
     if (!sandbox) throw new Error("el sandbox no se creó");
@@ -73,6 +97,11 @@ describe("runCaso (smoke de integración con sandbox real)", () => {
       HOME: sandbox.home,
       XDG_CONFIG_HOME: sandbox.configDir,
       OPENCODE_HOME: datosDirDeHome(sandbox.home),
+      // El `auth.json` real del usuario no entra en un test: si lo hiciera, el
+      // entorno del SUT llevaría su clave y una comparación fallida la volcaría en
+      // el log de la suite (pasó al construir el ticket 15). Con un fichero de
+      // fixture, la clave es la del fixture y la aserción fija justo la regla.
+      DEEPINFRA_API_KEY: "clave-de-fixture",
     });
     expect(promptVisto).toBe(caso.prompt);
 

@@ -1,91 +1,93 @@
 # 15: El SUT no resuelve el modelo en un sandbox limpio (2.2.1)
 
 **What to build:** Que `npm run suite` corra el SUT real en una máquina recién
-preparada, sin copiar la base de datos del mantenedor ni exponer su estado. Hoy,
-con el `auth.json` que el sandbox ya copia, el SUT sale con
-`Model unavailable: deepinfra/deepseek-ai/DeepSeek-V4.1-Flash-1017`.
+preparada, sin copiar la base de datos del mantenedor ni exponer su estado.
 
 **Blocked by:** —
 
-**Status:** needs-info
-**Status depende de:** la credencial que usa el mantenedor en Windows (ver
-«Lo que falta para construir esto»). Las casillas se quedan abiertas a propósito:
-el criterio depende de un dato que no está medido.
+**Status:** ready-for-human
+**Status depende de:** el visto bueno a que el entorno del SUT lleve las claves de
+proveedor leídas de `auth.json` (ADR-0018). Construido y verde; lo que falta es la
+aceptación, no el código.
+
+- [x] El sandbox resuelve el modelo fijo con un `HOME` limpio, sin `opencode.db`
+- [x] Un test fija la regla: las claves `api` de `auth.json` llegan al entorno del SUT
+- [x] El test se vio **en rojo** sin el cambio
+- [x] `npm run suite` ya no sale con `exit 1` por `Model unavailable`
+- [x] El ADR-0013 deja de afirmar que `auth.json` basta
 
 ## El hallazgo, medido
 
-Máquina: macOS, `opencode v2.2.1` (Homebrew). Scaffold cacheado en `37748bd` y
-`npm run precommit` en verde (50 ficheros, 748 tests).
+Máquina: macOS, `opencode v2.2.1` (Homebrew). Scaffold cacheado en `37748bd`.
 
-`npm run suite -- --skill implement-component --case boton-primario --n 1` corre,
-pero las dos Ejecuciones salen `exit 1` con, por stderr:
+`npm run suite -- --skill implement-component --case boton-primario --n 1` corría,
+pero las dos Ejecuciones salían `exit 1` con:
 
 ```
 Error: Model unavailable: deepinfra/deepseek-ai/DeepSeek-V4.1-Flash-1017
 ```
 
-El veredicto `INDETERMINADO` es correcto por la regla (ticket 03, ADR-0014): no
-hubo entregas. Lo que el veredicto no dice es que **el SUT ni arrancó**, y el
-informe por Caso sí lo dice (`exit 1`, «crasheó», «no invocó ningún skill»): el
-ticket 02 haciendo su trabajo.
+El veredicto `INDETERMINADO` era correcto por la regla (ADR-0014): no hubo
+entregas. Lo que el veredicto no decía es que **el SUT ni arrancó**, y el informe
+por Caso sí (`exit 1`, «crasheó», «no invocó ningún skill»): el ticket 02 haciendo
+su trabajo.
 
-### Qué falta y dónde está
+### La causa
 
-Bisección sobre un `HOME` temporal, con `opencode models --standalone`:
+Bisección sobre un `HOME` temporal con `opencode run --standalone`:
 
-| Qué se copia al `HOME` del sandbox | ¿Aparece `deepinfra`? |
+| Qué tiene el sandbox | Resultado |
 |---|---|
-| `auth.json` | **no** (solo `opencode/*`, 8 modelos) |
-| `auth.json` + `~/.cache/opencode/models.json` | no |
-| `auth.json` + `~/.local/share/opencode/opencode.db` | **sí** |
-| `~/.local` + `~/.cache` + `~/.config` enteros | sí |
+| `auth.json` copiado | `Model unavailable` |
+| `auth.json` + `~/.cache/opencode/models.json` | `Model unavailable` |
+| `auth.json` + `opencode.db` | arranca |
+| **`DEEPINFRA_API_KEY` en el entorno**, sin `auth.json` | **arranca** |
+| `DEEPINFRA_API_KEY` con una clave inválida | `User is not authorized…` (otro error) |
+| `DEEPINFRA_API_KEY` con un modelo inexistente | `Model unavailable` |
 
-El catálogo de proveedores resuelto vive en `opencode.db`, tabla `kv`, clave
-`models-dev:v2:catalog` (12,7 MB de JSON): la 2.2.1 lo lee de la base de datos,
-no de `~/.cache/opencode/models.json`.
+Las dos últimas filas son los controles: distinguen «la clave funciona» de «el
+modelo no existe», así que la segunda fila no es un falso verde.
 
-**El ADR-0013 dice que basta con `auth.json`, y eso ya no es cierto.** También
-dice que «un `DEEPINFRA_API_KEY` tampoco lo resuelve», y con la 2.2.1 no se
-comprobó: lo que sí se comprobó es que con `auth.json` solo, el catálogo no
-incluye `deepinfra`.
+Con la 2.2.1, `auth.json` **no** basta para resolver el modelo (el catálogo de
+proveedores vive en `opencode.db`), pero la **variable de entorno sí**.
 
-### Una pista que no está confirmada
+### Lo que se construyó
 
-En el catálogo de la 2.2.1, el modelo fijo aparece bajo el proveedor **`edenai`**
-(`env: ["EDENAI_API_KEY"]`), no bajo un proveedor `deepinfra`; hay otros
-proveedores (`llmgateway`, `merge-gateway`) que exponen modelos con prefijo
-`deepinfra/`. Declarar `providers.deepinfra` en el `opencode.jsonc` del sandbox
-dio `missing API key` en todas las pruebas, y `EDENAI_API_KEY=x` no cambió el
-`Model unavailable`.
+`clavesDeProveedores(authPath)` (`src/runner.ts`) lee el `auth.json` que el
+sandbox **ya copiaba** y devuelve la clave de cada proveedor de tipo `api` como
+variable (`deepinfra` → `DEEPINFRA_API_KEY`). `entornoDelSandbox` las añade al
+entorno del SUT, y `runCaso` le pasa el `auth.json` **del usuario** (no la copia:
+puede no existir todavía cuando se compone el entorno).
 
-**Esto no es una hipótesis verificada**: son dos observaciones que apuntan a que
-el prefijo `deepinfra/` del modelo fijo y el proveedor que lo sirve no coinciden
-en la 2.2.1. Quien tome el ticket empieza por aquí.
+No viaja nada nuevo del usuario: el fichero ya se copiaba, y el sandbox limita qué
+proveedores puede usar (`policies.provider.use`). Una sesión OAuth no se puede
+expresar como variable, así que se omite y no se inventa.
+
+## Rectificación de un diagnóstico intermedio
+
+Durante la investigación afirmé dos cosas que no se sostenían, y quedan aquí para
+que no se repitan:
+
+- **«El modelo no está bajo `deepinfra`»**: falso. Está bajo `deepinfra`
+  (`https://api.deepinfra.com/v1/openai`, sdk `@ai-sdk/deepinfra`). Las consultas
+  a `opencode.db` que lo negaban estaban mal escritas (JSON path con guion sin
+  escapar).
+- **«Declarar el proveedor en el `opencode.jsonc` lo resuelve»**: no se demostró.
+  Dio `missing API key` en todas las pruebas.
 
 ## Lo que este ticket NO cierra
 
-- **Copiar `opencode.db` al sandbox.** Funciona, y es la vía que el ADR-0013
-  prohíbe en su propio texto («ni sesiones, ni plugins, ni skills, ni config»):
-  la base de datos lleva las sesiones y mensajes del mantenedor —y, medido,
-  credenciales en claro en la tabla `credential`—, y son 794 MB por Ejecución.
+- **El SUT escribiendo fuera del sandbox**, en `src/pages/` del repo. Es un fallo
+  distinto, medido después de este arreglo, y tiene su ticket: el 16.
+- **Copiar `opencode.db` al sandbox.** Funciona y está descartado: lleva las
+  sesiones del mantenedor y credenciales en claro en la tabla `credential`, y son
+  794 MB por Ejecución.
+- **Cambiar `MODELO_DEL_SUT`.** Afecta a comparabilidad (ADR-0001/0013).
 
-- **Cambiar `MODELO_DEL_SUT`.** Afecta a comparabilidad (ADR-0001/0013) y no es
-  un atajo para este problema.
+## Verificación
 
-## Lo que falta para construir esto
-
-Un dato que solo tiene el mantenedor: **con qué credencial corrió el SUT en
-Windows**, donde la suite sí midió. Si allí había un `auth.json` con una entrada
-que aquí no existe, o una variable de entorno exportada, el arreglo es declarar
-esa misma en el sandbox y el resto del ticket se escribe con la medida delante.
-
-## Verificación esperada
-
-- `npm run suite -- --skill implement-component --case boton-primario --n 1` en
-  un `HOME` sin `opencode.db` llega a `exit 0` del SUT y da `PASA` o
-  `SUSPENDE`, nunca `INDETERMINADO` por crash.
-- Un test fija la regla: con el `auth.json` de un usuario y **sin** su base de
-  datos, el sandbox resuelve `MODELO_FIJO` (hoy no lo hace, y por eso el test
-  empieza en rojo).
-- El ADR-0013 y `reports/legado/README.md` dejan de afirmar que `auth.json`
-  basta.
+- `test/sandbox.test.ts` (9): la regla de la ruta de datos y la de las claves de
+  proveedor. La segunda se vio en rojo quitando una línea del producto.
+- `npm run suite -- --skill implement-component --case boton-primario --n 1`
+  contra el SUT real: llega a ejecutar el agente (ver «Comentarios»).
+- Ver **ADR-0018**.
