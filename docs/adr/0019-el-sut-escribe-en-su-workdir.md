@@ -60,6 +60,37 @@ no cuentan (son del producto y de la suite); lo que cae en la base de sandboxes
 (`desy-sut-*`, con su `home/`) tampoco; lo que está fuera del repo no se juzga (el
 aislamiento del disco es de ADR-0013).
 
+## Límite conocido: el vigilante no atribuye, sólo ve el cambio
+
+El vigilante compara el **árbol**, no los procesos: sabe *que* un fichero cambió,
+no *quién* lo cambió. Consecuencia, medida el 18/11/2026: una corrida de
+`npm run suite` abortó acusando `test/sandbox.test.ts`, un fichero rastreado que
+el mantenedor estaba editando en ese momento. `git status` estaba limpio y el
+contenido era idéntico al commit: la única diferencia era el **mtime**, movido por
+la edición, no por el SUT. La foto de antes se había tomado con la fecha vieja y
+la de después vio la nueva.
+
+Esto es un **falso positivo**, no una fuga. Un guardarraíl que salta durante el
+trabajo normal se acaba ignorando, así que se documenta en vez de estrecharse:
+
+- **Qué sigue cubierto**: un fichero **nuevo** en el repo (el caso del ticket 16:
+  `?? src/pages/boton-enviar.html`), y un fichero existente **cuya ruta no cambia
+  de contenido entre la foto y la comparación** no se acusa (sólo cuenta si su
+  firma difiere).
+- **Qué no cubre**: a quién culpar cuando la firma cambia. Si el mantenedor guarda
+  un fichero mientras el SUT corre, la Ejecución se aborta igual y el mensaje
+  nombra un fichero que el SUT no tocó.
+- **Qué hacer**: lanzar la suite con el árbol quieto. Si salta con un fichero que
+  no has tocado durante la corrida, es una fuga de verdad y el mensaje trae la
+  ruta.
+
+La alternativa evaluada y **descartada** el 18/11/2026 fue estrechar el detector a
+los ficheros nuevos (o a los rastreados que estaban limpios al arrancar). Se
+descartó por decisión del mantenedor: el coste de código y de casos que vigilar
+no compensa frente a «no edites la suite mientras corre», y la limitación queda
+dicha aquí en vez de descubierta la próxima vez.
+
+
 ## Consecuencias
 
 - `test/runner.test.ts` fija las dos mitades: la regla (`escriturasFueraDelSandbox`,
@@ -77,3 +108,7 @@ aislamiento del disco es de ADR-0013).
   Ejecución **entregó** el artefacto en `src/` sin invocar `implement-component`
   (hallazgo de trigger, ticket 07); aquí se arregla dónde escribe, no que lo
   escriba.
+- El vigilante **no atribuye**: un fichero que el mantenedor guarde mientras la
+  suite corre se acusa como si fuera del SUT (ver «Límite conocido»). Se acepta y
+  se documenta; la alternativa —acusar sólo ficheros nuevos— se evaluó y se
+  descartó el 18/11/2026.
