@@ -1,0 +1,47 @@
+# El gate del repo, en un sitio que no depende de que alguien haya configurado
+# su hook local.
+#
+# El guardarraíl de este repo es `scripts/git-hooks/pre-commit`, que corre
+# `npm run precommit`. Es correcto y basta **en la máquina donde
+# `git config core.hooksPath` está puesto** — y no lo está en un clon nuevo, ni
+# en el de otra persona. Este workflow corre el mismo comando, sin lista propia:
+# la lista de pasos vive en `package.json` y el hook ya arregló ese desacuerdo una
+# vez (retro del ticket 06); repetirla aquí lo volvería a abrir.
+#
+# Dos sistemas, por una razón medida en este repo: Windows es donde `spawn`
+# ignora un `PATH` inyectado y el `.exe` gana al `.cmd` (retro del ticket 13), y
+# donde `core.autocrlf` convierte los finales de línea que `.gitattributes`
+# protege. Un gate sólo en Linux no vería ninguno de los dos.
+name: gate
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+
+jobs:
+  precommit:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    # El gate copia el scaffold (~85 MB) por Ejecución de la suite: en local mide
+    # ~120 s. El techo es para una máquina de CI cargada, no una medición.
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # `npm ci` respeta el `package-lock.json` y falla si no cuadra con
+      # `package.json`: el mismo contrato que el lock declara.
+      - run: npm ci
+
+      # `precommit` y no `test`: es lo que corre el hook, con typecheck y los
+      # `verificar-*` incluidos. El exit code es la única señal (`test:gate`
+      # reproduce el de vitest con los dos canales en tubería).
+      - run: npm run precommit

@@ -35,6 +35,22 @@ npm run bump-pin <ref>  # actualiza vendor/ + pin.json al ref dado
 (grader, runner, agregado) sin modelo ni red; `npm run suite` ejercita los skills
 a través del SUT y tarda ~1 min por Ejecución. Ver [Correr la suite](#correr-la-suite).
 
+## El gate
+
+`npm run precommit` corre el typecheck, los `verificar-*` y los tests. Es lo
+único que hay que mirar: su exit code es el veredicto (los pasos viven en
+`package.json`, y nadie más los enumera).
+
+Corre en dos sitios, y el segundo no depende de que nadie haya hecho nada:
+
+- **Aquí, al commitear**: `npm run setup:hooks` una vez (pone
+  `core.hooksPath=scripts/git-hooks`). El hook llama a `npm run precommit` y a
+  nada más.
+- **En CI**: `.github/workflows/gate.yml` corre el mismo `npm run precommit` en
+  Linux y en Windows, en cada push a `master` y en cada pull request. Windows está
+  ahí porque es donde `spawn` ignora un `PATH` inyectado y `core.autocrlf`
+  convierte finales de línea (retro de los tickets 06 y 13).
+
 ## Casos
 
 Los Casos viven en `casos/<skill>/<tipo>/<id>/`, con `input/prompt.md`,
