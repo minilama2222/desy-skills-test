@@ -41,7 +41,20 @@ jobs:
       # `package.json`: el mismo contrato que el lock declara.
       - run: npm ci
 
+      # Una cuenta de mentira, como la de `authDeFixture` en los tests: la suite
+      # crea un sandbox por Ejecución y `configurar()` copia un `auth.json`. Sin
+      # ninguno, revienta con «no tiene con qué resolver el modelo» — en un
+      # runner limpio, que es justo donde corre esto. `OPENCODE_AUTH_JSON` es la
+      # redirección que lee `authDelUsuario` (retro del ticket 16).
+      - name: Cuenta de fixture para el sandbox
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/auth"
+          printf '%s' '{"deepinfra":{"type":"api","key":"clave-de-fixture"}}' > "$RUNNER_TEMP/auth/auth.json"
+
       # `precommit` y no `test`: es lo que corre el hook, con typecheck y los
       # `verificar-*` incluidos. El exit code es la única señal (`test:gate`
       # reproduce el de vitest con los dos canales en tubería).
       - run: npm run precommit
+        env:
+          OPENCODE_AUTH_JSON: ${{ runner.temp }}/auth/auth.json

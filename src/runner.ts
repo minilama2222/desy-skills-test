@@ -933,18 +933,37 @@ export interface SandboxOptions {
   /**
    * `auth.json` real del usuario, del que se copian las cuentas conectadas al
    * sandbox (ver ADR-0013). Sin él, V2 no tiene con qué resolver el modelo
-   * (`Model unavailable`). Por defecto, el del `HOME` real.
+   * (`Model unavailable`). Por defecto, el del `HOME` real, salvo que
+   * `OPENCODE_AUTH_JSON` diga otra cosa (ver `authDelUsuario`).
    */
   authOrigen?: string;
   /** `HOME` real del usuario; base para `authOrigen`. Por defecto, `os.homedir()`. */
   homeReal?: string;
 }
 
+/**
+ * El `auth.json` del usuario del que el sandbox copia las cuentas.
+ *
+ * `OPENCODE_AUTH_JSON` **redirige** ese fichero, igual que `DESY_VERSIONES_DIR`
+ * redirige el directorio de versiones (CODING_STANDARDS, «un test que necesita el
+ * estado del repo lo redirige»). Sin la variable, un test que crea un sandbox
+ * depende de que el mantenedor tenga `opencode auth login` hecho: en una máquina
+ * limpia —un runner de CI— el fichero no existe y `configurar()` revienta con
+ * «no tiene con qué resolver el modelo». La redirección deja a la suite correr
+ * sin cuenta y sin tocar el `HOME` real.
+ */
+export function authDelUsuario(homeReal: string = homedir()): string {
+  const redirigido = process.env.OPENCODE_AUTH_JSON;
+  return redirigido !== undefined && redirigido !== ""
+    ? redirigido
+    : join(datosDirDeHome(homeReal), "auth.json");
+}
+
 export function createSandbox(opciones: string | SandboxOptions = {}): Sandbox {
   const opts: SandboxOptions = typeof opciones === "string" ? { base: opciones } : opciones;
   const base = opts.base ?? tmpdir();
   const homeReal = opts.homeReal ?? homedir();
-  const authOrigen = opts.authOrigen ?? join(datosDirDeHome(homeReal), "auth.json");
+  const authOrigen = opts.authOrigen ?? authDelUsuario(homeReal);
   const root = mkdtempSync(join(base, "desy-sut-"));
   const home = join(root, "home");
   const configDir = join(home, ".config", "opencode");

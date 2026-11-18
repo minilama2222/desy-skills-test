@@ -4,6 +4,7 @@ import { basename, join, dirname, sep } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { readPin } from "../src/pin.js";
 import {
+  authDelUsuario,
   createSandbox,
   datosDirDeHome,
   entornoDelSandbox,
@@ -17,6 +18,77 @@ function skillsVendoreados(): string[] {
   return readdirSync(VENDOR_SKILLS_DIR).filter((entry) =>
     existsSync(join(VENDOR_SKILLS_DIR, entry, "SKILL.md")),
   );
+}
+
+/**
+ * Ticket 16/CI: un sandbox dependía de que el **usuario** tuviera `auth.json`.
+ * En una máquina limpia no lo tiene y `configurar()` revienta; la suite se caía
+ * en CI y no en local. `OPENCODE_AUTH_JSON` redirige el fichero, como
+ * `DESY_VERSIONES_DIR` redirige las versiones.
+ */
+describe("authDelUsuario (la cuenta no depende de la máquina)", () => {
+  let limpiar: (() => void) | undefined;
+
+  afterEach(() => {
+    limpiar?.();
+    limpiar = undefined;
+    delete process.env.OPENCODE_AUTH_JSON;
+  });
+
+  it("sin redirección, apunta al `auth.json` del HOME real", () => {
+    delete process.env.OPENCODE_AUTH_JSON;
+    expect(authDelUsuario("/home/runner")).toBe(
+      join(datosDirDeHome("/home/runner"), "auth.json"),
+    );
+  });
+
+  it("con `OPENCODE_AUTH_JSON`, manda la variable: el test no toca el HOME real", () => {
+    process.env.OPENCODE_AUTH_JSON = "/tmp/fixture/auth.json";
+    expect(authDelUsuario("/home/runner")).toBe("/tmp/fixture/auth.json");
+    // Una variable vacía es «no puesta», no una ruta al directorio actual.
+    process.env.OPENCODE_AUTH_JSON = "";
+    expect(authDelUsuario("/home/runner")).toBe(
+      join(datosDirDeHome("/home/runner"), "auth.json"),
+    );
+  });
+
+  it("un sandbox creado sin cuenta se configura con la redirección, no revienta", () => {
+    // El escenario adversario del CI: el `HOME` real no tiene `auth.json`.
+    const dir = mkdtempSync(join(tmpdir(), "auth-sin-cuenta-"));
+    const path = join(dir, "auth.json");
+    writeFileSync(path, JSON.stringify({ deepinfra: { type: "api", key: "clave-de-fixture" } }));
+    process.env.OPENCODE_AUTH_JSON = path;
+    const homeVacio = join(dir, "home-vacio");
+    mkdirSync(homeVacio, { recursive: true });
+    const sandbox = createSandbox({ homeReal: homeVacio });
+    limpiar = () => {
+      sandbox.cleanup();
+      rmSync(dir, { recursive: true, force: true });
+    };
+
+    expect(() => sandbox.configurar()).not.toThrow();
+    expect(existsSync(join(datosDirDeHome(sandbox.home), "auth.json"))).toBe(true);
+  });
+});
+
+/**
+ * Un sandbox con una cuenta de fixture y un `HOME` de mentira: el test no lee el
+ * del usuario que lo corre. Es lo que deja a la suite pasar en una máquina sin
+ * `opencode auth login` (retro del ticket 16).
+ */
+function sandboxConCuenta(): { sandbox: ReturnType<typeof createSandbox>; limpiar: () => void } {
+  const homeReal = mkdtempSync(join(tmpdir(), "home-real-"));
+  const authReal = join(datosDirDeHome(homeReal), "auth.json");
+  mkdirSync(dirname(authReal), { recursive: true });
+  writeFileSync(authReal, '{"deepinfra":{"type":"api","key":"clave-de-fixture"}}');
+  const sandbox = createSandbox({ homeReal });
+  return {
+    sandbox,
+    limpiar: () => {
+      sandbox.cleanup();
+      rmSync(homeReal, { recursive: true, force: true });
+    },
+  };
 }
 
 describe("createSandbox", () => {
@@ -38,8 +110,10 @@ describe("createSandbox", () => {
   });
 
   it("expone el skillsDir en la ruta que descubre opencode V2 (<config>/opencode/skills)", () => {
-    const sandbox = createSandbox();
-    cleanup = () => sandbox.cleanup();
+    // Cuenta de fixture: este test llama a `configurar()`, y sin un `auth.json`
+    // deja de depender de la máquina (en un runner limpio no hay login).
+    const { sandbox, limpiar } = sandboxConCuenta();
+    cleanup = limpiar;
 
     // No es `~/.config/opencode/skills`: V2 no escanea esa ruta y la skill falla
     // al cargar (medido en la 2.1.2, ADR-0013).
@@ -163,6 +237,10 @@ describe("createSandbox", () => {
     const authViejo = join(homeReal, "Library", "Application Support", "opencode", "auth.json");
     mkdirSync(dirname(authViejo), { recursive: true });
     writeFileSync(authViejo, '{"deepinfra":{"type":"api"}}');
+    // Este test mide que **sin** cuenta se avisa: la redirección de CI rescataría
+    // el sandbox y convertiría el rojo esperado en verde.
+    const redireccion = process.env.OPENCODE_AUTH_JSON;
+    delete process.env.OPENCODE_AUTH_JSON;
     const sandbox = createSandbox({ homeReal });
     cleanup = () => {
       rmSync(homeReal, { recursive: true, force: true });
@@ -173,6 +251,7 @@ describe("createSandbox", () => {
       expect(() => sandbox.configurar()).toThrow(/auth\.json/);
       expect(existsSync(join(datosDirDeHome(sandbox.home), "auth.json"))).toBe(false);
     } finally {
+      if (redireccion !== undefined) process.env.OPENCODE_AUTH_JSON = redireccion;
       sandbox.cleanup();
       cleanup = undefined;
     }

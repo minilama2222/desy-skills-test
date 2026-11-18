@@ -38,6 +38,24 @@ escrituras en el repo (`CODING_STANDARDS.md` → «A sandbox is `cwd` *and* `PWD
 Basta con doblar el comando para que escriba bajo `opts.cwd` y comparar
 `git status --porcelain` antes y después: `test/runner.smoke.test.ts`.
 
+## Una suite que corre en una máquina sin login
+
+`createSandbox()` copia al sandbox el `auth.json` del usuario, así que en local
+todo pasa y en un runner limpio — sin `opencode auth login` — la suite revienta
+con «no tiene con qué resolver el modelo». Eso no es un rojo del cambio: es la
+suite dependiendo de la máquina de quien la lanza (retro del ticket 16).
+
+`OPENCODE_AUTH_JSON` **redirige** ese fichero, igual que `DESY_VERSIONES_DIR`
+redirige las versiones. El CI la apunta a una cuenta de fixture
+(`.github/workflows/gate.yml`); para reproducir el CI en local:
+
+```bash
+HOME=$(mktemp -d) OPENCODE_AUTH_JSON=/ruta/a/auth.json npm run test:gate
+```
+
+Un test que espera el **error** de no tener cuenta borra la variable antes de
+crear el sandbox, o la redirección le convertiría el rojo en verde.
+
 ## Un test que toca el estado del repo
 
 Un test que escribe donde escribe el producto **redirige** ese directorio a su
