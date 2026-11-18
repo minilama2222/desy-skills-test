@@ -27,6 +27,8 @@ npm run capturar-gold -- --skill <skill> --case <caso>  # genera/valida la Captu
 npm run capturar-mockup  # genera el mockup (input/mockup.png) de los Casos-decisión
 npm run report    # agrega las Ejecuciones de `run` y renderiza el Scorecard (JSON + markdown)
 npm run diff-versiones  # diff entre las dos versiones más recientes (o `-- <a> <b>`)
+npm run replay-grader  # ¿el grader vuelve a dar el mismo Grade sobre la Evidencia guardada? (en el precommit)
+npm run checklist-casos  # qué Casos re-correr tras editar una sección de un SKILL.md (no es un gate)
 npm run archivar-legado  # archiva la evidencia previa a la regla del ticket 01 en reports/legado
 npm run bump-pin <ref>  # actualiza vendor/ + pin.json al ref dado
 ```
@@ -232,6 +234,36 @@ no significa lo de hoy: [`reports/legado/README.md`](reports/legado/README.md).
 ```bash
 npm run archivar-legado                      # una vez, a mano: no se re-genera
 ```
+
+## Tier rápido: ¿derivó el grader? y ¿qué Casos toca mi edición?
+
+Dos comandos baratos (segundos, sin SUT ni modelo) que contestan preguntas
+**distintas**, y por eso no comparten gate.
+
+```bash
+npm run replay-grader                 # ¿deriva el grader?
+npm run replay-grader -- --reports reports/mi-corrida
+npm run checklist-casos               # ¿qué Casos re-correr? (contra vendor/)
+npm run checklist-casos -- --skills-local ../desy-skills
+```
+
+**`replay-grader`** vuelve a pasar por `grader.ts` las Ejecuciones guardadas en
+`--reports` (por defecto `reports/suite`) y exige el **mismo Grade** que la
+primera vez: un cambio en el grader que mueva un Grade ya medido se ve así, sin
+gastar una sola corrida. Re-gradua con los `assert` que trae cada Ejecución (ticket
+06); si es anterior a él y no los trae, usa los Checks del Caso y lo **dice**.
+Corre en el precommit, pero sólo mira los árboles que existen: `reports/` está
+ignorado, así que en un clon limpio no hay nada que afirmar y sale verde diciéndolo.
+
+**`checklist-casos`** contrasta los hechos de los que depende cada Caso (el texto
+de una sección de un `SKILL.md`) contra el árbol consultado. Están los tres que el
+bucle nombra —la tabla de tokens de `desy-styles-reference`, el `gap-x-4` legacy de
+`desy-implement-layout-patterns` y la página de prueba de
+`desy-implement-component`— y, si alguno cambió, **nombra los Casos a re-correr**.
+**No es un gate**: falla cada vez que un Skill se mejora de forma legítima, y ese
+rojo no es un defecto de nada (por eso nunca está en `precommit`). Lo que sí
+protege el build es la lista de hechos en sí: cada uno cita una sección y un Caso
+reales (`test/tier-rapido.test.ts`).
 
 ## Reporte
 

@@ -220,6 +220,26 @@ ediciones del Skill. `npm run verificar-casos` comprueba que la sección existe.
 _Avoid_: anclar por número de línea o por ruta de fichero; inventar el ancla
 cuando el Check no la declara.
 
+**Replay del grader**:
+Volver a pasar por `grader.ts` los Artefactos de una Ejecución ya guardada y exigir
+el **mismo** Grade. Contesta «¿derivó el grader?»: un cambio en un predicado, en
+los pesos o en el Framework que mueva un Grade ya medido se ve en segundos, sin
+gastar una corrida del SUT. Corre en el precommit (`npm run replay-grader`); si no
+hay Evidencia guardada —un clon limpio, `reports/` está ignorado— lo **dice** y no
+inventa un verde. Ver el ticket 08 del bucle de refinamiento.
+_Avoid_: confundirlo con re-correr la suite (eso mide el Skill; el replay sólo
+protege el grader).
+
+**Lista de Casos a re-correr** (checklist Skill → Casos):
+Los Casos que hay que re-correr tras editar una sección de un `SKILL.md`, porque el
+Caso afirma algo de su **contenido** (la tabla de tokens de
+`desy-styles-reference`, el `gap-x-4` legacy de `desy-implement-layout-patterns`,
+la página de prueba de `desy-implement-component`). La da `npm run checklist-casos`
+en segundos y **no es un gate**: fallará cada vez que un Skill se mejore de forma
+legítima, y ese rojo no es un defecto de nada. Ver el ticket 08.
+_Avoid_: leerla como un guardarraíl de que el Skill esté bien; meterla en el
+precommit.
+
 ### Referencias DESY
 
 **Gold**:
