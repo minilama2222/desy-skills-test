@@ -201,10 +201,14 @@ describe("createSandbox", () => {
       const entorno = entornoDelSandbox({
         home: sandbox.home,
         configDir: sandbox.configDir,
+        workDir: sandbox.workDir,
         authOrigen: authReal,
       });
 
       expect(entorno["DEEPINFRA_API_KEY"]).toBe("clave-de-fixture");
+      // Y el entorno del SUT pinta `PWD` con su `workDir` (ticket 16, ADR-0019):
+      // sin él, las rutas relativas del SUT caen en el directorio del lanzador.
+      expect(entorno["PWD"]).toBe(sandbox.workDir);
     } finally {
       sandbox.cleanup();
       cleanup = undefined;

@@ -24,31 +24,17 @@ rule in `CODING_STANDARDS.md`.
 
 `npm run suite` and `npm run report` also write `reports/<tree>/informe/<skill>/<caso>.md`.
 The rule that outlives the code: **the report presents, it never decides
-skill-vs-check.** The rest is a grep away (`renderInformeCaso`, `escribirInformesPorCaso`).
+skill-vs-check.**
 
-### The commit hook runs the whole gate
+### The commit gate
 
-`scripts/git-hooks/pre-commit` calls `npm run precommit` and nothing else. Add a
-step to `package.json`, never to the hook: a hook that repeats the list drops a
-step in silence, and it already did (retro del ticket 06).
+The list of steps lives in `package.json` (`npm run precommit`); the hook runs it
+whole. Add a step there, never to the hook (retro del ticket 06). A commit that
+exists is a green gate: the hook is `set -e`.
 
-### The gate exits 0 or 1, and nothing else
+PowerShell has no heredoc: write the message to a file and pass `git commit -F <ruta>`.
 
-`npm run precommit` (and the commit hook) runs the suite through `test:gate`,
-which reproduces vitest's exit code with both channels piped. Take the exit code
-as the verdict: read the `failed` count, not the terminal.
-
-A visible stderr block does not decide it. `test:gate` filters vitest's channels,
-but the other `verificar-*` steps and the CLI writing `usage()` print to stderr
-outside it, so a commit can show one and still be green. The check that settles
-it: the commit exists (`[master <sha>]`) or it does not — `set -e` in the hook
-means a real failure leaves no commit behind.
-
-PowerShell has no heredoc: `git commit -F -` with a `<<'EOF'` body fails to parse,
-and the retry mangles the accents. Write the message to a file and pass
-`git commit -F <ruta>`.
-
-### Tests that drive a real process, and what may live in `test/`
+### Tests that drive a real process, assert sandbox isolation, and what may live in `test/`
 
 See `docs/agents/testing.md`.
 

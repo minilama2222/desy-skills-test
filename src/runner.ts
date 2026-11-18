@@ -713,25 +713,15 @@ interface CorridaVigilada {
 
 /**
  * El entorno con el que corre el SUT: el del lanzador (la suite hereda el del
- * mantenedor, con sus claves) más el del sandbox, **con dos arreglos** que
- * cerraron el ticket 16 (ADR-0019).
- *
- * - **`PWD` es el `workDir`.** `spawnSync({ cwd })` cambia el directorio de
- *   trabajo del hijo, pero **no** su `PWD`: el proceso hereda el del padre, y en
- *   macOS las herramientas resuelven las rutas relativas —y opencode, el proyecto
- *   del que hablan `write` y `shell`— contra `PWD`, no contra el `cwd` real.
- *   Medido con la 2.2.1: con el `PWD` del mantenedor (el repo) `shell pwd` da el
- *   repo y `write src/x.html` acaba allí; con `PWD=<workDir>`, los dos dan el
- *   sandbox. Es el `cwd: sandbox.workDir` que parecía correcto y no lo era.
- * - **Sin la sesión del lanzador.** `OPENCODE_SESSION_ID` lo pone el agente que
- *   ejecuta el harness; un `opencode run` que lo hereda se engancha a esa sesión
- *   y usa el proyecto de ella. Se quita también `OPENCODE_TERMINAL` y `AI_AGENT`,
- *   de la misma familia y sin uso para el SUT.
+ * mantenedor, con sus claves) más **el del sandbox**, que manda donde los dos
+ * coincidan. La pieza delicada —`PWD` con el `workDir`, sin la sesión del
+ * lanzador— la pone `entornoDelSandbox`, que es el único sitio que compone el
+ * entorno del SUT: éste sólo fusiona, para que un test que dobla el comando y un
+ * `realCommand` reciban el mismo entorno (ADR-0019).
  */
 export function entornoDelSut(
   heredado: Record<string, string | undefined>,
   delSandbox: Entorno,
-  workDir: string,
 ): Entorno {
   const env: Record<string, string> = {};
   for (const [clave, valor] of Object.entries(heredado)) {
@@ -741,10 +731,6 @@ export function entornoDelSut(
   delete env.OPENCODE_SESSION_ID;
   delete env.OPENCODE_TERMINAL;
   delete env.AI_AGENT;
-  env.PWD = workDir;
-  // Lo mismo para el `HOME` anterior: un `HOME` heredado que no es el del sandbox
-  // confundiría a cualquier herramienta que lo lea antes que el propio.
-  if (delSandbox.HOME !== undefined) env.HOME = delSandbox.HOME;
   return env;
 }
 
@@ -800,7 +786,7 @@ function ejecutarConGuardiaDelRepo(
     // con la 2.2.1: mismo `cwd` y mismo sandbox, `shell pwd` da el repo con la
     // variable y el `workDir` sin ella (ADR-0019). Las demás variables de
     // OpenCode (`OPENCODE`, `OPENCODE_TERMINAL`, `AI_AGENT`) no cambian nada.
-    env: entornoDelSut(heredado, opts.env, opts.cwd),
+    env: entornoDelSut(heredado, opts.env),
     encoding: "utf8",
     maxBuffer: 64 * 1024 * 1024,
   });
@@ -842,6 +828,8 @@ export function skillsDirDeConfig(configRaiz: string): string {
 export function entornoDelSandbox(sandbox: {
   home: string;
   configDir: string;
+  /** El directorio donde el SUT trabaja; `PWD` se pinta con él. */
+  workDir: string;
   /**
    * `auth.json` del que salen las claves de proveedor. Por defecto, el del
    * `HOME` del sandbox (la copia que `configurar()` dejó); el runner le pasa el
@@ -852,6 +840,11 @@ export function entornoDelSandbox(sandbox: {
   const auth = sandbox.authOrigen ?? join(datosDirDeHome(sandbox.home), "auth.json");
   return {
     HOME: sandbox.home,
+    // `PWD` va con el `workDir`: `spawnSync({ cwd })` cambia el directorio real
+    // del hijo pero no su `PWD`, y las herramientas resuelven las rutas relativas
+    // contra `PWD`. Sin esta línea, un `write src/x.html` acaba en el directorio
+    // del lanzador (ADR-0019). Es el entorno del SUT, no un detalle de `realCommand`.
+    PWD: sandbox.workDir,
     XDG_CONFIG_HOME: sandbox.configDir,
     OPENCODE_HOME: datosDirDeHome(sandbox.home),
     ...clavesDeProveedores(auth),

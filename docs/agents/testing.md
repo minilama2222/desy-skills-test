@@ -27,6 +27,17 @@ importe y un rojo de verdad pasa por ruido del terminal. `verificar-tests` lo ca
 La fixture se declara en `FIXTURE_DECLARADA` (`scripts/verificar-tests.ts`) con su
 motivo, igual que los binarios exentos.
 
+## Un test que afirma el aislamiento del sandbox
+
+Afirma **dónde acabó el artefacto**, no qué variables recibió el comando: el SUT
+escribe en el `src/` del `workDir` y el repo no gana ni un fichero sin rastrear.
+Es la afirmación que sobrevive a que el mecanismo cambie de forma (ADR-0019), y
+la que el smoke del runner no hacía mientras el `cwd` «correcto» convivía con
+escrituras en el repo (`CODING_STANDARDS.md` → «A sandbox is `cwd` *and* `PWD`»).
+
+Basta con doblar el comando para que escriba bajo `opts.cwd` y comparar
+`git status --porcelain` antes y después: `test/runner.smoke.test.ts`.
+
 ## Un test que toca el estado del repo
 
 Un test que escribe donde escribe el producto **redirige** ese directorio a su

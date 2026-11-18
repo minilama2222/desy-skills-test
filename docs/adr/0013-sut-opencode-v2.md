@@ -84,6 +84,11 @@ escribe un `opencode.jsonc` en el sandbox con:
   `glob`, `grep`, `list` y `skill` —lo que el Caso necesita para escribir su
   artefacto—, con `external_directory: deny`.
 
+> **Falta una pieza, medida el 18/11/2026.** Esta configuración encierra *qué*
+> puede hacer el SUT, no **dónde** escribe: con el `PWD` heredado, un `write
+> src/x.html` acaba en el directorio de quien lanza la suite. El sandbox es `cwd`
+> **y** `PWD`. Ver ADR-0019.
+
 Un efecto lateral conocido: sin `shell`, el SUT no puede ejecutar comprobaciones
 por línea de órdenes. Medido: `desy-preflight-check` sigue el flujo igual (el
 modelo informa de que no tiene shell y responde sobre lo que puede leer). Si un

@@ -1,18 +1,21 @@
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import type { CasoComponente } from "../src/caso.js";
 import { readPin } from "../src/pin.js";
-import { createSandbox, datosDirDeHome, runCaso, type CommandRunner, type Entorno } from "../src/runner.js";
+import {
+  createSandbox,
+  datosDirDeHome,
+  runCaso,
+  type CommandRunner,
+  type Entorno,
+} from "../src/runner.js";
+import { REPO_ROOT } from "../src/repo.js";
 
 const pin = readPin(join(process.cwd(), "pin.json"));
 
-/**
- * Un `auth.json` de fixture: el smoke nunca lee el del usuario. Si lo leyera, su
- * clave entraría en el entorno del SUT y una aserción fallida la volcaría en el
- * log de la suite (ticket 15).
- */
 /**
  * Un `auth.json` de fixture: el smoke nunca lee el del usuario. Si lo leyera, su
  * clave entraría en el entorno del SUT y una aserción fallida la volcaría en el
@@ -33,6 +36,20 @@ const caso: CasoComponente = {
   checks: [],
 };
 
+/**
+ * Los ficheros sin rastrear del repo, antes y después de la Ejecución. Es la
+ * pregunta de aislamiento do día: **¿apareció algo en el árbol del harness?**, no
+ * «¿qué variables recibe el comando?». El smoke afirmaba el `cwd` del proceso y
+ * ése era correcto mientras cada corrida real escribía en el repo (ADR-0019).
+ */
+function sinRastrear(): string[] {
+  const r = spawnSync("git", ["status", "--porcelain"], { cwd: REPO_ROOT, encoding: "utf8" });
+  return (r.stdout ?? "")
+    .split("\n")
+    .filter((linea) => linea.startsWith("?? "))
+    .map((linea) => linea.slice(3).trim());
+}
+
 describe("runCaso (smoke de integración con sandbox real)", () => {
   it("crea el sandbox, copia los skills del Pin, corre opencode y captura Evidencia, y limpia", async () => {
     let sandboxCreado: ReturnType<typeof createSandbox> | undefined;
@@ -42,7 +59,11 @@ describe("runCaso (smoke de integración con sandbox real)", () => {
     let skillsDuranteElRun: boolean | undefined;
     let skillsDeclaradas: string[] | undefined;
     let skillsDeclaradasExisten: boolean | undefined;
+    let desdeElSandbox: { pwdReemplazado: boolean; relativaResueltaDentro: boolean } | undefined;
 
+    // El SUT escribe su artefacto en el `src/` del sandbox, como el de verdad: es
+    // la entrega del Caso-componente (ADR-0006). Escribirlo desde el doble es lo
+    // que deja al smoke preguntar **dónde** cayó el fichero.
     const command: CommandRunner = {
       run: (args, opts) => {
         cwdVisto = opts.cwd;
@@ -63,6 +84,18 @@ describe("runCaso (smoke de integración con sandbox real)", () => {
           existsSync(join(d, "desy-preflight-check", "SKILL.md")),
         );
         skillsDuranteElRun = skillsDeclaradasExisten;
+        // El doble escribe por el **mismo camino** que el SUT: una ruta relativa,
+        // resuelta contra su cwd y su `PWD`.
+        mkdirSync(join(opts.cwd, "src", "pages"), { recursive: true });
+        writeFileSync(join(opts.cwd, "src", "pages", "boton-primario.html"), "{# SUT #}", "utf8");
+        // Control positivo de la regla: `PWD` es el sandbox y no la raíz del repo,
+        // así que una ruta relativa cae dentro. Con el `PWD` del lanzador caería
+        // fuera y la aserción de abajo lo diría (ADR-0019).
+        desdeElSandbox = {
+          pwdReemplazado: opts.env.PWD === opts.cwd,
+          relativaResueltaDentro: !existsSync(join(REPO_ROOT, "src", "pages", "boton-primario.html")) &&
+            existsSync(join(opts.env.PWD ?? "", "src", "pages", "boton-primario.html")),
+        };
         return {
           stdout: "» skill: preflight-check\n» skill: implement-component\n",
           stderr: "",
@@ -80,7 +113,9 @@ describe("runCaso (smoke de integración con sandbox real)", () => {
     };
 
     let resultado;
+    let antes: string[];
     try {
+      antes = sinRastrear();
       resultado = await runCaso(caso, pin, { sandbox: sandboxFactory, command });
     } finally {
       rmSync(join(auth, ".."), { recursive: true, force: true });
@@ -93,8 +128,12 @@ describe("runCaso (smoke de integración con sandbox real)", () => {
       true,
     );
     expect(cwdVisto).toBe(sandbox.workDir);
-    expect(entornoVisto).toEqual({
+    // La regla del smoke: el entorno es **el del sandbox**, no una lista de claves.
+    // `PWD` va con el `workDir`: `spawnSync({ cwd })` no lo mueve, y opencode
+    // resuelve sus rutas relativas contra él (ADR-0019).
+    expect(entornoVisto).toMatchObject({
       HOME: sandbox.home,
+      PWD: sandbox.workDir,
       XDG_CONFIG_HOME: sandbox.configDir,
       OPENCODE_HOME: datosDirDeHome(sandbox.home),
       // El `auth.json` real del usuario no entra en un test: si lo hiciera, el
@@ -103,13 +142,22 @@ describe("runCaso (smoke de integración con sandbox real)", () => {
       // fixture, la clave es la del fixture y la aserción fija justo la regla.
       DEEPINFRA_API_KEY: "clave-de-fixture",
     });
+    // Y el sandbox no hereda la sesión del lanzador: con ella, el SUT usaría el
+    // proyecto de esa sesión en vez de su `workDir` (ADR-0019).
+    expect(entornoVisto).not.toHaveProperty("OPENCODE_SESSION_ID");
+    expect(desdeElSandbox).toEqual({ pwdReemplazado: true, relativaResueltaDentro: true });
     expect(promptVisto).toBe(caso.prompt);
 
     expect(resultado.transcript.invocaciones).toEqual([
       "preflight-check",
       "implement-component",
     ]);
-    expect(resultado.artefactos).toEqual({ files: {} });
+    // El artefacto se graduó donde el SUT lo escribió: en el `src/` del sandbox.
+    expect(Object.keys(resultado.artefactos.files)).toEqual(["src/pages/boton-primario.html"]);
+
+    // La pregunta de aislamiento, entera: **ningún fichero nuevo en el repo**.
+    // Es lo que este smoke no preguntaba y por lo que sobrevivió el bug.
+    expect(sinRastrear()).toEqual(antes);
 
     expect(existsSync(sandbox.home)).toBe(false);
     expect(existsSync(sandbox.workDir)).toBe(false);

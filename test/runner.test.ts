@@ -350,9 +350,12 @@ describe("runCaso", () => {
     const [, opts] = run.mock.calls[0] as unknown as [string[], { cwd: string; env: Entorno }];
     expect(opts.cwd).toBe(sandbox.workDir);
     // `OPENCODE_HOME` fija el directorio de datos (sesiones y `auth.json`): si no
-    // se fija, V2 escribe en el del usuario real (ADR-0013).
+    // se fija, V2 escribe en el del usuario real (ADR-0013). `PWD` va con el
+    // `workDir`: `spawnSync({ cwd })` no lo mueve y las rutas relativas del SUT se
+    // resuelven contra `PWD` (ticket 16, ADR-0019).
     expect(opts.env).toEqual({
       HOME: sandbox.home,
+      PWD: sandbox.workDir,
       XDG_CONFIG_HOME: sandbox.configDir,
       OPENCODE_HOME: "C:/sandbox/home/.local/share/opencode",
     });
@@ -708,17 +711,20 @@ describe("configuracionDelSandbox", () => {
 /**
  * Ticket 16, la causa medida: el SUT resuelve las rutas relativas contra `PWD`,
  * no contra el `cwd` del proceso, y `spawnSync({ cwd })` no toca `PWD`.
+ *
+ * El `PWD` lo pinta `entornoDelSandbox` (el entorno del SUT se compone ahí, una
+ * sola vez, para que doble y `realCommand` reciban lo mismo); `entornoDelSut`
+ * fusiona ese entorno con el del lanzador y le quita la sesión de quien lanza.
  */
 describe("entornoDelSut (ticket 16)", () => {
   const workDir = "/tmp/desy-sut-abc/work";
 
-  it("pinta `PWD` con el workDir, no deja el del lanzador (el repo)", () => {
+  it("el entorno del sandbox manda: el `PWD` del lanzador no gana", () => {
     // Con el `PWD` heredado, `shell pwd` da el repo y `write src/x.html` acaba
     // allí; con `PWD=<workDir>`, los dos dan el sandbox (medido con la 2.2.1).
     const env = entornoDelSut(
-      { PWD: "/repo", HOME: "/Users/yo", OPENCODE_SESSION_ID: "ses_x" },
-      { HOME: workDir + "/../home" },
-      workDir,
+      { PWD: "/repo", HOME: "/Users/yo" },
+      { HOME: workDir + "/../home", PWD: workDir },
     );
     expect(env.PWD).toBe(workDir);
     expect(env.HOME).toBe(workDir + "/../home");
@@ -728,7 +734,6 @@ describe("entornoDelSut (ticket 16)", () => {
     const env = entornoDelSut(
       { OPENCODE_SESSION_ID: "ses_x", OPENCODE_TERMINAL: "1", AI_AGENT: "opencode", PATH: "/usr/bin:/bin" },
       {},
-      workDir,
     );
     expect(env).not.toHaveProperty("OPENCODE_SESSION_ID");
     expect(env).not.toHaveProperty("OPENCODE_TERMINAL");
@@ -737,6 +742,7 @@ describe("entornoDelSut (ticket 16)", () => {
     expect(env.PATH).toBe("/usr/bin:/bin");
   });
 });
+
 describe("el SUT no escribe fuera de su sandbox (ticket 16)", () => {
   const repo = "/repo";
   const workDir = "/tmp/desy-sut-abc/work";

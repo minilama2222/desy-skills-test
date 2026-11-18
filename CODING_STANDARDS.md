@@ -209,3 +209,20 @@ then `legado`) hangs off the `*` line and gets its own `!` line above the one
 that closes the block. The tell: if `git status` does not list a file the pattern
 says is tracked, the pattern is the suspect, not git.
 
+
+## A sandbox is `cwd` *and* `PWD`, and isolation is asserted on the artefact
+
+`spawnSync({ cwd })` moves a child's real working directory but leaves the
+inherited **`PWD`** untouched, and tools resolve relative paths against `PWD`. So
+a runner that sets only `cwd` looks isolated and is not: `write src/x.html`
+lands in the launcher's directory. Measured with `opencode` 2.2.1 — same sandbox,
+same env, only `PWD` changed, and the file moved (ADR-0019).
+
+The rule that follows is about what a test **asks**, not only what the product
+sets. Assert the artefact's location — *the file is under `workDir`, and the repo
+gained no untracked file* — and not the plumbing that was supposed to put it
+there. A check on `opts.cwd` and on a list of env keys passed while every real
+run wrote into the repo (retro del ticket 16); it answered "did I pass the cwd?"
+when the claim was "will the SUT write inside the sandbox?". The tell: a check
+that goes green when the mechanism is swapped for a different one, because it
+never observed the outcome.
