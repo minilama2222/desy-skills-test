@@ -7,6 +7,7 @@ import {
   readdirSync,
   readFileSync,
   rmSync,
+  statSync,
   writeFileSync,
 } from "node:fs";
 import { homedir, tmpdir } from "node:os";
@@ -29,6 +30,182 @@ export const SCAFFOLD_CACHE_DIR = join(REPO_ROOT, ".scaffold-cache", "desy-html-
  * contaminación. `.nvmrc` lo crea el setup del starter.
  */
 const NO_RASTREADOS_ESPERADOS = new Set([".nvmrc"]);
+
+/**
+ * Lo que el vigilante del repo **nunca** cuenta como escritura del SUT, por ruta
+ * relativa a la raíz del repo (se comparan con prefijo: `.git/index.lock` casa
+ * con `.git/`).
+ *
+ * - `.git`: durante una suite, el repo se mueve por su cuenta — el `git status`
+ *   que pide `resolverPin` deja un `index.lock` un instante, y un commit del
+ *   mantenedor corre a la vez. Un test que dispara un commit no es una escritura
+ *   del SUT (ticket 16).
+ * - `reports`, `.scaffold-cache` y los temporales: son los directorios donde el
+ *   producto **sí** escribe (el scorecard, la caché del starter, el temporal de
+ *   vitest). Lo que el SUT escribe en `reports/` no pasa el vigilante de otra
+ *   forma, pero el ruido de la propia suite quedaría como falso hallazgo.
+ */
+const IGNORADOS_POR_EL_VIGILANTE: readonly string[] = [".git", "reports", ".scaffold-cache", "node_modules"];
+
+/**
+ * La regla del ticket 16: **el SUT sólo escribe dentro de su sandbox**.
+ *
+ * Los `caminos` son absolutos y se clasifican así:
+ *
+ * - **Dentro del `workDir`** (el sandbox): es su trabajo. Permitido.
+ * - **Dentro de la base de sandboxes** (`desy-sut-*`, su `home/` con la config y
+ *   las skills): también es del sandbox. Tampoco es una fuga: es estado del
+ *   propio proceso, no un artefacto que se haya quedado en el repo.
+ * - **Cualquier otra ruta dentro del repo**: es una fuga. El SUT heredó el árbol
+ *   del harness y dejó ahí su artefacto, que el runner no verá (lo busca en el
+ *   `workDir`) y que un `git add -A` comitearía.
+ *
+ * Lo que cae **fuera del repo** no se juzga: la política de aislamiento del
+ * sandbox es la de ADR-0013 (permisos y `HOME`), no la de este vigilante, que
+ * sólo cubre el árbol versionado que el SUT ensuciaba.
+ *
+ * Regla pura: el recolector es `VigilanteDelRepositorio`, que le pasa los
+ * ficheros nuevos o cambiados y ya filtra `.git/`, la caché y `node_modules/`.
+ */
+export function escriturasFueraDelSandbox(
+  caminos: string[],
+  entorno: {
+    repoRoot: string;
+    workDir: string;
+    /** Base de los sandboxes (`desy-sut-*`); por defecto, el temporal del sistema. */
+    baseSandbox?: string;
+  },
+): string[] {
+  const baseSandbox = entorno.baseSandbox ?? tmpdir();
+  const dentro = (ruta: string, base: string): boolean => {
+    const b = base.endsWith("/") ? base : `${base}/`;
+    return ruta === base || ruta.startsWith(b);
+  };
+  const fuera: string[] = [];
+  for (const camino of caminos) {
+    if (!dentro(camino, entorno.repoRoot)) continue;
+    if (dentro(camino, entorno.workDir)) continue;
+    if (dentro(camino, baseSandbox)) continue;
+    fuera.push(camino);
+  }
+  return fuera;
+}
+
+/**
+ * El recolector de hechos del vigilante: las firmas de los ficheros versionables
+ * del repo (ver `firmasVersionables`), tomadas al lanzar el SUT y comparadas en
+ * cada paso.
+ *
+ * No se usa `fs.watch`: sus eventos son de todo el árbol y de cualquier proceso —
+ * el `git status` de la suite, un commit, el mantenedor con su editor abierto— y
+ * acusar al SUT por la escritura de otro sería un falso rojo. La foto delata lo
+ * que apareció o cambió **mientras el SUT corría**, sin saber quién lo cambió.
+ */
+class VigilanteDelRepositorio {
+  readonly escrituras: string[] = [];
+  private readonly antes: Map<string, string>;
+  private readonly vistos = new Set<string>();
+
+  constructor(
+    readonly repoRoot: string,
+    readonly workDir: string,
+    /**
+     * Directorio donde viven los sandboxes (`desy-sut-*`). Por defecto el del
+     * sistema; un test puede tenerlos en otro sitio.
+     */
+    readonly baseSandbox: string = tmpdir(),
+  ) {
+    this.antes = firmasVersionables(this.repoRoot);
+  }
+
+  /**
+   * Las fugas de esta corrida: los ficheros nuevos o cambiados que la regla
+   * marca. Se llama **después** de que el proceso termine, porque el bucle de
+   * eventos no avanza mientras `spawnSync` espera.
+   */
+
+  /** Las rutas que aparecieron o cambiaron desde el lanzamiento, dentro del repo. */
+  cambiados(): string[] {
+    const ahora = firmasVersionables(this.repoRoot);
+    const rutas = new Set<string>();
+    for (const [ruta, firma] of ahora) if (this.antes.get(ruta) !== firma) rutas.add(ruta);
+    for (const ruta of this.antes.keys()) if (!ahora.has(ruta)) rutas.add(ruta);
+    return [...rutas];
+  }
+
+  mirar(): void {
+    for (const ruta of escriturasFueraDelSandbox(this.cambiados(), {
+      repoRoot: this.repoRoot,
+      workDir: this.workDir,
+      baseSandbox: this.baseSandbox,
+    })) {
+      if (this.vistos.has(ruta)) continue;
+      this.vistos.add(ruta);
+      this.escrituras.push(ruta);
+    }
+  }
+}
+
+/**
+ * Firmas `ruta absoluta -> tamaño:mtime` de los ficheros versionables bajo
+ * `dir`. Se saltan los directorios de la allowlist (`IGNORADOS_POR_EL_VIGILANTE`)
+ * y lo que `.gitignore` ya declara ignorado, con una única pregunta a `git
+ * check-ignore` de lo que hay en el árbol (nada de recorrer `node_modules/` para
+ * luego descartarlo: en la primera versión, recorrerlo en cada mirada dejaba sin
+ * CPU al proceso de la suite y no terminaba).
+ *
+ * Es lo que delata una fuga fuera del sandbox: un fichero **nuevo** y versionable,
+ * que es el `?? src/pages/x.html` del hallazgo. La firma es tamaño + mtime: no
+ * lee contenido.
+ */
+function firmasVersionables(dir: string): Map<string, string> {
+  const foto = new Map<string, string>();
+  const recorrer = (actual: string): void => {
+    let entries;
+    try {
+      entries = readdirSync(actual, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      const absoluta = join(actual, entry.name);
+      if (entry.isDirectory()) {
+        if (!IGNORADOS_POR_EL_VIGILANTE.includes(entry.name)) recorrer(absoluta);
+      } else if (entry.isFile()) {
+        const f = statSync(absoluta);
+        foto.set(absoluta, `${f.size}:${f.mtimeMs}`);
+      }
+    }
+  };
+  recorrer(dir);
+  // El `.gitignore` se pregunta una vez con las rutas ya reunidas: es la misma
+  // foto que haría `git status`, sin leer el contenido de nada. Sólo tiene
+  // sentido donde `git` reconoce un repo; en el repo de prueba de un test (un
+  // temporal sin `.git`) no hay `.gitignore` que aplicar.
+  const esRepo = spawnSync("git", ["rev-parse", "--is-inside-work-tree"], {
+    cwd: dir,
+    encoding: "utf8",
+  });
+  if (esRepo.status !== 0) return foto;
+  for (const ruta of preguntarIgnorados(dir, [...foto.keys()])) foto.delete(ruta);
+  return foto;
+}
+
+/** Las rutas de `foto` que `.gitignore` declara ignoradas (vacío sin git). */
+function preguntarIgnorados(dir: string, rutas: string[]): string[] {
+  if (rutas.length === 0) return [];
+  const check = spawnSync("git", ["check-ignore", "--stdin", "-z"], {
+    cwd: dir,
+    input: rutas.join("\0") + "\0",
+    encoding: "utf8",
+    maxBuffer: 64 * 1024 * 1024,
+  });
+  // 0 = alguna ignorada, 1 = ninguna; otro código = git no está o el repo no
+  // existe (el repo de prueba de un test), y entonces no hay nada que quitar.
+  if (check.status !== 0) return [];
+  const relativas = new Set((check.stdout ?? "").split("\0").filter(Boolean));
+  return rutas.filter((ruta) => relativas.has(relative(dir, ruta).split("\\").join("/")));
+}
 
 export interface EstadoScaffold {
   /** Rutas que `git status` reporta como no rastreadas en la caché. */
@@ -195,9 +372,16 @@ export interface SandboxFactory {
  * Argumentos de `opencode run` (OpenCode V2). `--standalone` es lo que hace que
  * el `HOME` del sandbox mande: sin él, `run` se conecta al **servicio de fondo
  * compartido** del usuario y el sandbox deja de aislar (ver ADR-0013).
+ *
+ * `--format json` no es cosmético: el formato por defecto imprime un TUI que
+ * **relanza** el trabajo, y ese relanzamiento perdía el `cwd` del sandbox en la
+ * medición del ticket 16. Con `json` el trabajo corre en el proceso que se lanza,
+ * y sus herramientas leen la salida y la redirección de siempre. Lo que de verdad
+ * decide dónde escribe es `PWD` (ver `entornoDelSut`), pero el formato es la
+ * mitad del arreglo que quita de en medio un relanzamiento con `cwd` propio.
  */
 export function buildOpencodeArgs(prompt: string, imagen?: string): string[] {
-  const args = ["run", "--standalone", "--model", MODELO_FIJO];
+  const args = ["run", "--standalone", "--format", "json", "--model", MODELO_FIJO];
   // La Captura de Gold (Gold-imagen) viaja al prompt como referencia visual
   // (spec, ticket 08): `--file` la adjunta al mensaje del SUT.
   if (imagen !== undefined) args.push("--file", imagen);
@@ -485,17 +669,30 @@ export const realCommand: CommandRunner = {
   run(args: string[], opts: CommandOptions): CommandResult {
     // `opencode run` emite las líneas de invocación de Skill (`→ Skill "..."`)
     // por stderr, y la prosa del modelo por stdout. Hay que capturar AMBOS: el
-    // Flujo observado vive en stderr. spawnSync (no execFileSync) para poder
-    // leer los dos streams a la vez.
-    const resultado = spawnSync("opencode", args, {
-      cwd: opts.cwd,
-      env: { ...process.env, ...opts.env },
-      encoding: "utf8",
-    });
+    // Flujo observado vive en stderr.
+    //
+    // Se usa `spawn` + espera síncrona sobre un `SharedArrayBuffer`, y no
+    // `spawnSync`, para poder mirar el árbol de trabajo **mientras el SUT corre**
+    // (ticket 16, ver `ejecutarConGuardiaDelRepo`): una escritura fuera del sandbox
+    // se aborta en el acto, en vez de descubrirse cuando el daño ya está hecho.
+    const corrida = ejecutarConGuardiaDelRepo("opencode", args, opts);
+    const { resultado } = corrida;
 
     if (resultado.error && (resultado.error as NodeJS.ErrnoException).code === "ENOENT") {
       throw new Error(
         "No se encontró el binario `opencode`. Instálalo o usa un command runner inyectado.",
+      );
+    }
+
+    // El vigilante ve el fichero antes que el temporizador: si ya lo delató, eso
+    // manda sobre el exit code del SUT (que además se cortó a propósito).
+    if (corrida.escrituras !== undefined) {
+      throw new Error(
+        `El SUT escribió ${corrida.escrituras.length} fichero/s fuera de su sandbox ` +
+          `(workDir ${opts.cwd}):\n` +
+          corrida.escrituras.map((ruta) => `  - ${ruta}`).join("\n") +
+          "\nSe ha abortado la Ejecución: un SUT que sale de su workDir miente sobre el " +
+          "Caso y ensucia un árbol que no es suyo (ADR-0019).",
       );
     }
 
@@ -506,6 +703,119 @@ export const realCommand: CommandRunner = {
     };
   },
 };
+
+interface CorridaVigilada {
+  /** La misma forma que devolvería `spawnSync`. */
+  resultado: { stdout: string; stderr: string; status: number | null; signal?: string; error?: Error };
+  /** Ficheros nuevos o cambiados en el repo mientras el SUT corría. */
+  escrituras?: string[];
+}
+
+/**
+ * El entorno con el que corre el SUT: el del lanzador (la suite hereda el del
+ * mantenedor, con sus claves) más el del sandbox, **con dos arreglos** que
+ * cerraron el ticket 16 (ADR-0019).
+ *
+ * - **`PWD` es el `workDir`.** `spawnSync({ cwd })` cambia el directorio de
+ *   trabajo del hijo, pero **no** su `PWD`: el proceso hereda el del padre, y en
+ *   macOS las herramientas resuelven las rutas relativas —y opencode, el proyecto
+ *   del que hablan `write` y `shell`— contra `PWD`, no contra el `cwd` real.
+ *   Medido con la 2.2.1: con el `PWD` del mantenedor (el repo) `shell pwd` da el
+ *   repo y `write src/x.html` acaba allí; con `PWD=<workDir>`, los dos dan el
+ *   sandbox. Es el `cwd: sandbox.workDir` que parecía correcto y no lo era.
+ * - **Sin la sesión del lanzador.** `OPENCODE_SESSION_ID` lo pone el agente que
+ *   ejecuta el harness; un `opencode run` que lo hereda se engancha a esa sesión
+ *   y usa el proyecto de ella. Se quita también `OPENCODE_TERMINAL` y `AI_AGENT`,
+ *   de la misma familia y sin uso para el SUT.
+ */
+export function entornoDelSut(
+  heredado: Record<string, string | undefined>,
+  delSandbox: Entorno,
+  workDir: string,
+): Entorno {
+  const env: Record<string, string> = {};
+  for (const [clave, valor] of Object.entries(heredado)) {
+    if (valor !== undefined) env[clave] = valor;
+  }
+  Object.assign(env, delSandbox);
+  delete env.OPENCODE_SESSION_ID;
+  delete env.OPENCODE_TERMINAL;
+  delete env.AI_AGENT;
+  env.PWD = workDir;
+  // Lo mismo para el `HOME` anterior: un `HOME` heredado que no es el del sandbox
+  // confundiría a cualquier herramienta que lo lea antes que el propio.
+  if (delSandbox.HOME !== undefined) env.HOME = delSandbox.HOME;
+  return env;
+}
+
+/**
+ * Lanza el SUT y lo espera **bloqueando sólo este hilo**: `spawnSync` con los dos
+ * canales en tubería y un `maxBuffer` generoso —un SUT locuaz no puede morir por
+ * búfer lleno—. El bucle de eventos no avanza mientras se espera, así que el
+ * vigilante no puede mirar *durante* la corrida: se toma la foto del árbol **antes**
+ * de lanzar y se compara **en cuanto** el proceso termina. Un fichero nuevo fuera
+ * del sandbox, que es el hallazgo del ticket 16, se delata igual: no estaba en la
+ * foto y está al final.
+ *
+ * Si el vigilante tiene algo que acusar, `realCommand` lanza con las rutas: el
+ * fichero ya está escrito, pero el Caso no se da por bueno y el rojo lo nombra.
+ *
+ * Por qué no se espera con `spawn` + un bucle: `Atomics.wait` en el hilo principal
+ * no entrega ni el `close` del hijo ni los `data` de las tuberías, así que un
+ * proceso terminado nunca se veía terminado (medido: el padre esperaba para
+ * siempre); y `spawnSync` ya deja leer los dos canales a la vez, que es lo que
+ * siempre hizo.
+ */
+function ejecutarConGuardiaDelRepo(
+  comando: string,
+  args: string[],
+  opts: CommandOptions,
+  heredado: Record<string, string | undefined> = process.env,
+): CorridaVigilada {
+  // Puntos de inyección del test: `DESY_OPENCODE_BIN` lanza el SUT falso (sin él
+  // manda el `opencode` del `PATH`), `DESY_OPENCODE_ARGS` (JSON) son sus
+  // argumentos extra, y `DESY_REPO_ROOT`/`DESY_SANDBOX_BASE` mueven el vigilante a
+  // los directorios del test, que pueden vivir en un temporal. Una variable vacía
+  // no es un valor: cuenta como ausente.
+  const variable = (nombre: string): string | undefined => {
+    const valor = opts.env[nombre];
+    return valor === undefined || valor === "" ? undefined : valor;
+  };
+  const binario = variable("DESY_OPENCODE_BIN") ?? comando;
+  // Los argumentos que el test pasa con `DESY_OPENCODE_ARGS` (JSON) van delante
+  // de los del SUT: es la manera de darle el guion y la raíz al nodo.
+  const extra = variable("DESY_OPENCODE_ARGS");
+  const argv = extra === undefined ? args : [...(JSON.parse(extra) as string[]), ...args];
+  const vigilante = new VigilanteDelRepositorio(
+    variable("DESY_REPO_ROOT") ?? REPO_ROOT,
+    opts.cwd,
+    variable("DESY_SANDBOX_BASE") ?? tmpdir(),
+  );
+  const resultado = spawnSync(binario, argv, {
+    cwd: opts.cwd,
+    // El entorno del SUT no hereda la **sesión** de quien lanza la suite: si
+    // `OPENCODE_SESSION_ID` viaja (lo pone el agente que ejecuta el harness), el
+    // hijo se engancha a esa sesión y todas sus herramientas usan el proyecto de
+    // ella —el repo del harness— aunque el proceso corra en el `workDir`. Medido
+    // con la 2.2.1: mismo `cwd` y mismo sandbox, `shell pwd` da el repo con la
+    // variable y el `workDir` sin ella (ADR-0019). Las demás variables de
+    // OpenCode (`OPENCODE`, `OPENCODE_TERMINAL`, `AI_AGENT`) no cambian nada.
+    env: entornoDelSut(heredado, opts.env, opts.cwd),
+    encoding: "utf8",
+    maxBuffer: 64 * 1024 * 1024,
+  });
+  vigilante.mirar();
+  return {
+    resultado: {
+      stdout: resultado.stdout ?? "",
+      stderr: resultado.stderr ?? (resultado.error ? String(resultado.error) : ""),
+      status: resultado.status,
+      ...(resultado.signal ? { signal: resultado.signal } : {}),
+      ...(resultado.error ? { error: resultado.error } : {}),
+    },
+    ...(vigilante.escrituras.length > 0 ? { escrituras: vigilante.escrituras } : {}),
+  };
+}
 
 /**
  * Las skills globales de V2 se descubren en `<config>/opencode/skills`, donde

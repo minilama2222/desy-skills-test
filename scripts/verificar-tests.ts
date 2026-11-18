@@ -33,10 +33,17 @@ const TEST_DIR = join(REPO_ROOT, "test");
  *   proceso invoca va sustituido por un doble inyectado (`opencode-falso.cjs` +
  *   preludio), nunca el `opencode` de la máquina. El patrón está documentado en
  *   la cabecera del propio test.
+ * - `runner.test.ts`: los dos casos del vigilante del ticket 16 lanzan un
+ *   **proceso real** por `realCommand` a propósito —medir que el vigilante acusa
+ *   a un SUT que escribe fuera del sandbox no se puede con un doble que nunca
+ *   escribe—, pero el binario es `process.execPath` (un guion de Node que escribe
+ *   un fichero y sale), nunca el `opencode` de la máquina: se inyecta con
+ *   `DESY_OPENCODE_BIN` y `DESY_OPENCODE_ARGS`.
  */
 const FICHEROS_EXCLUIDOS = new Set([
   "test/guardarrail-tests.test.ts",
   "test/suite-cli.test.ts",
+  "test/runner.test.ts",
 ]);
 
 function ficherosDeTest(): FicheroDeTest[] {

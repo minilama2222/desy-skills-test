@@ -19,6 +19,9 @@ import {
   configuracionDelSandbox,
   createSandbox,
   dirArtefactoDeCaso,
+  entornoDelSut,
+  escriturasFueraDelSandbox,
+  realCommand,
   runCaso,
   type CommandRunner,
   type Entorno,
@@ -60,10 +63,14 @@ describe("MODELO_FIJO", () => {
 describe("buildOpencodeArgs", () => {
   it("lanza opencode run en --standalone (servidor privado) con el modelo fijado y el prompt", () => {
     // Sin `--standalone`, `run` se conecta al servicio de fondo compartido del
-    // usuario y el HOME del sandbox deja de mandar (ADR-0013).
+    // usuario y el HOME del sandbox deja de mandar (ADR-0013). Sin `--format
+    // json`, el TUI se relanza con el cwd del padre y escribe en el repo del
+    // harness (ticket 16, ADR-0019): el formato es lo que hace mandar al workDir.
     expect(buildOpencodeArgs(caso.prompt)).toEqual([
       "run",
       "--standalone",
+      "--format",
+      "json",
       "--model",
       "deepinfra/deepseek-ai/DeepSeek-V4.1-Flash-1017",
       caso.prompt,
@@ -74,6 +81,8 @@ describe("buildOpencodeArgs", () => {
     expect(buildOpencodeArgs("prompt", "gold.png")).toEqual([
       "run",
       "--standalone",
+      "--format",
+      "json",
       "--model",
       "deepinfra/deepseek-ai/DeepSeek-V4.1-Flash-1017",
       "--file",
@@ -682,5 +691,168 @@ describe("configuracionDelSandbox", () => {
     expect(
       (configuracionDelSandbox(sandbox) as { skills: string[] }).skills,
     ).toEqual([sandbox.skillsDir]);
+  });
+});
+
+/**
+ * Ticket 16: el SUT escribió en `src/pages/` del **repo del harness**, no en su
+ * sandbox, y el Caso salía `sin-artefacto` con el árbol ensuciado.
+ *
+ * Estas pruebas fijan la mitad que no necesita el binario: la regla que dice qué
+ * es una fuga, y que `realCommand` la aplica **con un proceso real** mientras
+ * corre. El lado del binario —que `--format json` de verdad escribe en el
+ * `workDir`— se midió a mano con la 2.2.1 (ADR-0019) y lo vuelve a medir el
+ * smoke de la suite sobre el SUT falso, que corre desde el repo.
+ */
+
+/**
+ * Ticket 16, la causa medida: el SUT resuelve las rutas relativas contra `PWD`,
+ * no contra el `cwd` del proceso, y `spawnSync({ cwd })` no toca `PWD`.
+ */
+describe("entornoDelSut (ticket 16)", () => {
+  const workDir = "/tmp/desy-sut-abc/work";
+
+  it("pinta `PWD` con el workDir, no deja el del lanzador (el repo)", () => {
+    // Con el `PWD` heredado, `shell pwd` da el repo y `write src/x.html` acaba
+    // allí; con `PWD=<workDir>`, los dos dan el sandbox (medido con la 2.2.1).
+    const env = entornoDelSut(
+      { PWD: "/repo", HOME: "/Users/yo", OPENCODE_SESSION_ID: "ses_x" },
+      { HOME: workDir + "/../home" },
+      workDir,
+    );
+    expect(env.PWD).toBe(workDir);
+    expect(env.HOME).toBe(workDir + "/../home");
+  });
+
+  it("no hereda la sesión del lanzador: se engancharía al proyecto de esa sesión", () => {
+    const env = entornoDelSut(
+      { OPENCODE_SESSION_ID: "ses_x", OPENCODE_TERMINAL: "1", AI_AGENT: "opencode", PATH: "/usr/bin:/bin" },
+      {},
+      workDir,
+    );
+    expect(env).not.toHaveProperty("OPENCODE_SESSION_ID");
+    expect(env).not.toHaveProperty("OPENCODE_TERMINAL");
+    expect(env).not.toHaveProperty("AI_AGENT");
+    // Lo demás del lanzador sí viaja: la clave de proveedor y el PATH del usuario.
+    expect(env.PATH).toBe("/usr/bin:/bin");
+  });
+});
+describe("el SUT no escribe fuera de su sandbox (ticket 16)", () => {
+  const repo = "/repo";
+  const workDir = "/tmp/desy-sut-abc/work";
+  const base = "/tmp";
+
+  it("una escritura dentro del workDir es el trabajo del SUT, no una fuga", () => {
+    expect(
+      escriturasFueraDelSandbox([`${workDir}/src/boton-enviar.html`], { repoRoot: repo, workDir, baseSandbox: base }),
+    ).toEqual([]);
+  });
+
+  it("el home del sandbox tampoco es una fuga: es estado del propio proceso", () => {
+    expect(
+      escriturasFueraDelSandbox(["/tmp/desy-sut-abc/home/.config/opencode/opencode.jsonc"], {
+        repoRoot: repo,
+        workDir,
+        baseSandbox: base,
+      }),
+    ).toEqual([]);
+  });
+
+  it("el mismo fichero escrito en el repo es una fuga: es el hallazgo, entero", () => {
+    // El escenario adversario completo: la ruta del bug real, en el repo.
+    const fuga = "/repo/src/pages/boton-enviar.html";
+    expect(escriturasFueraDelSandbox([fuga], { repoRoot: repo, workDir, baseSandbox: base })).toEqual([
+      fuga,
+    ]);
+  });
+
+  it("lo que no está en el repo no lo juzga este vigilante (ADR-0013 se ocupa de eso)", () => {
+    expect(
+      escriturasFueraDelSandbox(["/otro/sitio/fichero.txt"], { repoRoot: repo, workDir, baseSandbox: base }),
+    ).toEqual([]);
+  });
+
+  it("realCommand acusa al SUT que escribe en el repo y no devuelve la Ejecución", () => {
+    // Proceso de verdad, pero **no** el `opencode` de la máquina: un nodo que
+    // escribe "el artefacto" en el repo de prueba y sale con 0. Sin el vigilante,
+    // el runner lo daría por bueno y el artefacto se quedaría fuera del sandbox.
+    //
+    // Tres sitios distintos, como en la realidad: el repo que se vigila, la base
+    // de sandboxes (el temporal: sus `desy-sut-*` no son fuga) y el sitio del
+    // guion, que no es ninguno de los dos.
+    const raiz = mkdtempSync(join(tmpdir(), "vigilante-"));
+    const repo = join(raiz, "repo");
+    const sandboxes = join(raiz, "sandboxes");
+    const hijo = join(raiz, "hijo.mjs");
+    const trabajo = join(sandboxes, "desy-sut-abc", "work");
+    mkdirSync(repo, { recursive: true });
+    mkdirSync(trabajo, { recursive: true });
+    writeFileSync(
+      hijo,
+      [
+        'import { mkdirSync, writeFileSync } from "node:fs";',
+        'import { join } from "node:path";',
+        'const raiz = process.argv[2];',
+        'mkdirSync(join(raiz, "src"), { recursive: true });',
+        'writeFileSync(join(raiz, "src", "boton-enviar.html"), "{# fuga #}");',
+        'process.stdout.write("escrito\\n");',
+      ].join("\n"),
+      "utf8",
+    );
+    try {
+      expect(() =>
+        realCommand.run([], {
+          cwd: trabajo,
+          env: {
+            // Punto de inyección: el binario es, para este test, este nodo. La
+            // raíz que se vigila y la base de sandboxes son las del test.
+            DESY_OPENCODE_BIN: process.execPath,
+            DESY_OPENCODE_ARGS: JSON.stringify([hijo, repo]),
+            DESY_REPO_ROOT: repo,
+            DESY_SANDBOX_BASE: sandboxes,
+          },
+        }),
+      ).toThrow(/fuera de su sandbox[\s\S]*src\/boton-enviar\.html/);
+    } finally {
+      rmSync(raiz, { recursive: true, force: true });
+    }
+  });
+
+  it("control: el mismo SUT escribiendo en su workDir no se acusa", () => {
+    // Mismo escenario, con la única condición que levanta la prohibición: el
+    // fichero va al `workDir`. Sin este control, el verde de arriba podría venir
+    // de un vigilante que no ve nada.
+    const falso = mkdtempSync(join(tmpdir(), "opencode-falso-"));
+    const hijo = join(falso, "hijo.mjs");
+    const trabajo = join(falso, "work");
+    mkdirSync(trabajo, { recursive: true });
+    writeFileSync(
+      hijo,
+      [
+        'import { mkdirSync, writeFileSync } from "node:fs";',
+        'const raiz = process.argv[2];',
+        'mkdirSync(raiz + "/src", { recursive: true });',
+        'writeFileSync(raiz + "/src/boton-enviar.html", "{# bien #}");',
+        'process.stdout.write("escrito\\n");',
+      ].join("\n"),
+      "utf8",
+    );
+    try {
+      const r = realCommand.run([], {
+        cwd: trabajo,
+        env: {
+          // El nodo corre el guion, y el guion escribe en el `workDir`, que es
+          // la base de sandbox de este repo de prueba.
+          DESY_OPENCODE_BIN: process.execPath,
+          DESY_OPENCODE_ARGS: JSON.stringify([hijo, trabajo]),
+          DESY_REPO_ROOT: falso,
+        },
+      });
+      expect(r.code).toBe(0);
+      expect(r.stdout).toBe("escrito\n");
+      expect(existsSync(join(trabajo, "src", "boton-enviar.html"))).toBe(true);
+    } finally {
+      rmSync(falso, { recursive: true, force: true });
+    }
   });
 });
