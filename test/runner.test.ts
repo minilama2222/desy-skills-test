@@ -772,6 +772,32 @@ describe("el SUT no escribe fuera de su sandbox (ticket 16)", () => {
     ]);
   });
 
+  it("compara por segmento, no por prefijo: `/repo2` no está dentro de `/repo`", () => {
+    expect(
+      escriturasFueraDelSandbox(["/repo2/src/pages/x.html"], { repoRoot: repo, workDir, baseSandbox: base }),
+    ).toEqual([]);
+  });
+
+  it("una ruta con `\\` de Windows se compara igual que con `/`", () => {
+    // El vigilante recibe rutas absolutas de la plataforma: en Windows llegan con
+    // `\`. Comparar contra `/` fijo hacía que ninguna casara y no acusara nunca
+    // (lo cazó el CI en Windows).
+    const win = "C:\\repo";
+    const trabajoWin = "C:\\sandboxes\\desy-sut-abc\\work";
+    const fuga = "C:\\repo\\src\\pages\\boton-enviar.html";
+    expect(
+      escriturasFueraDelSandbox([fuga], { repoRoot: win, workDir: trabajoWin, baseSandbox: "C:\\sandboxes" }),
+    ).toEqual([fuga]);
+    // Y el workDir de Windows también cuenta como dentro.
+    expect(
+      escriturasFueraDelSandbox([trabajoWin + "\\src\\x.html"], {
+        repoRoot: win,
+        workDir: trabajoWin,
+        baseSandbox: "C:\\sandboxes",
+      }),
+    ).toEqual([]);
+  });
+
   it("lo que no está en el repo no lo juzga este vigilante (ADR-0013 se ocupa de eso)", () => {
     expect(
       escriturasFueraDelSandbox(["/otro/sitio/fichero.txt"], { repoRoot: repo, workDir, baseSandbox: base }),
@@ -818,7 +844,7 @@ describe("el SUT no escribe fuera de su sandbox (ticket 16)", () => {
             DESY_SANDBOX_BASE: sandboxes,
           },
         }),
-      ).toThrow(/fuera de su sandbox[\s\S]*src\/boton-enviar\.html/);
+      ).toThrow(/fuera de su sandbox[\s\S]*src[\\/]boton-enviar\.html/);
     } finally {
       rmSync(raiz, { recursive: true, force: true });
     }

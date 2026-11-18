@@ -77,9 +77,16 @@ export function escriturasFueraDelSandbox(
   },
 ): string[] {
   const baseSandbox = entorno.baseSandbox ?? tmpdir();
+  // La comparación es por **segmento de ruta**, no por prefijo de cadena: con
+  // `startsWith` a secas, `/repo/otro` colaría como dentro de `/repo`. Y el
+  // separador lo pone la plataforma (`\` en Windows): comparar con `/` fijo hacía
+  // que ninguna ruta casara y el vigilante no acusara nunca (lo cazó el CI en
+  // Windows, donde el resto iba en verde).
   const dentro = (ruta: string, base: string): boolean => {
-    const b = base.endsWith("/") ? base : `${base}/`;
-    return ruta === base || ruta.startsWith(b);
+    const trozos = (p: string): string[] => p.split(/[\\/]+/).filter(Boolean);
+    const a = trozos(ruta);
+    const b = trozos(base);
+    return a.length >= b.length && b.every((t, i) => a[i] === t);
   };
   const fuera: string[] = [];
   for (const camino of caminos) {
