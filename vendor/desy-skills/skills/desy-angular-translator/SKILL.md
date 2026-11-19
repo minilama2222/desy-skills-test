@@ -274,6 +274,8 @@ Las utilidades de texto y los componentes de form de `desy-html` tienen **márge
 
 **Tabla de márgenes por defecto (medidos con `getComputedStyle` en la demo renderizada):**
 
+> El `mb-8` de esta tabla es lo que la clase host `c-form-group` trae **hoy del código del starter** (32px, utilidad numérica de Tailwind, no un token DESY). Se reproduce aquí tal cual para que el override sea exacto contra lo que renderiza la demo; no es la clase que se escribe en una página nueva. Al sobreescribir, usa el token: `mb-base` (16px), `mb-lg` (28px) o `mb-2xl` (80px), nunca otro número.
+
 | Elemento / utility | `mb` por defecto | Comentario |
 |---|---|---|
 | `.c-h1` | `mb-lg` (28px) | Demasiado aire bajo el h1 si va seguido de un form |

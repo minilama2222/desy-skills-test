@@ -62,18 +62,27 @@ export function hashDelArbol(ficheros: FicheroDeSkill[]): string {
  * ¿El árbol tiene cambios sin commitear? `porcelain` es la salida de
  * `git status --porcelain <dir>`, sin filtrar. Devuelve los hallazgos legibles.
  *
+ * Un cambio **ya preparado para commit** (`M ` en el índice, columna 1) no cuenta:
+ * lo que el informe puede afirmar es el commit del Pin, y un cambio preparado es
+ * el que va a entrar en el commit que reconcilia `vendor/` con su pin. Sin esto,
+ * `bump-pin` no podría commitearse nunca —el pre-commit se bloquearía a sí mismo
+ * por el árbol que el propio bump acaba de escribir—. Lo que sigue contando es el
+ * working tree (` M`), lo no rastreado (`??`) y un conflicto (`UU`), que no es un
+ * cambio preparado sino uno que nadie ha resuelto.
+ *
  * Sólo cuentan los cambios **del propio árbol de skills**: un `bump-pin` reescribe
  * `vendor/` entero, y si el usuario tiene otra cosa en ese directorio el mensaje
  * ha de decir qué fichero es, no «hay cambios».
  */
 export function problemasDelArbolSucio(porcelain: string, dir: string): string[] {
-  const lineas = porcelain
+  const pendientes = porcelain
     .split(/\r?\n/)
-    .filter((l) => l.trim().length > 0);
+    .filter((l) => l.trim().length > 0)
+    .filter((l) => l[0] === " " || l[0] === "?");
 
-  if (lineas.length === 0) return [];
+  if (pendientes.length === 0) return [];
 
-  const rutas = lineas.map((l) => l.slice(3).trim()).filter((r) => r.length > 0);
+  const rutas = pendientes.map((l) => l.slice(3).trim()).filter((r) => r.length > 0);
   const listado = rutas.map((r) => `  - ${r}`).join("\n");
   return [
     `${dir} tiene ${rutas.length} cambio/s sin commitear. La suite no mide un ` +

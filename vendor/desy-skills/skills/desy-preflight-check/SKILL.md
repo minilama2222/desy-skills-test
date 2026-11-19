@@ -98,7 +98,9 @@ grep -o '<h1[ >]' dist/<pagina>.html | wc -l
 # 3. Ni valores arbitrarios ni escala numérica de Tailwind en las clases que escribiste
 #    (fuente de la página): vacío → desy-styles-reference. Los tokens con sufijo
 #    (`pb-2xl`, `mt-3xl`) no salen; si una coincidencia viene copiada tal cual de un
-#    patrón oficial (`mt-1` en el estado de cabecera-item), déjala
+#    patrón oficial (`mt-1` en el estado de cabecera-item: una
+#    utilidad numérica que el propio patrón del catálogo arrastra; déjala
+#    porque no la escribiste tú, pero no la copies a ninguna otra clase), déjala
 grep -oE '(class=|"classes": )"[^"]*"' src/<pagina>.html | grep -E '\[[^]]+\]|(^|[ ":])-?[mp][trblxy]?-[1-9][0-9.]*( |"|!)|(^|[ ":])gap(-[xy])?-[1-9][0-9.]*( |"|!)|[a-z0-9]!( |")'
 ```
 

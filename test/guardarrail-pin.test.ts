@@ -97,4 +97,25 @@ describe("problemasDelArbolSucio: no se mide un árbol sucio", () => {
     expect(hallazgos[0]).toContain("skills/b/SKILL.md");
     expect(hallazgos[0]).toContain("2 cambio");
   });
+
+  it("un cambio ya preparado para commit no es un árbol sucio", () => {
+    // `bump-pin` reescribe `vendor/` y lo deja preparado: si esto contara como
+    // sucio, el pre-commit se bloquearía a sí mismo y el bump nunca podría
+    // entrar, que es justo el commit que reconcilia el vendor con su pin.
+    expect(
+      problemasDelArbolSucio("M  skills/desy-implement-layout-patterns/SKILL.md\n", "vendor/desy-skills"),
+    ).toEqual([]);
+  });
+
+  it("el árbol sucio se sigue cazando aunque haya además un cambio preparado", () => {
+    // Control: quitar lo preparado no puede llevarse por delante lo sucio.
+    const hallazgos = problemasDelArbolSucio(
+      "M  skills/a/SKILL.md\n M skills/b/SKILL.md\n",
+      "vendor/desy-skills",
+    );
+
+    expect(hallazgos).toHaveLength(1);
+    expect(hallazgos[0]).toContain("skills/b/SKILL.md");
+    expect(hallazgos[0]).not.toContain("skills/a/SKILL.md");
+  });
 });

@@ -83,7 +83,7 @@ El legend SIEMPRE va con `class="sr-only"`:
 ```html
 <fieldset>
   <legend class="sr-only">Domicilio postal</legend>
-  <div class="grid lg:grid-cols-4 gap-x-4">
+  <div class="grid lg:grid-cols-4 gap-x-base">
     <!-- inputs del grupo -->
   </div>
 </fieldset>
@@ -123,13 +123,13 @@ El legend SIEMPRE va con `class="sr-only"`:
 ### Grid madre: solo desktop
 
 ```html
-<div class="grid lg:grid-cols-4 gap-x-4">
+<div class="grid lg:grid-cols-4 gap-x-base">
   <!-- items del grid -->
 </div>
 ```
 
 - **Solo `lg:grid-cols-N`** (no `grid-cols-*` mobile explícito). En mobile cada item va a su propia fila.
-- **`gap-x-4`** (1rem horizontal). NO `gap-lg` (es para layouts más amplios).
+- **`gap-x-base`** (1rem horizontal, el token base de `desy-styles-reference`). NO `gap-lg` (es para layouts más amplios) ni la escala numérica de Tailwind (`gap-x-4`).
 - Separación vertical entre filas viene de `gap-y-*` del form padre (no del grid).
 
 ### Selección de `lg:grid-cols-N`
@@ -160,8 +160,8 @@ El legend SIEMPRE va con `class="sr-only"`:
 Cuando necesitas 4 inputs cortos (Número, Escalera, Piso, Puerta) en una sola fila desktop:
 
 ```html
-<div class="grid lg:grid-cols-4 gap-x-4">
-  <div class="lg:col-span-2 grid grid-cols-4 gap-x-4">
+<div class="grid lg:grid-cols-4 gap-x-base">
+  <div class="lg:col-span-2 grid grid-cols-4 gap-x-base">
     <!-- grid anidado de 4 cols, vive dentro del col-span-2 del padre -->
     <div class="c-form-group"><label>Número</label><input class="w-full"></div>
     <div class="c-form-group"><label>Escalera</label><input class="w-full"></div>
@@ -175,7 +175,7 @@ Cuando necesitas 4 inputs cortos (Número, Escalera, Piso, Puerta) en una sola f
 </div>
 ```
 
-- Padre: `lg:col-span-2 grid grid-cols-4 gap-x-4` — el grid anidado vive en 50% desktop del grid madre.
+- Padre: `lg:col-span-2 grid grid-cols-4 gap-x-base` — el grid anidado vive en 50% desktop del grid madre.
 - Children: cada input es `col-span-1` del grid anidado.
 - Indicaciones: `lg:col-span-2` (50% desktop) en el grid madre, junto al grupo anidado.
 
@@ -233,7 +233,7 @@ Cuando el form tiene varias secciones (Datos personales, Domicilio, Ubicación, 
 | Breakpoint | Comportamiento | Razón |
 |---|---|---|
 | Mobile | `mt-base mb-base` | Sin grid, cada sección ocupa fila propia. Necesita margen para respirar. |
-| Desktop (`lg+`) | `lg:mt-0 lg:mb-0` | En grid flow, el `gap-x-4` ya separó los items. Márgenes extra serían doble espaciado. |
+| Desktop (`lg+`) | `lg:mt-0 lg:mb-0` | En grid flow, el `gap-x-base` ya separó los items. Márgenes extra serían doble espaciado. |
 
 **Regla:** aplica estos márgenes solo a los HIJOS del form (no al form raíz). El form raíz usa `my-base` o similar como separador con el resto de la página.
 
@@ -276,7 +276,7 @@ El patrón `mt-base mb-base lg:mt-0 lg:mb-0` solo aplica cuando los inputs está
   </div>
 
   {# Intro opcional #}
-  <div class="grid lg:grid-cols-4 gap-x-4 mb-base">
+  <div class="grid lg:grid-cols-4 gap-x-base mb-base">
     <div class="col-span-2 lg:col-span-3">
       <p class="-mt-base c-paragraph-base lg:c-paragraph-lg">
         Necesitamos estos datos para enviarte avisos puntuales sobre tus trámites y notificaciones.
@@ -287,7 +287,7 @@ El patrón `mt-base mb-base lg:mt-0 lg:mb-0` solo aplica cuando los inputs está
   {# Grupo 1: Domicilio #}
   <fieldset>
     <legend class="sr-only">Domicilio postal</legend>
-    <div class="grid lg:grid-cols-4 gap-x-4">
+    <div class="grid lg:grid-cols-4 gap-x-base">
       <!-- Tipo de vía (col-span-1) + Vía (col-span-3) -->
       <!-- Número/Escalera/Piso/Puerta (grid anidado) + Indicaciones -->
     </div>
@@ -296,7 +296,7 @@ El patrón `mt-base mb-base lg:mt-0 lg:mb-0` solo aplica cuando los inputs está
   {# Grupo 2: Ubicación #}
   <fieldset>
     <legend class="sr-only">Ubicación</legend>
-    <div class="grid lg:grid-cols-5 gap-x-4">
+    <div class="grid lg:grid-cols-5 gap-x-base">
       <!-- CP (w-44 lg:w-full) + Provincia (col-span-2) + Municipio (col-span-2) -->
     </div>
   </fieldset>
@@ -560,7 +560,7 @@ Además de los anti-patterns ya documentados al inicio:
 - **Skill: `desy-implement-component`** — sección "Ancho de inputs, selects y textareas en grid (patrón w-full)" para los 4 patrones de ancho que aplican aquí
 - **Skill: `desy-implement-pattern`** — para implementar uno de los 55 patrones de negocio (cards, FAQs, errores, headers, listados, megamenu, soporte, cookies, pagination). Complementario: este skill (layout-patterns) define las convenciones ESTRUCTURALES que esos patrones usan.
 - **Skill: `desy-validate-accessibility`** — para auditar el fieldset+legend sr-only, los landmarks y la jerarquía de headings tras aplicar estos patrones
-- **Skill: `desy-styles-reference`** — para tokens concretos (`mt-base`, `mb-base`, `gap-x-4`, `lg:grid-cols-4`)
+- **Skill: `desy-styles-reference`** — para tokens concretos (`mt-base`, `mb-base`, `gap-x-base`, `lg:grid-cols-4`)
 - **Skill: `desy-scaffold-project`** — para crear el proyecto donde va este form (paso previo)
 - **Catálogo:** https://desy.aragon.es/patrones.html
 - **Ejemplo gold verificado:** wizard del Paso 3 (Dirección postal) en https://desy.aragon.es/patrones.html

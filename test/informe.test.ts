@@ -395,8 +395,15 @@ describe("renderInformeCaso: el skill contradice este Check (ticket 13)", () => 
     };
   }
 
-  /** El contexto del Caso real, con o sin la contradicción que declara su rúbrica. */
-  function contextoFieldset(declarar: boolean): ContextoDelCaso {
+  /**
+   * El contexto del Caso real, con o sin la contradicción que declara su rúbrica.
+   *
+   * La contradicción del Caso se **cerró** (PR #35 de `desy-skills`: el skill ya
+   * dice `gap-x-base`), así que aquí se declara una de fixture sobre el mismo Caso
+   * y una sección que sigue existiendo: lo que se prueba es el mecanismo del
+   * informe, no que el Caso real mantenga una deuda que ya saldó.
+   */
+  function contextoFieldset(conContradiccion: boolean): ContextoDelCaso {
     const caso = cargarCaso(CASO_FIELDSET);
     return {
       caso: caso.id,
@@ -404,8 +411,19 @@ describe("renderInformeCaso: el skill contradice este Check (ticket 13)", () => 
       anclas: new Map(
         caso.checks.flatMap((c) => (c.ancla === undefined ? [] : [[c.id, c.ancla] as const])),
       ),
-      ...(declarar && caso.contradicciones !== undefined
-        ? { contradicciones: caso.contradicciones }
+      ...(conContradiccion
+        ? {
+            contradicciones: new Map([
+              [
+                "espaciado-del-sistema",
+                {
+                  skill: "desy-implement-layout-patterns",
+                  seccion: "Grid responsivo del formulario",
+                  texto: "el skill dice «`gap-x-4`»; el Check exige `gap-x-base`",
+                },
+              ],
+            ]),
+          }
         : {}),
       // El lector **real** de `vendor/`: sin él, ninguna sección se leería y el
       // control de «cita el ancla» pasaría por no haber nada que citar.

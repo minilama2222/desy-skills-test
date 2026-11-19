@@ -37,11 +37,11 @@ como una llamada a macro.
 - **espaciado-del-sistema** (peso 2): **fidelidad de tokens**. El ritmo entre
   bloques usa la escala canónica de DESY (`gap-x-base`, `mt-base mb-base lg:mt-0
   lg:mb-0`, `gap-sm`), no la escala numérica de Tailwind ni valores arbitrarios. El
-  caso que el skill **arrastra en su propio ejemplo** —`gap-x-4`— es justo el que
-  `desy-styles-reference` manda corregir a `gap-x-base` (1rem): el guard lo
-  suspende, que es su trabajo. El guard de tokens del Framework
-  (`tokens-del-sistema`) sigue cazando además utilidades por defecto y valores
-  arbitrarios.
+  skill declaraba `gap-x-4` en su propio ejemplo; eso se corrigió en `desy-skills`
+  (PR #35, Pin `ef3a9c7`) y hoy el ejemplo del skill coincide con lo que mide el
+  Check. Un SUT que escriba la escala numérica sigue suspendiendo. El guard de
+  tokens del Framework (`tokens-del-sistema`) caza además utilidades por defecto y
+  valores arbitrarios.
 
 ## Anclaje en `desy-skills`
 
@@ -54,16 +54,10 @@ como una llamada a macro.
 
 ## El skill contradice este Check
 
-- espaciado-del-sistema: desy-implement-layout-patterns → «Grid responsivo del formulario» — el skill dice «`gap-x-4`» (1rem horizontal); el Check exige la escala de tokens (`gap-x-base`)
-
-El bloque de código de `desy-implement-layout-patterns` usa `gap-x-4` en la rejilla
-(«Grid responsivo del formulario»), pero `desy-styles-reference` es explícita: la
-escala numérica de Tailwind **no** es la de DESY y `gap-x-4` se corrige a
-`gap-x-base` (1rem, su equivalente). El harness toma la referencia de tokens como
-autoridad, así que un SUT que copie `gap-x-4` literal pierde el Quality. Es una
-incoherencia del corpus de skills, y este Caso la mide en el sentido que fija
-`desy-styles-reference`. El informe por Caso y el Scorecard la sacan a la cabecera
-en cada corrida; cambiar el skill o el Check lo decide una persona.
+_Ninguna declarada._ La que hubo —`espaciado-del-sistema` frente a «Grid responsivo
+del formulario», que decía `gap-x-4`— se cerró en `desy-skills` (PR #35, Pin
+`ef3a9c7`): la sección del skill ya usa `gap-x-base`, el mismo token que exige el
+Check. Si el skill vuelve a arrastrar la escala numérica, se declara aquí otra vez.
 
 ## Fuera de alcance de este Caso
 

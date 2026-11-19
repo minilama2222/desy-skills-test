@@ -47,7 +47,7 @@ export function rutaEnElRepo(raiz: string, ruta: string): string {
   return relative(raiz, ruta).split(sep).join("/");
 }
 
-export const DEFAULT_REPO = "https://bitbucket.org/sdaragon/desy-skills";
+export const DEFAULT_REPO = "https://github.com/minilama2222/desy-skills";
 
 const SHA_RE = /^[0-9a-f]{7,40}$/i;
 

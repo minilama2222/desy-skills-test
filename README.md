@@ -1,6 +1,6 @@
 # desy-skills-test
 
-Harness de tests de capacidad para los 12 skills de [`desy-skills`](https://bitbucket.org/sdaragon/desy-skills).
+Harness de tests de capacidad para los 12 skills de [`desy-skills`](https://github.com/minilama2222/desy-skills).
 
 Cada **Caso** alimenta al SUT (agente `opencode run` headless) con una entrada y una tarea, y evalúa la salida contra una rúbrica declarativa de **Checks**. El resultado es un **Grade** por Caso y un **Scorecard** por Skill.
 

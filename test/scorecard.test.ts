@@ -7,7 +7,7 @@ const pin: Pin = {
   ref: "main",
   commit: "b523ca7df8594532f5fd47376894c16bc8f1b5df",
   fecha: "2026-10-20",
-  repo: "https://bitbucket.org/sdaragon/desy-skills",
+  repo: "https://github.com/minilama2222/desy-skills",
 };
 
 /** Una Ejecución de ejemplo; sólo importan los campos que agrega el scorecard. */
@@ -181,7 +181,7 @@ describe("agregarScorecard: forma del reporte JSON (fuente de verdad)", () => {
       ref: "main",
       commit: "b523ca7df8594532f5fd47376894c16bc8f1b5df",
       fecha: "2026-10-20",
-      repo: "https://bitbucket.org/sdaragon/desy-skills",
+      repo: "https://github.com/minilama2222/desy-skills",
     });
   });
 
