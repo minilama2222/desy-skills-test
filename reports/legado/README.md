@@ -21,6 +21,13 @@ que se midió, el Pin que la corrida **declaró** y qué se puede leer de ese fi
 - **`estabilidad-2026-10-22/`** — el experimento de estabilidad v2: tres Ejecuciones, el
   resumen por Ejecución y la **fuente exacta** que reprodujo el HALLAZGO del artefacto
   (`ejecucion-1-fuente.txt`). Una de las tres entregó, y fue **EXCELENTE**.
+- **`suite-2026-11-18-macro-comentado/`** — la suite que destapó la trampa del macro
+  comentado (ticket 18): dos Ejecuciones de `boton-primario`, su Scorecard y la cabecera
+  que dice **qué no se puede afirmar** de ella. Es el primer directorio con esa cabecera:
+  su `arbolHash` (`c75f7fe9…`) no está en el repo —el `vendor/` de hoy mide `a9722412…`—
+  y sus Ejecuciones se re-gradúan con los Checks de hoy, así que se conserva **cómo se
+  leyó**, no una medida reproducible. Las otras dos se pueden re-graduar con su fichero
+  delante; ésta no.
 
 Los ficheros se copiaron **byte a byte** con `npm run archivar-legado`; no se reescribieron
 con la forma de hoy. No se archiva el artefacto HTML: es output del SUT y se regenera.

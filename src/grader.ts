@@ -553,12 +553,16 @@ export function pasoCoincide(
  */
 function llamadasAMacro(html: string, macro: string): Record<string, string>[] {
   const llamadas: Record<string, string>[] = [];
+  // Lo comentado no es una llamada: el ejemplo del starter trae `componentButton`
+  // comentado, y leerlo hacía que el agente suspendiera por lo que escribió el
+  // repo. Es la misma razón por la que `clasesDe` limpia antes de leer (ADR-0010).
+  const sinComentarios = sinComentariosNunjucks(html);
   const invocacion = new RegExp(`\\b${macro}\\s*\\(`, "g");
   let match: RegExpExecArray | null;
-  while ((match = invocacion.exec(html)) !== null) {
-    const desde = html.indexOf("{", match.index + match[0].length);
+  while ((match = invocacion.exec(sinComentarios)) !== null) {
+    const desde = sinComentarios.indexOf("{", match.index + match[0].length);
     if (desde === -1) continue;
-    const objeto = extraerObjetoBalanceado(html, desde);
+    const objeto = extraerObjetoBalanceado(sinComentarios, desde);
     if (objeto === undefined) continue;
     llamadas.push(propsDeNivelSuperior(objeto));
   }

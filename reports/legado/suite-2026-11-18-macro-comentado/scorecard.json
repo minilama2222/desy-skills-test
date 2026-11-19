@@ -1,0 +1,39 @@
+{
+  "pin": {
+    "ref": "main",
+    "commit": "b523ca7df8594532f5fd47376894c16bc8f1b5df",
+    "fecha": "2026-10-28",
+    "repo": "https://bitbucket.org/sdaragon/desy-skills"
+  },
+  "arbolHash": "c75f7fe92b36cdebf256d7e138ef55f87fe4673dbd9e6b27bdfee764c91c7487",
+  "skills": [
+    {
+      "skill": "implement-component",
+      "casos": [
+        {
+          "caso": "boton-primario",
+          "tipo": "caso-componente",
+          "veredicto": "INDETERMINADO",
+          "entregas": 0,
+          "intentos": 2,
+          "alcanzaronSkill": 0,
+          "correctas": 0,
+          "entregoMal": 0,
+          "sinArtefacto": 0,
+          "hallazgosConArtefacto": 1,
+          "fallos": [],
+          "guards": {
+            "ok": 0,
+            "total": 0
+          },
+          "gradeCalidad": "INACEPTABLE",
+          "hallazgosDeTrigger": 0,
+          "triggerConEvidencia": 0
+        }
+      ],
+      "pasados": 0,
+      "suspendidos": 0,
+      "indeterminados": 1
+    }
+  ]
+}

@@ -14,6 +14,7 @@ import {
   type HechosDeLaEjecucion,
   type Medida,
   type ReglaDeMedida,
+  type ReglaSoloLectura,
   type TasaDeEntrega,
 } from "../src/legado.js";
 import { REPO_ROOT } from "../src/repo.js";
@@ -58,6 +59,22 @@ const REGLA_ADR_0007 = {
 const REGLA_EXPERIMENTO = REGLA_ADR_0007;
 
 /**
+ * Qué regla calculó el Veredicto de la corrida del 18/11. `entregaCero` es
+ * INDETERMINADO porque es lo que el ADR-0014 cambió: tres corridas sin entrega
+ * fabricaban un rojo del skill. Se usa en una corrida `soloLectura`, así que este
+ * texto no se imprime como afirmación sobre lo que entregó la corrida: eso es lo
+ * que no se puede saber (ver el `soloLectura` de su entrada).
+ */
+const REGLA_ADR_0014: ReglaDeMedida = {
+  nombre: "ADR-0014",
+  que:
+    "El Veredicto de un Caso se calcula sobre las Ejecuciones que **entregaron** Artefacto; " +
+    "las que llegaron al skill y no entregaron no cuentan como dato.",
+  entregaCero: "**INDETERMINADO**",
+  adr: "docs/adr/0014-veredicto-sobre-las-entregas.md",
+};
+
+/**
  * Las dos corridas que conserva el archivo, con su nombre definitivo. Una
  * corrida no se archiva sin su regla: sin regla no es legado.
  *
@@ -75,6 +92,8 @@ export const CORRIDAS_ARCHIVADAS: readonly {
   fecha: string;
   regla: ReglaDeMedida;
   expedientes: readonly string[];
+  /** Ver `ReglaSoloLectura`: una corrida cuyo origen no se conserva. */
+  soloLectura?: ReglaSoloLectura;
 }[] = [
   {
     dir: "suite-2026-10-27",
@@ -89,6 +108,31 @@ export const CORRIDAS_ARCHIVADAS: readonly {
     fecha: "2026-10-22",
     regla: REGLA_EXPERIMENTO,
     expedientes: ["veredicto.json"],
+  },
+  {
+    dir: "suite-2026-11-18-macro-comentado",
+    origen: "suite",
+    fecha: "2026-11-18",
+    // La regla con la que se calculó el Veredicto es la de hoy (ADR-0014): eso sí
+    // se puede afirmar del fichero. Lo que NO se puede afirmar es que la corrida
+    // entregara o no, porque se re-graduó con los Checks de hoy —la Evidencia no
+    // guarda sus pesos— y su árbol de skills no se conservó.
+    regla: REGLA_ADR_0014,
+    expedientes: [],
+    soloLectura: {
+      nombre: "ADR-0014",
+      adr: "docs/adr/0014-veredicto-sobre-las-entregas.md",
+      seCalibroCon:
+        "El Veredicto de un Caso se calcula sobre las Ejecuciones que **entregaron** Artefacto; " +
+        "cero entregas es INDETERMINADO. El fichero lo dice con esas palabras (ADR-0014).",
+      noSePuedeAfirmar:
+        "**qué Grade produjo esta corrida y si sus Ejecuciones entregaron.** El árbol de " +
+        "skills que se midió no está en el repo: hoy `vendor/` mide otro contenido. Además, " +
+        "`npm run replay-grader` re-gradúa con los Checks de hoy —la Evidencia no guarda sus " +
+        "pesos—, así que mover un Grade puede ser la trampa del macro comentado o cualquier " +
+        "cambio posterior. Las huellas de lo medido: `c75f7fe9…` en el Scorecard, frente a " +
+        "`a9722412…` que mide el `vendor/` de hoy. El detalle está en el ticket 18.",
+    },
   },
 ];
 
@@ -117,6 +161,7 @@ export function renderCabecera(
   noCopiados: readonly string[] = [],
   tasa?: TasaDeEntrega,
   hechos?: HechosDeLaEjecucion,
+  soloLectura?: ReglaSoloLectura,
 ): string {
   const regla = cabecera.regla;
   if (regla === undefined) {
@@ -140,19 +185,65 @@ export function renderCabecera(
         : ` — \`${regla.adr}\``),
     `- Pin: ${pinEnTexto(cabecera)}`,
     "",
-    "## Con qué regla se midió",
-    "",
-    regla.que,
-    "",
-    `Entonces, un Caso que alcanzó el skill y **no entregó nada** era ${regla.entregaCero}.`,
-    "Y **ninguna** Ejecución alcanzó el skill era INDETERMINADO: sin dato, no había juicio.",
-    "",
   ];
 
+  // Una corrida de la que sólo queda el folio no se lee como una que se puede
+  // re-graduar: aquí no hay qué afirmar sobre lo que produjo su Grade.
+  if (soloLectura !== undefined) {
+    lineas.push(
+      "## Cómo se leyó, y qué no se puede afirmar",
+      "",
+      "**Esta corrida no se puede re-graduar.** Su Scorecard se escribió con un árbol de",
+      "skills y unos Checks que no se conservaron con él, así que ningún Grade de aquí se",
+      "puede volver a producir: lo único que queda es cómo se leyó el fichero en su momento.",
+      "",
+      `- Se calibró con: ${soloLectura.seCalibroCon}`,
+      `- No se puede afirmar: ${soloLectura.noSePuedeAfirmar}`,
+      "",
+      "Se guarda **tal cual se escribió**, para que el hecho de que el guard leyera el",
+      "artefacto equivocado no se pierda. No se guarda como medida: lo medido no se puede",
+      "reconstruir (ver el ticket 18).",
+      "",
+    );
+  } else {
+    lineas.push(
+      "## Con qué regla se midió",
+      "",
+      regla.que,
+      "",
+      `Entonces, un Caso que alcanzó el skill y **no entregó nada** era ${regla.entregaCero}.`,
+      "Y **ninguna** Ejecución alcanzó el skill era INDETERMINADO: sin dato, no había juicio.",
+      "",
+    );
+  }
+
   // Qué contiene **este** fichero, dicho de él: la sección sobre el SUSPENDE sólo
-  // tiene sentido si el fichero trae veredictos. El de una captura o una
-  // Ejecución no los trae, y decir «su SUSPENDE» de él sería hablar de otro.
-  if (medidas.length > 0) {
+  // tiene sentido si el fichero trae veredictos **y** la corrida se puede
+  // re-graduar. En una `soloLectura` no se sabe si el veredicto es de hoy o de
+  // ayer, así que hablar de «lo que significaría hoy» sería adivinar; la sección
+  // de arriba ya dice que aquí no hay nada que re-graduar.
+  if (hechos !== undefined && soloLectura !== undefined) {
+    // La Ejecución conserva el Grade de cuando se escribió, pero no se puede
+    // re-graduar: decir «qué hizo» sin esa salvedad es la afirmación que la
+    // cabecera de la corrida ya declara imposible.
+    lineas.push(
+      "## Qué hizo esta Ejecución, según el fichero",
+      "",
+      `- Skill y Caso: \`${hechos.skill}/${hechos.caso}\``,
+      `- Grade guardado: **${hechos.grade}**` +
+        (hechos.entrega === undefined ? "" : ` · Entrega: \`${hechos.entrega}\``) +
+        (hechos.alcanzoElSkill === undefined
+          ? ""
+          : ` · Alcanzó el skill: ${hechos.alcanzoElSkill ? "sí" : "no"}`),
+      "",
+      "Eso es lo que **guarda el fichero**, no lo que hoy daría: sus Checks y su árbol de",
+      "skills no se conservaron con él, así que el mismo Artefacto puede graduarse distinto",
+      "hoy. Se copia tal cual se escribió; no se presenta como una medida reproducible.",
+      "",
+    );
+  } else if (soloLectura !== undefined) {
+    // Ya lo dice «Cómo se leyó».
+  } else if (medidas.length > 0) {
     const veredictos = [...new Set(medidas.map((m) => m.veredicto))].join(", ");
     lineas.push(
       "## Lo que significan sus veredictos",
@@ -210,9 +301,18 @@ export function renderCabecera(
     }
     lineas.push(
       "",
-      "La columna `entregas` sale `—` cuando el fichero no las guardó: este Scorecard es",
-      "anterior al ticket 03, que separó entregas de intentos. Un `0` ahí diría «no entregó»,",
-      "y no es cierto.",
+      ...(soloLectura === undefined
+        ? [
+            "La columna `entregas` sale `—` cuando el fichero no las guardó: este Scorecard es",
+            "anterior al ticket 03, que separó entregas de intentos. Un `0` ahí diría «no entregó»,",
+            "y no es cierto.",
+          ]
+        : [
+            "**Las cuentas de esta tabla las calculó el Scorecard al escribirse, no se han",
+            "rehecho.** Que este Caso salga con `0` entregas e `INDETERMINADO` es lo que el",
+            "fichero dice; si lo decía bien no se puede comprobar, porque las Ejecuciones se",
+            "re-gradúan con los Checks de hoy y su árbol no se conservó.",
+          ]),
       "",
     );
   }
@@ -288,7 +388,15 @@ export function cabeceraDeArchivo(
   const hechos = hechosDeLaEjecucion(raw);
   return {
     cabecera,
-    markdown: renderCabecera(cabecera, medidas, [], [], tasa, hechos),
+    markdown: renderCabecera(
+      cabecera,
+      medidas,
+      [],
+      [],
+      tasa,
+      hechos,
+      contexto.soloLectura,
+    ),
     medidas,
     ...(tasa === undefined ? {} : { tasa }),
     ...(hechos === undefined ? {} : { hechos }),
@@ -371,6 +479,7 @@ export function archivarCorrida(
       fichero: rel,
       fecha: corrida.fecha,
       regla: corrida.regla,
+      ...(corrida.soloLectura === undefined ? {} : { soloLectura: corrida.soloLectura }),
       ...(pinDeLaCorrida === undefined ? {} : { pinDeLaCorrida }),
     }),
   }));
@@ -390,6 +499,17 @@ export function archivarCorrida(
     marcados[0]!;
 
   const salida = join(legadoDir, corrida.dir);
+  // Archivar es escribir historia, no refrescarla: `reports/` es volátil y la
+  // suite lo vacía, así que sus ficheros de hoy pueden no ser los de la corrida
+  // que este directorio dice guardar. Pisar un archivo con ellos cambia lo que
+  // pasó —le pasó al 27/10 mientras se añadía esta corrida—, y por eso se niega.
+  if (existsSync(salida)) {
+    throw new Error(
+      `«${corrida.dir}» ya está archivado. Re-archivarlo pisaría la evidencia guardada ` +
+        "con lo que haya hoy en reports/, que puede no ser lo de esa corrida. " +
+        "Si de verdad hay que rehacerlo, borra el directorio a mano y di por qué.",
+    );
+  }
   const escritos: string[] = [];
   for (const { rel, marcado } of marcados) {
     const destino = join(salida, rel);
@@ -415,6 +535,7 @@ export function archivarCorrida(
       // explica el SUSPENDE, así que no se pierde si el principal no la tiene.
       marcados.find((m) => m.marcado.tasa !== undefined)?.marcado.tasa,
       principal.marcado.hechos,
+      corrida.soloLectura,
     ),
     "utf8",
   );
@@ -423,17 +544,32 @@ export function archivarCorrida(
 }
 
 /**
- * `npm run archivar-legado`: archiva las corridas de `CORRIDAS_ARCHIVADAS` desde
- * `reports/` del repo. Falla en cuanto una no está —el archivo no inventa una
- * corrida— y no hace nada a medias: el primer error sale antes de copiar nada de
- * la siguiente.
+ * `npm run archivar-legado [<dir>]`: archiva las corridas de `CORRIDAS_ARCHIVADAS`
+ * desde `reports/` del repo. Falla en cuanto una no está —el archivo no inventa
+ * una corrida— y no hace nada a medias: el primer error sale antes de copiar nada
+ * de la siguiente.
+ *
+ * Un `<dir>` opcional archiva **sólo** esa corrida. Existe porque `reports/` es
+ * volátil: al archivar una corrida nueva, las viejas ya no están en `reports/suite`
+ * ni `reports/estabilidad-v2` (la suite vacía el árbol), y re-correr el script
+ * entero fallaría sobre ellas aunque ya estén archivadas. Archivar una no pisa lo
+ * archivado de las demás.
  */
 export function main(
   reportsDir: string = join(REPO_ROOT, "reports"),
   legadoDir: string = join(REPO_ROOT, "reports", "legado"),
   log: (linea: string) => void = console.log,
+  solo?: string,
 ): void {
-  for (const corrida of CORRIDAS_ARCHIVADAS) {
+  const corridas =
+    solo === undefined ? CORRIDAS_ARCHIVADAS : CORRIDAS_ARCHIVADAS.filter((c) => c.dir === solo);
+  if (corridas.length === 0) {
+    throw new Error(
+      `No hay ninguna corrida archivada con el nombre «${solo}». ` +
+        `Las que hay: ${CORRIDAS_ARCHIVADAS.map((c) => c.dir).join(", ")}.`,
+    );
+  }
+  for (const corrida of corridas) {
     const escritos = archivarCorrida(corrida, reportsDir, legadoDir);
     log(
       `${corrida.dir}: ${escritos.filter((f) => f.endsWith(".LEGADO.md")).length} cabecera/s, ` +
@@ -444,5 +580,5 @@ export function main(
 
 // La guarda permite importar el módulo (los tests) sin archivar nada.
 if (process.argv[1] !== undefined && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  main();
+  main(undefined, undefined, undefined, process.argv[2]);
 }

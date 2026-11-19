@@ -77,6 +77,31 @@ export interface ReglaDeMedida {
   adr: string | null;
 }
 
+/**
+ * Una regla que puede **decir la verdad sin la Evidencia delante**, para las
+ * corridas cuyo origen no se conserva.
+ *
+ * `ReglaDeMedida` ya sirve para una corrida cuyo árbol de skills se guardó: sus
+ * Ejecuciones demuestran lo que la regla afirma. Una corrida que se re-gradúa
+ * años después —con los Checks de entonces y el `arbolHash` de entonces, sin
+ * nada de eso en disco— no puede demostrar qué produjo qué Grade. Archivar eso
+ * como si lo demostrara es escribir una cabecera que miente, y el archivo existe
+ * para lo contrario.
+ *
+ * No hereda de `ReglaDeMedida` a propósito: `entregaCero` es justo el hecho que
+ * aquí no se puede afirmar. Lo que queda es cómo se leyó el fichero y qué falta.
+ */
+export interface ReglaSoloLectura {
+  /** Cómo se llamaba: `ADR-0014`, «…» */
+  nombre: string;
+  /** El ADR que la fijaba, o `null` si nunca fue una decisión escrita. */
+  adr: string | null;
+  /** Lo que **sí** se puede afirmar: cómo se calculó el Veredicto. */
+  seCalibroCon: string;
+  /** Lo que **no** se puede afirmar, y por eso no se afirma. */
+  noSePuedeAfirmar: string;
+}
+
 export interface CabeceraDeLegado {
   /** De dónde se copió, relativo a la raíz del repo. */
   origen: string;
@@ -98,6 +123,8 @@ export interface ContextoDeArchivo {
   /** La fecha de la corrida. */
   fecha: string;
   regla?: ReglaDeMedida;
+  /** Ver `ReglaSoloLectura`: una corrida cuyo origen no se conserva. */
+  soloLectura?: ReglaSoloLectura;
   /**
    * El Pin de la corrida, para los folios que no lo llevan (una captura en
    * prosa, un resumen por Ejecución). Sólo se usa si el fichero no declara el

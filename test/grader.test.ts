@@ -687,6 +687,50 @@ describe("Contrato de macro: variante y props", () => {
     expect(passed).toBe(false);
   });
 
+  describe("un macro comentado no es una llamada", () => {
+    // Nace de la fase 1 del bucle: el ejemplo del starter trae `componentButton`
+    // con `c-button--lg` dentro de `{# … #}`, y `tamano-base-no-grande` se ponía
+    // rojo sobre una línea que no se renderiza. Lo comentado es material que
+    // nadie ve; para el contrato del macro es como si no estuviera.
+    const COMENTADO = [
+      '{# ejemplo del starter:',
+      '{{ componentButton({ "text": "Botón de desy-html", "classes": "c-button--primary c-button--lg" }) }}',
+      '#}',
+      '{{ componentButton({ "text": "Enviar", "classes": "c-button--primary" }) }}',
+    ].join("\n");
+
+    it("macro_sin_clase no ve la clase grande en una llamada comentada", () => {
+      const check: Check = {
+        id: "tamano-base-no-grande",
+        severity: "quality",
+        weight: 0,
+        assert: { kind: "macro_sin_clase", macro: "componentButton", clase: "c-button--lg" },
+      };
+
+      expect(detalle(conHtml(COMENTADO), check)).toBe(true);
+    });
+
+    it("macro_con_clase no acredita la variante por una llamada comentada", () => {
+      const soloComentado = [
+        '{# {{ componentButton({ "classes": "c-button--primary" }) }} #}',
+        '{{ componentButton({ "envuelto": { "classes": "c-button--primary" } }) }}',
+      ].join("\n");
+
+      expect(detalle(conHtml(soloComentado), checkVariante("componentButton", "c-button--primary"))).toBe(
+        false,
+      );
+    });
+
+    it("sin_props_inventados no acusa una prop inventada que está comentada", () => {
+      const conPropInventadaComentada = [
+        '{# {{ componentButton({ "variante": "primary" }) }} #}',
+        '{{ componentButton({ "text": "Enviar" }) }}',
+      ].join("\n");
+
+      expect(detalle(conHtml(conPropInventadaComentada), checkProps("componentButton"))).toBe(true);
+    });
+  });
+
   it("sin_props_inventados pasa cuando todas las props están en el catálogo", () => {
     const passed = detalle(
       conHtml('{{ componentButton({ "text": "Enviar", "classes": "c-button--primary", "type": "submit" }) }}'),

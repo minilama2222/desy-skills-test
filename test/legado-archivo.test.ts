@@ -18,8 +18,16 @@ import { REPO_ROOT } from "../src/repo.js";
 
 const LEGADO = join(REPO_ROOT, "reports", "legado");
 
-/** Las dos corridas que conserva el archivo, por su directorio. */
-const CORRIDAS = ["suite-2026-10-27", "estabilidad-2026-10-22"];
+/**
+ * Las corridas que conserva el archivo. Las dos primeras se pueden re-graduar con
+ * su fichero delante y dicen con qué regla contaban las entregas entonces; la
+ * tercera es `soloLectura` (ticket 18): su árbol no se conservó y la cabecera dice
+ * lo que **no** se puede afirmar, en vez de afirmarlo.
+ */
+const CORRIDAS = ["suite-2026-10-27", "estabilidad-2026-10-22", "suite-2026-11-18-macro-comentado"];
+
+/** Las que se midieron con el ADR-0007, cuyo SUSPENDE no significa lo de hoy. */
+const CORRIDAS_CON_REGLA_DE_MEDIDA = ["suite-2026-10-27", "estabilidad-2026-10-22"];
 
 /** Todas las rutas bajo `dir`, relativa y con `/`, ordenadas. */
 function rutasDe(dir: string): string[] {
@@ -61,10 +69,10 @@ describe("reports/legado/: el archivo está, y es de antes (ticket 10)", () => {
         comprobadas++;
       }
     }
-    // Si el archivo se vaciara, el bucle de arriba no comprobaría nada. Los 10:
-    // 4 del 27/10 (scorecard + 3 Ejecuciones) y 6 del 22/10 (3 Ejecuciones,
-    // 2 capturas de fuente y el resumen).
-    expect(comprobadas).toBe(10);
+    // Si el archivo se vaciara, el bucle de arriba no comprobaría nada. Los 13:
+    // 4 del 27/10 (scorecard + 3 Ejecuciones), 6 del 22/10 (3 Ejecuciones,
+    // 2 capturas de fuente y el resumen) y 3 del 18/11 (scorecard + 2 Ejecuciones).
+    expect(comprobadas).toBe(13);
   });
 
   it("conserva la evidencia de los dos HALLAZGOS (el porqué, no sólo las cabeceras)", () => {
@@ -90,7 +98,7 @@ describe("reports/legado/: el archivo está, y es de antes (ticket 10)", () => {
   it("la cabecera de cada corrida dice qué significaba entonces el Caso sin entregas", () => {
     // Las dos se midieron con la MISMA regla (el ADR-0007), y eso es el dato: el
     // bucle no nace de dos reglas distintas. La cabecera lo dice igual en las dos.
-    for (const corrida of ["suite-2026-10-27", "estabilidad-2026-10-22"]) {
+    for (const corrida of CORRIDAS_CON_REGLA_DE_MEDIDA) {
       const cabecera = readFileSync(join(LEGADO, corrida, "LEGADO.md"), "utf8");
       expect(cabecera, corrida).toContain("era **SUSPENDE**");
       expect(cabecera, corrida).toContain("ADR-0007");
@@ -99,6 +107,17 @@ describe("reports/legado/: el archivo está, y es de antes (ticket 10)", () => {
     // que hablar: el Scorecard del 27/10. La carpeta del 22/10 no trae ninguno.
     const suite = readFileSync(join(LEGADO, "suite-2026-10-27/LEGADO.md"), "utf8");
     expect(suite).toContain("**INDETERMINADO**, no SUSPENDE");
+  });
+
+  it("la del 18/11 no dice con qué regla iban las entregas: su árbol no se conservó", () => {
+    // `archivoHash` es una cadena alfanumérica: el nombre del campo, escrito
+    // aquí como ruta de código, no es dato de ningún fichero del repo.
+    const soloLectura = readFileSync(join(LEGADO, "suite-2026-11-18-macro-comentado/LEGADO.md"), "utf8");
+
+    expect(soloLectura).toContain("no se puede re-graduar");
+    expect(soloLectura).toContain("No se puede afirmar:");
+    expect(soloLectura).not.toContain("## Con qué regla se midió");
+    expect(soloLectura).not.toContain("era **INDETERMINADO**");
   });
 
   it("la del 27/10 habla de sus veredictos; la del 22/10, de su Ejecución y su tasa", () => {

@@ -209,3 +209,54 @@ describe("archivarCorrida: copia la evidencia y le pone la regla encima (ticket 
     });
   });
 });
+
+describe("archivar no pisa la historia, y una corrida de solo lectura no afirma un Grade", () => {
+  it("re-archivar un directorio que ya existe se niega en vez de pisarlo", () => {
+    // Le pasó al 27/10: al añadir una corrida nueva se re-corrió el script entero,
+    // y como `reports/` guardaba los ficheros de otra noche, el archivo histórico
+    // se reescribió con ellos. La evidencia archivada no se refresca.
+    conReports((reports, legado) => {
+      reportsDeLaCorrida(reports);
+      archivarCorrida(SUITE, reports, legado);
+
+      expect(() => archivarCorrida(SUITE, reports, legado)).toThrow(/ya está archivado/);
+    });
+  });
+
+  it("una corrida sin re-graduación posible dice qué no se puede afirmar, no con qué regla iban las entregas", () => {
+    const soloLectura = CORRIDAS_ARCHIVADAS.find((c) => c.dir === "suite-2026-11-18-macro-comentado")!;
+
+    conReports((reports, legado) => {
+      const dir = join(reports, soloLectura.origen);
+      mkdirSync(join(dir, "ejecuciones", "implement-component", "boton-primario"), { recursive: true });
+      writeFileSync(
+        join(dir, "ejecuciones", "implement-component", "boton-primario", "2.json"),
+        JSON.stringify({
+          skill: "implement-component",
+          caso: "boton-primario",
+          grade: "ACEPTABLE",
+          entrega: "con-artefacto",
+          flujoAlcanzoSkill: false,
+          pin: { ref: "main", commit: "b523ca7df8594532f5fd47376894c16bc8f1b5df", fecha: "2026-10-28" },
+        }),
+        "utf8",
+      );
+
+      archivarCorrida(soloLectura, reports, legado);
+
+      const cabecera = readFileSync(join(legado, soloLectura.dir, "LEGADO.md"), "utf8");
+      expect(cabecera).toContain("no se puede re-graduar");
+      expect(cabecera).toContain("No se puede afirmar:");
+      // Lo que no se sabe, no se dice: la afirmación sobre lo que entregó la
+      // corrida no se imprime, porque el árbol que se midió no está.
+      expect(cabecera).not.toContain("## Con qué regla se midió");
+
+      const deLaEjecucion = readFileSync(
+        join(legado, soloLectura.dir, "ejecuciones", "implement-component", "boton-primario", "2.json.LEGADO.md"),
+        "utf8",
+      );
+      expect(deLaEjecucion).toContain("Grade guardado:");
+      expect(deLaEjecucion).toContain("no lo que hoy daría");
+    });
+  });
+});
