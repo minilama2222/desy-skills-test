@@ -23,6 +23,7 @@ import {
   escriturasFueraDelSandbox,
   realCommand,
   runCaso,
+  TIMEOUT_SUT_MS,
   type CommandRunner,
   type Entorno,
   type Sandbox,
@@ -885,6 +886,66 @@ describe("el SUT no escribe fuera de su sandbox (ticket 16)", () => {
       expect(r.code).toBe(0);
       expect(r.stdout).toBe("escrito\n");
       expect(existsSync(join(trabajo, "src", "boton-enviar.html"))).toBe(true);
+    } finally {
+      rmSync(falso, { recursive: true, force: true });
+    }
+  });
+});
+
+/**
+ * Ticket 21. En la suite del 19/11/2026 dos Ejecuciones de
+ * `politicas-privacidad` se quedaron 18 y 20 min con el stream del proveedor
+ * mudo: 0 % de CPU, sin escribir en su log y con el socket `ESTABLISHED` pero
+ * sin datos. No había ningún techo, así que la suite no seguía; el único que
+ * las cortó fue una persona. Y al cortarlas a mano quedaron como fallo del
+ * skill, que es la segunda mitad del problema.
+ *
+ * Este test fija la primera mitad con un proceso real (un nodo que duerme),
+ * inyectado como en el resto del fichero: nunca se lanza el `opencode` de la
+ * máquina.
+ */
+describe("el SUT que deja de responder no cuelga la suite (ticket 21)", () => {
+  it("el techo por defecto es holgado: 20 min de pared", () => {
+    // Si alguien lo baja a unos segundos, empezarán a cortarse intentos
+    // legítimos (los normales tardan 1-6 min) y la medida se perderá en silencio.
+    expect(TIMEOUT_SUT_MS).toBe(20 * 60 * 1000);
+  });
+
+  it("corta al llegar al techo, conserva lo andado y lo nombra en la Evidencia", () => {
+    const falso = mkdtempSync(join(tmpdir(), "opencode-mudo-"));
+    const hijo = join(falso, "mudo.mjs");
+    const trabajo = join(falso, "work");
+    mkdirSync(trabajo, { recursive: true });
+    writeFileSync(
+      hijo,
+      [
+        // Lo que un SUT real hace antes de quedarse mudo: algo escribe.
+        'process.stdout.write("empiezo\\n");',
+        // Y después no vuelve nunca: 60 s de reloj, muy por encima del techo.
+        "setTimeout(() => {}, 60_000);",
+      ].join("\n"),
+      "utf8",
+    );
+    try {
+      const antes = Date.now();
+      const r = realCommand.run([], {
+        cwd: trabajo,
+        env: {
+          DESY_OPENCODE_BIN: process.execPath,
+          DESY_OPENCODE_ARGS: JSON.stringify([hijo]),
+          DESY_REPO_ROOT: falso,
+          DESY_SUT_TIMEOUT_MS: "800",
+        },
+      });
+      // Lo que se mide es que **vuelve**: sin techo, este test no terminaría.
+      expect(Date.now() - antes).toBeLessThan(15_000);
+      expect(r.code).not.toBe(0);
+      // Y que lo dice con la causa, no con un `exit 1` pelado que se leería
+      // como fallo del skill.
+      expect(r.stderr).toMatch(/no respondió en 800 ms/);
+      expect(r.stderr).toMatch(/No es un fallo del skill/);
+      // La salida parcial no se tira: es lo que el SUT alcanzó a decir.
+      expect(r.stdout).toContain("empiezo");
     } finally {
       rmSync(falso, { recursive: true, force: true });
     }

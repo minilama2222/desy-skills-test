@@ -782,6 +782,25 @@ export function entornoDelSut(
 }
 
 /**
+ * Techo de pared de una Ejecución (ticket 21): **20 minutos**.
+ *
+ * Medido en la suite del 19/11/2026. Un intento normal tarda 1-6 min; el más
+ * largo que entregó algo, ~12 min. Los dos cuelgues que costaron ~2 h de reloj
+ * quedaron con 0 % de CPU y sin escribir en su log: no era trabajo, era un
+ * `await` que nunca se resolvía (stream del proveedor mudo, equipo suspendido).
+ *
+ * Es de **pared y no de CPU** a propósito: el proceso colgado también puede
+ * gastar unos milisegundos sueltos, así que «CPU quieta» no distingue un cuelgue
+ * de una generación lenta. Un techo de pared sí, y es lo que un humano acaba
+ * aplicando a mano cuando mira la pantalla.
+ *
+ * `DESY_SUT_TIMEOUT_MS` lo mueve para un Caso que se sepa largo; el valor por
+ * defecto tiene que seguir siendo holgado, porque cortar un intento legítimo
+ * cuesta una Ejecución entera.
+ */
+export const TIMEOUT_SUT_MS = 20 * 60 * 1000;
+
+/**
  * Lanza el SUT y lo espera **bloqueando sólo este hilo**: `spawnSync` con los dos
  * canales en tubería y un `maxBuffer` generoso —un SUT locuaz no puede morir por
  * búfer lleno—. El bucle de eventos no avanza mientras se espera, así que el
@@ -824,8 +843,14 @@ function ejecutarConGuardiaDelRepo(
     opts.cwd,
     variable("DESY_SANDBOX_BASE") ?? tmpdir(),
   );
+  // Techo de pared (ticket 21): sin esto, un SUT que deja de responder bloquea la
+  // suite para siempre. `spawnSync` mata al hijo con `killSignal` y devuelve
+  // `error.code === "ETIMEDOUT"`; el mensaje se añade abajo para que la Evidencia
+  // diga «no respondió» y no «falló el skill».
+  const limiteMs = Number(variable("DESY_SUT_TIMEOUT_MS") ?? TIMEOUT_SUT_MS);
   const resultado = spawnSync(binario, argv, {
     cwd: opts.cwd,
+    timeout: Number.isFinite(limiteMs) && limiteMs > 0 ? limiteMs : TIMEOUT_SUT_MS,
     // El entorno del SUT no hereda la **sesión** de quien lanza la suite: si
     // `OPENCODE_SESSION_ID` viaja (lo pone el agente que ejecuta el harness), el
     // hijo se engancha a esa sesión y todas sus herramientas usan el proyecto de
@@ -838,10 +863,26 @@ function ejecutarConGuardiaDelRepo(
     maxBuffer: 64 * 1024 * 1024,
   });
   vigilante.mirar();
+  // El corte por tiempo se nombra en la Evidencia: un `exit 1` a secas se leería
+  // como fallo del skill, y esto es «no se pudo medir» (ticket 21).
+  const expirado =
+    (resultado.error as NodeJS.ErrnoException | undefined)?.code === "ETIMEDOUT";
+  // La salida parcial se conserva: al cortar se pierde el final, no lo andado.
+  const stderrCrudo = resultado.stderr ?? (resultado.error ? String(resultado.error) : "");
+  const detalleError = expirado
+    ? [
+        `El SUT no respondió en ${limiteMs} ms (techo de pared, ticket 21): ` +
+          "se ha cortado la Ejecución. No es un fallo del skill: el proceso dejó de " +
+          "dar señal (proveedor mudo, equipo suspendido o red caída).",
+        stderrCrudo,
+      ]
+        .filter((parte) => parte.length > 0)
+        .join("\n")
+    : stderrCrudo;
   return {
     resultado: {
       stdout: resultado.stdout ?? "",
-      stderr: resultado.stderr ?? (resultado.error ? String(resultado.error) : ""),
+      stderr: detalleError,
       status: resultado.status,
       ...(resultado.signal ? { signal: resultado.signal } : {}),
       ...(resultado.error ? { error: resultado.error } : {}),
