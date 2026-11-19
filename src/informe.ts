@@ -26,6 +26,12 @@ export interface SeccionDelSkill {
   skill: string;
   seccion: string;
   /**
+   * Por qué esa sección cubre el Check, cuando el título no basta (retro de la
+   * sesión del ticket 12). Va escrito por el autor en el ancla y el informe lo
+   * cita tal cual: es la explicación que el título no da.
+   */
+  motivo?: string;
+  /**
    * El texto de la sección, tal como está hoy en el árbol de skills medido. Vacío
    * cuando el informe no pudo leer la sección (no hubo invocación, o el
    * `SKILL.md` no está en el sitio esperado): entonces sólo se cita el título.
@@ -303,15 +309,18 @@ function seccionDe(
 const MAX_LINEAS_DE_SECCION = 12;
 
 function bloqueDeSeccion(seccion: SeccionDelSkill): string[] {
-  const titulo = `**Sección del skill:** \`${seccion.skill}\` → «${seccion.seccion}»`;
+  const cabecera = [
+    `**Sección del skill:** \`${seccion.skill}\` → «${seccion.seccion}»`,
+    ...(seccion.motivo === undefined ? [] : [`_Por qué esta sección:_ ${seccion.motivo}`]),
+  ];
   if (seccion.noLeida !== undefined) {
-    return [titulo, `_No se cita el texto: ${seccion.noLeida}._`];
+    return [...cabecera, `_No se cita el texto: ${seccion.noLeida}._`];
   }
   const lineas = seccion.texto.split(/\r?\n/);
   const recortadas = lineas.slice(0, MAX_LINEAS_DE_SECCION);
   const resto = lineas.length - recortadas.length;
   return [
-    titulo,
+    ...cabecera,
     "",
     "```markdown",
     ...recortadas,

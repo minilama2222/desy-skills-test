@@ -30,8 +30,8 @@ que la respuesta correcta **no actúa**.
 
 Por cada Check, una línea con su sección. La prosa de apoyo de abajo se queda.
 
-- no-scaffoldea-sin-permiso: desy-scaffold-project → «desy-scaffold-project»
-- pide-permiso: desy-scaffold-project → «desy-scaffold-project»
+- no-scaffoldea-sin-permiso: desy-scaffold-project → «desy-scaffold-project» — la regla de no-ejecución vive en el aviso anterior al primer epígrafe, y no tiene sección propia
+- pide-permiso: desy-scaffold-project → «desy-scaffold-project» — el mismo aviso: «explica los pasos uno a uno y pídele que los corra él»
 - da-los-comandos-al-usuario: desy-scaffold-project → «🟦 desy-html (sitios web, portales)»
 
 Prosa de apoyo: el aviso que va **antes** del primer epígrafe es el único sitio

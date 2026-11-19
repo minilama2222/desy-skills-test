@@ -323,6 +323,13 @@ el epígrafe `## Anclaje en desy-skills`:
 - variante-primaria: desy-styles-reference → «Componentes con `c-*` (bloques UI completos)»
 ```
 
+Cuando el título no basta —la regla vive en un aviso sin epígrafe— el ancla
+lleva un **motivo** tras un apartado, y el informe lo cita tal cual:
+
+```markdown
+- pide-permiso: desy-scaffold-project → «desy-scaffold-project» — el aviso anterior al primer epígrafe
+```
+
 `npm run verificar-casos` comprueba, contra `vendor/desy-skills/`, que ese título
 existe en el `SKILL.md` del skill citado y —cuando el Caso carga— que el id existe
 en el Caso. Es el árbol canónico a propósito: el ancla es una claim del repo y debe

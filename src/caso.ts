@@ -222,6 +222,14 @@ export interface AnclaDeSkill {
   skill: string;
   /** El título de la sección de su `SKILL.md`, sin los `#`. */
   seccion: string;
+  /**
+   * Por qué esta sección es la que cubre el Check, cuando el título no basta
+   * (retro de la sesión del ticket 12). Opcional y en **prosa escrita a mano**:
+   * el caso que lo motivó es un ancla al título del propio skill, porque la regla
+   * vive en un aviso sin epígrafe. Se escribe tras la sección, separada por un
+   * apartado: `- <id>: <skill> → «<sección>» — <motivo>`.
+   */
+  motivo?: string;
 }
 
 /** El epígrafe de `rubric.md` bajo el que el Caso ancla sus Checks al skill. */
@@ -280,8 +288,15 @@ function tituloPlano(titulo: string): string {
  * puede llevar comillas simples dentro, porque los títulos de los skills las
  * usan. Un skill en backticks (`` `desy-implement-component` ``) también vale:
  * es como la prosa del repo lo escribe.
+ *
+ * Tras el cierre puede venir un **motivo** separado por un apartado (`—`, `–` o
+ * `-`), como en la contradicción: la línea sigue siendo un ancla —termina en
+ * texto libre, no en la sección— y el motivo dice por qué esa sección cubre el
+ * Check cuando el título no basta. El apartado es **obligatorio**: sin él, el
+ * ancla se confundiría con una línea malformada.
  */
-const LINEA_ANCLAJE = /^\s*[-*]\s+`?([a-z][a-z0-9-]+)`?\s*:\s*`?([a-z][a-z0-9-]+)`?\s*→\s*[«"“](.+?)[»"”]\s*$/;
+const LINEA_ANCLAJE =
+  /^\s*[-*]\s+`?([a-z][a-z0-9-]+)`?\s*:\s*`?([a-z][a-z0-9-]+)`?\s*→\s*[«"“](.+?)[»"”]\s*(?:[—–-]\s*(.+?))?\s*$/;
 
 /**
  * Lee los anclajes de skill que declara una `rubric.md` bajo el epígrafe
@@ -313,8 +328,14 @@ export function anclajesDeRubric(texto: string): Map<string, AnclaDeSkill> {
     if (!dentro) continue;
     const match = LINEA_ANCLAJE.exec(linea);
     if (!match) continue;
-    const [, id, skill, seccion] = match;
-    if (!anclajes.has(id!)) anclajes.set(id!, { skill: skill!, seccion: seccion! });
+    const [, id, skill, seccion, motivo] = match;
+    if (!anclajes.has(id!)) {
+      anclajes.set(id!, {
+        skill: skill!,
+        seccion: seccion!,
+        ...(motivo === undefined || motivo.trim() === "" ? {} : { motivo: motivo.trim() }),
+      });
+    }
   }
   return anclajes;
 }

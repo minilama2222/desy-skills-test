@@ -171,6 +171,7 @@ export function problemasDeAnclaje(
   }
 
   problemas.push(...problemasDeChecksSinAncla(caso, lista));
+  problemas.push(...problemasDeAnclaSinSeccion(caso));
   return problemas;
 }
 
@@ -254,6 +255,32 @@ function checksSinAncla(caso: CasoEnDisco): { total: number; sinAncla: string[] 
   const ids = caso.idsDeChecks ?? [];
   const ancladas = new Set((caso.anclas ?? new Map()).keys());
   return { total: ids.length, sinAncla: ids.filter((id) => !ancladas.has(id)) };
+}
+
+/**
+ * Un ancla al **título del propio skill** no dice nada si no lleva motivo. Es la
+ * forma más débil de ancla: existe (verificar-casos la acepta), y quien la lee no
+ * sabe qué sección cubre el Check porque no hay sección. Pasó en el ticket 12 con
+ * `scaffold-project`, cuya regla vive en un aviso sin epígrafe: el ancla se
+ * escribió sin explicar que era el mejor sitio disponible, y el informe citaba un
+ * título que no decía nada del Check.
+ *
+ * Un motivo escrito (`— <por qué>`) convierte el ancla en una declaración: quién
+ * revisa sabe que el autor buscó sección y no la encontró, no que no buscó.
+ */
+export function problemasDeAnclaSinSeccion(caso: CasoEnDisco): string[] {
+  const problemas: string[] = [];
+  for (const [id, ancla] of caso.anclas ?? []) {
+    if (ancla.seccion.trim() !== ancla.skill) continue;
+    if (ancla.motivo !== undefined) continue;
+    problemas.push(
+      `${caso.ruta}: rubric.md ancla el Check "${id}" al título del propio skill ` +
+        `(«${ancla.skill}») sin motivo; si la regla vive en una sección con título, ` +
+        "cítala; si no tiene, di por qué en el ancla: " +
+        "`- id: skill → «skill» — por qué`",
+    );
+  }
+  return problemas;
 }
 
 /**
