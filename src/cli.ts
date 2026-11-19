@@ -43,6 +43,7 @@ import {
 import { scorecardDeVersion, serializarVersion } from "./versiones.js";
 import { existsSync, readdirSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 function usage(): never {
   console.error(
     [
@@ -720,12 +721,26 @@ async function main(): Promise<number> {
   }
 }
 
-main().then(
-  (code) => {
-    process.exitCode = code;
-  },
-  (error: unknown) => {
-    console.error(error instanceof Error ? error.message : String(error));
-    process.exitCode = 1;
-  },
-);
+/**
+ * ¿Este módulo es el proceso que se ejecutó? Con `tsx src/cli.ts …` sí; importado
+ * desde un test, no. Sin esta guarda, importar `correrCaso` o `presupuestoDe`
+ * desde `test/` lanzaba `main()` en el contexto del test —con los argumentos de
+ * `vitest`, que no son un subcomando—: imprimía el uso y llamaba a `process.exit(2)`.
+ * `vitest` lo atrapaba, pero el gate escupía quince líneas de «Uso: cli» en cada
+ * pre-commit y enseñaba a ignorar stderr en el único momento en que importa
+ * (retro de la sesión del ticket 12).
+ */
+const esElProceso =
+  process.argv[1] !== undefined &&
+  fileURLToPath(import.meta.url) === resolve(process.argv[1]);
+if (esElProceso) {
+  main().then(
+    (code) => {
+      process.exitCode = code;
+    },
+    (error: unknown) => {
+      console.error(error instanceof Error ? error.message : String(error));
+      process.exitCode = 1;
+    },
+  );
+}

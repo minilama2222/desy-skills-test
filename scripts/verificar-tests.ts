@@ -5,6 +5,7 @@ import {
   ficherosQueNoSonTests,
   pruebasConNavegador,
   pruebasQueAfirmanContenidoDelArbol,
+  pruebasQueTomanConstantesDeDatos,
   type FicheroDeTest,
 } from "../src/guardarrail-tests.js";
 
@@ -61,6 +62,18 @@ const FICHEROS_EXCLUIDOS = new Set([
  * - `sandbox.test.ts` enumera los subdirectorios con `SKILL.md` del `vendor/` para
  *   que el sandbox copie lo mismo que el runner. Es la forma del árbol.
  */
+const CONSTANTE_DE_DATOS_EXENTA = new Map<string, string>([
+  [
+    "test/guardarrail-casos.test.ts",
+    "afirma a propósito que PENDIENTES_DE_ANCLAR está vacía (ticket 12): " +
+      "rellenarla sin querer es un rojo",
+  ],
+  [
+    "test/guardarrail-tests-arbol.test.ts",
+    "es el test de esta regla: nombra la constante como dato de prueba",
+  ],
+]);
+
 const ARBOL_REAL_EXENTO = new Map<string, string>([
   ["test/informe.test.ts", "cita la sección anclada por el Caso; no afirma su texto"],
   ["test/sandbox.test.ts", "enumera las skills del vendor para copiarlas al sandbox"],
@@ -146,12 +159,17 @@ const hallazgos = [
     const path = h.split(":")[0]!;
     return !ARBOL_REAL_EXENTO.has(path);
   }),
+  ...pruebasQueTomanConstantesDeDatos(todosLosTests()).filter((h) => {
+    const path = h.split(":")[0]!;
+    return !CONSTANTE_DE_DATOS_EXENTA.has(path);
+  }),
 ];
 
 if (hallazgos.length === 0) {
   console.log(
-    "OK: ningún test abre un navegador, lanza un binario externo ni afirma el " +
-      "contenido de un árbol real, y test/ no tiene restos.",
+    "OK: ningún test abre un navegador, lanza un binario externo, afirma el " +
+      "contenido de un árbol real ni arma su fixture con una constante de datos, " +
+      "y test/ no tiene restos.",
   );
   process.exit(0);
 }
@@ -162,6 +180,6 @@ console.log(
   "\nMueve la verificación a un script en scripts/ (como " +
     "scripts/verificar-captura-gold.ts), inyecta un doble, prueba el texto con un " +
     "fixture, o declara la excepción con motivo en FICHEROS_EXCLUIDOS o " +
-    "ARBOL_REAL_EXENTO de este fichero.",
+    "ARBOL_REAL_EXENTO o CONSTANTE_DE_DATOS_EXENTA de este fichero.",
 );
 process.exit(1);

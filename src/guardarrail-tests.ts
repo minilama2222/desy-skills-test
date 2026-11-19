@@ -105,6 +105,26 @@ const ARBOLES_DE_CONTENIDO_MARCADORES = [
   "lectorDeSkillMd",
 ];
 
+/**
+ * Las constantes **de datos** del producto: las que cambian con el **contenido**
+ * del repo, no con su configuración. Un test que las recorre para armar su
+ * fixture se ata al estado de hoy y se pone rojo el día que ese estado cambie
+ * bien (retro de la sesión del ticket 12: seis tests de `guardarrail-casos`
+ * armaban sus pendientes desde `PENDIENTES_DE_ANCLAR`, y vaciarla los puso rojos
+ * con el código correcto).
+ *
+ * Es otro eje que `ARBOLES_DE_CONTENIDO_MARCADORES`: aquél caza un árbol de
+ * **rutas** (`vendor/`, `casos/`), éste una **constante** de `src/`. La lista
+ * crece con el motivo escrito, como las excepciones.
+ *
+ * No entra la configuración (una ruta, `DEFAULT_REPO`): un test que la importa
+ * no se ata al contenido. El tell: si editar un `.md` puede cambiarla, es de datos.
+ */
+const CONSTANTES_DE_DATOS_MARCADORES = [
+  "PENDIENTES_DE_ANCLAR",
+  "IDS_DEL_FRAMEWORK",
+];
+
 /** ¿El fichero lanza un proceso externo con `spawn`/`exec`/`fork`? */
 function lanzaProcesoExterno(contenido: string): boolean {
   return /\b(?:spawn|spawnSync|exec|execSync|execFile|execFileSync|fork)\s*\(/.test(
@@ -204,6 +224,42 @@ export function pruebasQueAfirmanContenidoDelArbol(
         "prueba el texto con un fixture, para que una mejora legítima de un Skill no " +
         "rompa `npm test`. Si aquí se lee a propósito, declara el fichero con su " +
         "motivo en ARBOL_REAL_EXENTO de scripts/verificar-tests.ts",
+    );
+  }
+  return hallazgos;
+}
+
+/**
+ * Devuelve una descripción por test que arma su **fixture** desde una constante
+ * de **datos** del producto, o vacío si la suite está limpia.
+ *
+ * Hermana de `pruebasQueAfirmanContenidoDelArbol`, por otra puerta: aquélla caza
+ * un árbol de rutas (`vendor/`, `casos/`), ésta una constante de `src/` que
+ * cambia con el **contenido**. Nació del retro de la sesión del ticket 12: seis
+ * tests de `guardarrail-casos` recorrían `PENDIENTES_DE_ANCLAR` para armar sus
+ * casos, y vaciar la lista los puso rojos con el producto correcto. El agente lo
+ * arregló pasando una lista de prueba, pero sólo **después** del rojo; un
+ * guardarraíl lo dice antes de escribir el test.
+ *
+ * Sí hay un uso legítimo —afirmar que la constante cumple una propiedad, como
+ * «la lista está vacía»—, y por eso el fichero se **declara** con su motivo, como
+ * el árbol real, en vez de prohibirse.
+ */
+export function pruebasQueTomanConstantesDeDatos(
+  ficheros: FicheroDeTest[],
+): string[] {
+  const hallazgos: string[] = [];
+  for (const fichero of ficheros) {
+    const constante = CONSTANTES_DE_DATOS_MARCADORES.find((marcador) =>
+      new RegExp(`\\b${marcador}\\b`).test(fichero.contenido),
+    );
+    if (constante === undefined) continue;
+    hallazgos.push(
+      `${fichero.path}: usa la constante de datos "${constante}" del producto; un ` +
+        "test arma su fixture con datos propios y así no se ata al contenido del " +
+        "repo. Si lo afirma a propósito (p. ej. «la lista está vacía»), declara el " +
+        "fichero con su motivo en CONSTANTE_DE_DATOS_EXENTA de " +
+        "scripts/verificar-tests.ts",
     );
   }
   return hallazgos;
