@@ -142,9 +142,10 @@ sin anclar es un rojo y la regla del ticket 06 se cumple entera.
   a un trabajo que puede hacerse hoy.
 - **Un Check del Framework** (`tokens-del-sistema`, `un-solo-h1`…) que el Caso
   documenta en su rúbrica pero **no** declara en su `checks.json` no entra en la
-  regla `PENDIENTES_DE_ANCLAR`; y `verificar-casos` lo dice igualmente («el Check no
-  declara de qué sección depende»): es un Check del Framework, que tampoco es del
-  Caso. Si algún día se quiere anclar, es un campo del Framework, no de la rúbrica.
+  regla `PENDIENTES_DE_ANCLAR`. Y **no se ancla nunca**: es un Check del
+  Framework, y el Framework no es del Caso. Se **documenta** en la prosa (en
+  negrita, la convención del repo) y no lleva línea de ancla; el guardarraíl lo
+  caza si se ancla (`problemasDeAnclaDeFramework`, retro del 12).
 
 ## Retro: lo que la implementación destapó
 
@@ -170,3 +171,14 @@ sin anclar es un rojo y la regla del ticket 06 se cumple entera.
 - **Prosa de apoyo conservada.** Donde el epígrafe ya existía, la prosa se
   **resumió** en una línea de apoyo bajo las anclas —sin perder ninguna sección
   citada— y donde no existía, se creó el epígrafe con su línea de apoyo.
+- **Un Check del Framework no se ancla desde el Caso, aunque el Caso lo mida.**
+  Decidido en el retro (paso 4): `fieldset-grid-acciones` es un Caso-componente
+  cuyo Framework sólo trae `tokens-del-sistema`, así que declara
+  `fieldset-con-legend` y `labels-visibles` en su `checks.json` para medirlos.
+  Eso no lo autoriza a anclarlos: el ancla es una claim del Caso sobre **su**
+  sección, y un Guard compartido acumularía una claim por Caso —cada uno libre de
+  citar otra— y, en un `caso-pagina`, lo graduaría dos veces. La rúbrica los cita
+  en la **prosa** y el guardarraíl (`problemasDeAnclaDeFramework`) pone rojo la
+  línea de ancla. `grado` deduplica por id como cinturón, no como permiso. La
+  regla vive en `CODING_STANDARDS.md` («A Framework Check is declared by its
+  Caso, never anchored by it»).

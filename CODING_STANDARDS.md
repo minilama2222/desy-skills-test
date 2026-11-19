@@ -108,6 +108,28 @@ What a reviewer watches, since no guardrail can read intent:
 The tell: *if the prose were deleted, would a reader still know why this Check
 exists?* The anchor says **where**; the prose says **why**.
 
+## A Framework Check is declared by its Caso, never anchored by it
+
+The Framework's base Guards (`tokens-del-sistema`; for a `caso-pagina`,
+`un-solo-h1`, `skip-link`, `fieldset-con-legend`, `labels-visibles` and the
+fidelity trio) belong to the **type of Caso**, not to a `rubric.md`. Their source
+is `frameworkDeChecks`, and they are graded whether or not the Caso names them.
+
+So a Caso that needs one of them measured makes it explicit in **its own way** —
+declaring it in `checks.json` when its type's Framework does not already carry it
+(a `caso-componente`, whose Framework is only `tokens-del-sistema`, declaring
+`labels-visibles`) and citable only from the **prose**, never from an anchor line
+under `## Anclaje en desy-skills`. `npm run verificar-casos` fails on an anchor to
+an `IDS_DEL_FRAMEWORK` id and skips those ids when counting what is left
+unanchored.
+
+Why: an anchor is a claim that *this Caso* depends on *this section*. A shared
+Guard would collect one such claim per Caso, each free to cite a different
+section, and a `caso-pagina` that also declared it would be graded twice. The
+grader de-duplicates by id as a belt, not as a licence.
+
+The tell: if two Casos could anchor the same id, it is the Framework's.
+
 ## A decision-Caso's Guard is the positive decision
 
 In a **Caso-decisión** (see ADR-0011), the no-negociable fact — the thing whose

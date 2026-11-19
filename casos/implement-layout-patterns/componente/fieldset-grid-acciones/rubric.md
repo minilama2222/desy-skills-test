@@ -45,12 +45,26 @@ como una llamada a macro.
 
 ## Anclaje en `desy-skills`
 
-- fieldset-con-legend: desy-implement-layout-patterns → «Fieldset+legend sr-only para grupos semánticos»
-- labels-visibles: desy-validate-accessibility → «Checklist sin servidor (sesiones autónomas)»
+Por cada Check **propio** del Caso, el skill y la sección de su `SKILL.md` donde
+vive la regla. Los dos Guards de a11y no se anclan: son del Framework (ver abajo).
+
 - estructura-grid: desy-implement-layout-patterns → «Grid responsivo del formulario»
 - acciones-en-section: desy-implement-layout-patterns → «Acciones de página al final del form»
 - accion-transparente: desy-implement-layout-patterns → «Acciones de página al final del form»
 - espaciado-del-sistema: desy-styles-reference → «Espaciado (escala de tokens del proyecto)»
+
+Prosa de apoyo: el grupo semántico (`fieldset` + `legend` `sr-only`) está en
+`desy-implement-layout-patterns` → «Fieldset+legend sr-only para grupos semánticos»,
+y el checklist de labels, en `desy-validate-accessibility` → «Checklist sin servidor
+(sesiones autónomas)».
+
+**`fieldset-con-legend` y `labels-visibles` son Checks del Framework**, y éste es
+un Caso-**componente**: el Framework de un Caso-componente sólo aporta
+`tokens-del-sistema`, así que este Caso los declara en su `checks.json` para
+medirlos y **no los ancla** —un Check del Framework no se ancla desde la rúbrica
+(retro de la sesión del ticket 12)—. El informe los presenta sin sección: su
+fuente es el Framework, y las secciones donde el skill dice la regla están en la
+prosa de arriba.
 
 ## El skill contradice este Check
 

@@ -181,6 +181,22 @@ describe("combinación Framework + checks propios del Caso", () => {
     expect(ids).toContain("propio");
     expect(ids).toContain("skip-link");
   });
+
+  it("un Caso que repite un Check del Framework no lo gradúa dos veces", () => {
+    // Retro de la sesión del ticket 12: `fieldset-grid-acciones` anclaba y
+    // declaraba `labels-visibles`, un Check del Framework. En un `caso-pagina`
+    // esto lo haría aparecer dos veces en el detalle y contarlo doble.
+    const resultado = grado(
+      {
+        artefactos: artefactos({ "index.html": htmlValidoPagina() }),
+        transcript: transcript(),
+      },
+      { tipo: "caso-pagina", checks: [checkGuard({ id: "labels-visibles" })] },
+    );
+
+    const apariciones = resultado.detalle.filter((d) => d.id === "labels-visibles");
+    expect(apariciones).toHaveLength(1);
+  });
 });
 
 describe("Guards estructurales de página", () => {

@@ -610,11 +610,29 @@ function stringificarValor(valor: unknown): string {
   return JSON.stringify(valor);
 }
 
+/**
+ * Los Guard del Framework primero y, después, los del Caso: **uno por id**. El
+ * `checks.json` de un Caso no debería repetir un Guard del Framework (sus ids
+ * viven en `IDS_DEL_FRAMEWORK` y `verificar-casos` lo dice), pero si lo hace, el
+ * Caso gradúa un hecho una sola vez. Sin la guarda, un `caso-pagina` que declarase
+ * `labels-visibles` lo evaluaría dos veces y lo contaría doble en el Grade.
+ */
+function checksDelCaso(tipo: TipoCaso, checks: Check[]): Check[] {
+  const vistos = new Set<string>();
+  const todos: Check[] = [];
+  for (const check of [...frameworkDeChecks(tipo), ...checks]) {
+    if (vistos.has(check.id)) continue;
+    vistos.add(check.id);
+    todos.push(check);
+  }
+  return todos;
+}
+
 export function grado(
   evidencia: Evidencia,
   caso: { tipo: TipoCaso; checks: Check[]; gold?: string },
 ): GradeResult {
-  const checks = [...frameworkDeChecks(caso.tipo), ...caso.checks];
+  const checks = checksDelCaso(caso.tipo, caso.checks);
 
   // Las utilidades que usa el Gold del Caso: el guard de tokens las exime (un SUT
   // que reproduce el Gold hereda sus clases legadas; es fidelidad, no invención).
