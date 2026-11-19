@@ -70,14 +70,15 @@ describe("runCaso (smoke de integración con sandbox real)", () => {
         entornoVisto = opts.env;
         promptVisto = args[args.length - 1];
         skillsDuranteElRun = existsSync(
-          // `XDG_CONFIG_HOME` ya es `<home>/.config/opencode`; las skills cuelgan
-          // de ahí (`opencode/skills`), no de un `opencode` más.
+          // `XDG_CONFIG_HOME` es la **raíz** (`<home>/.config`); V2 le añade
+          // `opencode`, que es donde viven `opencode.jsonc` y las skills (retro
+          // del ticket 19). Ese `opencode` es el que un `debug config` de V2 busca.
           join(opts.env.XDG_CONFIG_HOME ?? "", "opencode", "skills", "desy-preflight-check", "SKILL.md"),
         );
         // El PRODUCT claim que importa: que el SUT vea la ruta que declara su
         // `opencode.jsonc`, no que exista un fichero en algún sitio.
         const decl = JSON.parse(
-          readFileSync(join(opts.env.XDG_CONFIG_HOME ?? "", "opencode.jsonc"), "utf8"),
+          readFileSync(join(opts.env.XDG_CONFIG_HOME ?? "", "opencode", "opencode.jsonc"), "utf8"),
         ) as { skills: string[] };
         skillsDeclaradas = decl.skills;
         skillsDeclaradasExisten = decl.skills.every((d) =>
@@ -134,7 +135,7 @@ describe("runCaso (smoke de integración con sandbox real)", () => {
     expect(entornoVisto).toMatchObject({
       HOME: sandbox.home,
       PWD: sandbox.workDir,
-      XDG_CONFIG_HOME: sandbox.configDir,
+      XDG_CONFIG_HOME: join(sandbox.home, ".config"),
       OPENCODE_HOME: datosDirDeHome(sandbox.home),
       // El `auth.json` real del usuario no entra en un test: si lo hiciera, el
       // entorno del SUT llevaría su clave y una comparación fallida la volcaría en

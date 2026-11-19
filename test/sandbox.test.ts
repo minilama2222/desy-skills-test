@@ -119,15 +119,26 @@ describe("createSandbox", () => {
     // al cargar (medido en la 2.1.2, ADR-0013).
     //
     // La raíz de config es la del `HOME` del sandbox (`home/.config`), que es lo
-    // que va en `XDG_CONFIG_HOME` menos el `opencode` final. Antes se le pasaba a
-    // `skillsDirDeConfig` el `configDir` —que ya termina en `opencode`— y este
-    // test, construido sobre la misma confusión, fijaba
-    // `…/opencode/opencode/skills` como correcto.
+    // que va en `XDG_CONFIG_HOME`. Antes se le pasaba a `skillsDirDeConfig` el
+    // `configDir` —que ya termina en `opencode`— y este test, construido sobre la
+    // misma confusión, fijaba `…/opencode/opencode/skills` como correcto.
     const raizConfig = join(sandbox.home, ".config");
     expect(sandbox.configDir).toBe(join(raizConfig, "opencode"));
     expect(sandbox.skillsDir).toBe(skillsDirDeConfig(raizConfig));
     expect(sandbox.skillsDir).toBe(join(raizConfig, "opencode", "skills"));
     expect(existsSync(sandbox.skillsDir)).toBe(true);
+
+    // Y el entorno del SUT apunta `XDG_CONFIG_HOME` a la **raíz**: es V2 quien le
+    // añade `opencode` para llegar a `configDir`, donde busca `opencode.jsonc` y
+    // descubre `skills/`. Con `configDir` en su lugar, V2 miraba una carpeta vacía
+    // y el agente corría **sin skills** (retro del ticket 19: los skills dejaron
+    // de dispararse en cuanto el SUT pasó a V2, y nadie veía por qué).
+    const entorno = entornoDelSandbox({
+      home: sandbox.home,
+      configDir: sandbox.configDir,
+      workDir: sandbox.workDir,
+    });
+    expect(entorno.XDG_CONFIG_HOME).toBe(raizConfig);
 
     // Y lo que `opencode.jsonc` declara es exactamente esa ruta.
     sandbox.configurar();

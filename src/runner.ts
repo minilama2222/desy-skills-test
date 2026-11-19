@@ -640,8 +640,8 @@ function promptParaSut(
 }
 
 const INVOCACION_RES = [
-  // Formato real de `opencode run`: `→ Skill "desy-implement-component"`, con
-  // posibles códigos ANSI alrededor y espacios de cola.
+  // Formato real de `opencode run` **V1**: `→ Skill "desy-implement-component"`,
+  // con posibles códigos ANSI alrededor y espacios de cola, por stderr.
   /\u2192\s*(?:\u001b\[[0-9;]*m)?\s*Skill\s+"([^"]+)"/g,
   // Formato alternativo con prefijo de dos puntos.
   /^\u00bb\s*skill:\s*(\S+)/gm,
@@ -657,6 +657,45 @@ function normalizarNombreSkill(nombre: string): string {
   return nombre.replace(/^desy-/, "");
 }
 
+/**
+ * Las invocaciones de Skill del stream JSON de **V2**. `opencode run` (2.2.1)
+ * **no** imprime la línea `→ Skill "…"` de V1: la invocación llega como una
+ * llamada a la herramienta `skill`, un evento por línea con
+ * `{"part":{"type":"tool","tool":"skill","state":{"input":{"id":"desy-…"}}}}`.
+ * Sin esto, el Flujo observado sale vacío aunque el skill se haya cargado —el
+ * SUT resuelve y el Caso queda INDETERMINADO—, que es cómo se perdió de vista
+ * el disparo desde la migración a V2 (retro del ticket 19).
+ *
+ * Se leen solo las líneas JSON: el resto del transcript (la prosa del SUT) no
+ * es un evento y no se toca.
+ */
+function invocacionesDelStreamV2(transcript: string): { indice: number; nombre: string }[] {
+  const encontradas: { indice: number; nombre: string }[] = [];
+  let offset = 0;
+  for (const linea of transcript.split("\n")) {
+    const inicio = offset;
+    offset += linea.length + 1;
+    // Filtro barato antes de parsear: la mayoría de líneas no son de skill.
+    if (!linea.includes('"skill"')) continue;
+    let evento: unknown;
+    try {
+      evento = JSON.parse(linea) as unknown;
+    } catch {
+      continue;
+    }
+    const part = (evento as { part?: unknown }).part;
+    if (typeof part !== "object" || part === null) continue;
+    const { type, tool, state } = part as { type?: unknown; tool?: unknown; state?: unknown };
+    if (type !== "tool" || tool !== "skill") continue;
+    const input = (state as { input?: unknown } | null)?.input;
+    const id = (input as { id?: unknown } | null)?.id;
+    if (typeof id === "string" && id.length > 0) {
+      encontradas.push({ indice: inicio, nombre: normalizarNombreSkill(id) });
+    }
+  }
+  return encontradas;
+}
+
 function parseInvocaciones(transcript: string): string[] {
   const encontradas: { indice: number; nombre: string }[] = [];
   for (const re of INVOCACION_RES) {
@@ -664,6 +703,7 @@ function parseInvocaciones(transcript: string): string[] {
       encontradas.push({ indice: match.index!, nombre: normalizarNombreSkill(match[1]!) });
     }
   }
+  encontradas.push(...invocacionesDelStreamV2(transcript));
   encontradas.sort((a, b) => a.indice - b.indice);
   return encontradas.map((e) => e.nombre);
 }
@@ -817,9 +857,10 @@ function ejecutarConGuardiaDelRepo(
  * la escanea V2, y una skill copiada ahí falla con `Unable to load skill`
  * (medido en la 2.1.2, ver ADR-0013).
  *
- * Recibe el directorio **raíz** de config (`HOME/.config`), no el que se pasa al
- * SUT en `XDG_CONFIG_HOME` (que es su subdirectorio `opencode`): por eso se le
- * añade `opencode` aquí, y por eso el sandbox le pasa `home/.config`.
+ * Recibe el directorio **raíz** de config (`HOME/.config`), no el `configDir` del
+ * sandbox (que ya termina en `opencode`): por eso se le añade `opencode` aquí, y
+ * por eso el sandbox le pasa `home/.config`. El mismo `opencode` que V2 añade a
+ * `XDG_CONFIG_HOME`, que por eso va a la raíz (retro del ticket 19).
  */
 export function skillsDirDeConfig(configRaiz: string): string {
   return join(configRaiz, "opencode", "skills");
@@ -827,10 +868,12 @@ export function skillsDirDeConfig(configRaiz: string): string {
 
 /**
  * Rutas que el SUT tiene que ver apuntando al sandbox. `HOME` y
- * `XDG_CONFIG_HOME` los usa `opencode.jsonc` y sus skills; `OPENCODE_HOME` fija
- * el directorio de datos (la base de datos de sesiones), que si no se iría a
- * `~/.local/share/opencode` del usuario real. `auth.json` no se pone con una
- * variable: V2 lo busca en el directorio de datos que resuelve para el HOME.
+ * `XDG_CONFIG_HOME` los usa `opencode.jsonc` y sus skills —`XDG_CONFIG_HOME` es
+ * la **raíz** (`<home>/.config`), y V2 busca su config en su subdirectorio
+ * `opencode`—; `OPENCODE_HOME` fija el directorio de datos (la base de datos de
+ * sesiones), que si no se iría a `~/.local/share/opencode` del usuario real.
+ * `auth.json` no se pone con una variable: V2 lo busca en el directorio de datos
+ * que resuelve para el HOME.
  */
 export function entornoDelSandbox(sandbox: {
   home: string;
@@ -852,7 +895,14 @@ export function entornoDelSandbox(sandbox: {
     // contra `PWD`. Sin esta línea, un `write src/x.html` acaba en el directorio
     // del lanzador (ADR-0019). Es el entorno del SUT, no un detalle de `realCommand`.
     PWD: sandbox.workDir,
-    XDG_CONFIG_HOME: sandbox.configDir,
+    // V2 resuelve su carpeta de config como `$XDG_CONFIG_HOME/opencode`, y lee
+    // `opencode.jsonc` y descubre `skills/` **dentro** de ella. `XDG_CONFIG_HOME`
+    // es, por tanto, la raíz (`<home>/.config`), no `configDir` (que ya termina en
+    // `opencode`): pasarle `configDir` dejaba a V2 leyendo
+    // `<home>/.config/opencode/opencode/`, una carpeta vacía —`debug config` no
+    // listaba el `opencode.jsonc` del sandbox— y el agente corría **sin skills**
+    // (medido en la 2.2.1, retro del ticket 19).
+    XDG_CONFIG_HOME: join(sandbox.home, ".config"),
     OPENCODE_HOME: datosDirDeHome(sandbox.home),
     ...clavesDeProveedores(auth),
   };

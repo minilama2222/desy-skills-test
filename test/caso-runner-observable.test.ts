@@ -84,3 +84,54 @@ describe("ultimoPasoDelFlujo: ¿dónde se paró?", () => {
     expect(resultado.ultimoPasoDelFlujo).toBe("preflight-check");
   });
 });
+
+/**
+ * Retro del ticket 19: en **V2** la invocación no es la línea `→ Skill "…"` de
+ * V1, sino una llamada a la herramienta `skill` en el stream JSON de stdout
+ * (`{"part":{"type":"tool","tool":"skill","state":{"input":{"id":"desy-…"}}}}`).
+ * El parser solo miraba la de V1, así que el Flujo salía **vacío** aunque el
+ * skill se cargara: el Caso quedaba INDETERMINADO y el disparo se perdió de vista
+ * en cuanto el SUT pasó a V2. Estos casos fijan la forma de V2.
+ */
+const lineaV2 = (part: unknown): string =>
+  JSON.stringify({ type: "tool_use", part });
+
+const LLAMADA_SKILL_V2 = (id: string): string =>
+  lineaV2({ type: "tool", tool: "skill", state: { input: { id } } });
+
+const FLUJO_V2 =
+  JSON.stringify({ type: "step_start", part: { type: "step-start" } }) +
+  "\n" +
+  LLAMADA_SKILL_V2("desy-preflight-check") +
+  "\n" +
+  LLAMADA_SKILL_V2("desy-implement-component") +
+  "\n" +
+  // Una línea de prosa que **contiene** `"skill"` no es una invocación: el filtro
+  // barato del parser no debe confundirla.
+  JSON.stringify({ type: "text", part: { type: "text", text: 'uso el tool "skill"' } });
+
+describe("El Flujo se lee también del stream JSON de V2 (retro del ticket 19)", () => {
+  it("detecta las invocaciones de la herramienta `skill` en stdout", async () => {
+    const resultado = await ejercutarCon(FLUJO_V2, "", 0);
+
+    expect(resultado.flujoObservado).toEqual(["preflight-check", "implement-component"]);
+    expect(resultado.ultimoPasoDelFlujo).toBe("implement-component");
+  });
+
+  it("una línea de prosa con la palabra `skill` no es una invocación", async () => {
+    const prosa = JSON.stringify({
+      type: "text",
+      part: { type: "text", text: "he abierto el skill a mano" },
+    });
+    const resultado = await ejercutarCon(prosa, "", 0);
+
+    expect(resultado.flujoObservado).toEqual([]);
+  });
+
+  it("una llamada a `skill` sin `id` no cuenta", async () => {
+    const sinId = lineaV2({ type: "tool", tool: "skill", state: { input: {} } });
+    const resultado = await ejercutarCon(sinId, "", 0);
+
+    expect(resultado.flujoObservado).toEqual([]);
+  });
+});

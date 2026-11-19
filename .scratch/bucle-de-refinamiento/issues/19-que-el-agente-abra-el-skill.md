@@ -1,63 +1,80 @@
-# 19: Que el agente abra el skill (probado: la presentación no basta)
+# 19: El trigger no se disparaba por dos fallos del harness (V2), y ya se dispara
 
-**What to build:** Que el SUT invoque `desy-implement-component` cuando el Caso
-`boton-primario` se lo pide, en vez de resolverlo leyendo `node_modules/desy-html`
-a mano.
+**What to build:** Que un Caso-página o componente cuyo SUT deba invocar un skill
+lo **vea** y el harness lo **cuente**. No era el skill: era el harness.
 
 **Blocked by:** 18
 
-**Status:** ready-for-human
-**Status depende de:** que un humano decida qué vía se prueba después. La primera
-(la presentación) está hecha y **medida: no basta**; PR abierto en `desy-skills#36`.
+**Status:** done
 
-- [x] La Petición está en
-      [`peticiones/peticion-trigger-implement-component.md`](../peticiones/peticion-trigger-implement-component.md)
-- [x] Se aplicó en la rama `skill/trigger-implement-component` de `desy-skills` y
-      se abrió [el PR #36](https://github.com/minilama2222/desy-skills/pull/36)
-- [x] Se midió con `--skills-local` sobre el worktree: **el skill sigue sin
-      dispararse** (2 Ejecuciones, 0 invocaciones)
-- [ ] Decidir la siguiente vía (ver «Lo que queda por probar»)
+- [x] Causa 1 — el sandbox no dejaba ver las skills: `XDG_CONFIG_HOME` valía
+      `<home>/.config/opencode` y V2 busca su config en `<XDG>/opencode/`, así que
+      leía una carpeta vacía. Pasa a ser la raíz `<home>/.config`.
+- [x] Causa 2 — el parser no veía la invocación: buscaba la línea `→ Skill "…"` de
+      **V1**; en **V2** es una llamada a la herramienta `skill` en el stream JSON de
+      stdout. `parseInvocaciones` lee la de V2.
+- [x] Medido de punta a punta: `flujoObservado: ["preflight-check","implement-component","validate-accessibility"]`,
+      `flujoAlcanzoSkill: true`, `EXCELENTE`, entregó. **PASA**, donde antes era
+      INDETERMINADO.
 
-## El hecho, con todo lo medido
+**Decisión que queda al humano (no es trabajo de este ticket):** si se sube el Pin
+a `0d6263d` (el PR #36 mergeado) y si se re-mide lo demás contaminado. Lo medido
+desde el 29/10 salió con el flujo vacío por los dos fallos de abajo; hay que
+re-medir antes de sacar conclusiones de esas corridas.
 
-`boton-primario`, agente headless, **8 Ejecuciones** en total:
+## Los dos fallos, y por qué el segundo estaba escondido
 
-| Configuración | Ejecuciones | Invocaciones del skill |
-|---|---|---|
-| `vendor/` sin tocar | 2 + 2 | 0 · 0 |
-| Worktree con la `description` y la regla cambiadas | 2 | 0 · 0 |
-| (total) | **8** | **0** |
+En V1 (hasta el 28/10) los skills se disparaban: 4 de 5 Ejecuciones de octubre
+muestran `preflight-check → implement-component`. El 29/10 (`bfb37ef`) el SUT pasó
+a **V2** y el disparo desapareció —de toda medición desde entonces—. No era el
+contenido del skill: eran **dos** fallos del harness, ambos de la migración.
 
-El agente resuelve la tarea —en una de las corridas entregó a `EXCELENTE`— y en su
-prosa explica cómo: *«the macro exposes no variant/size param; the documented way is
-the CSS class»*. Lo sabe **de la librería**, no del skill.
+1. **Las skills no llegaban al SUT.** `entornoDelSandbox` ponía `XDG_CONFIG_HOME`
+   a `configDir` (`<home>/.config/opencode`). V2 le **añade** `opencode` para
+   resolver su carpeta de config, así que buscaba en
+   `<home>/.config/opencode/opencode/` —vacía—. Comprobado con
+   `opencode debug config --standalone`: no listaba el `opencode.jsonc` del
+   sandbox. El agente corría **sin ninguna skill**.
+2. **El harness no contaba la invocación.** Aun con las skills visibles, en V2 la
+   invocación **no** es la línea `→ Skill "…"` de V1 que `parseInvocaciones`
+   leía, sino una llamada a la herramienta `skill` en el stream JSON de stdout
+   (`{"part":{"type":"tool","tool":"skill","state":{"input":{"id":"desy-…"}}}}`).
+   El Flujo salía `[]` con el skill ya cargado.
 
-## La hipótesis que se descartó
+El 1 **tapaba** al 2: sin skills visibles nada se invocaba, así que el parser
+nunca tuvo algo que fallar. Aparecieron en cadena.
 
-Se creía que el problema era la presentación: una `description` en inglés que no
-nombraba «botón», «macro» ni «genera», y una Regla fundamental que declaraba el
-skill inaplicable sin «un starter clonado», aunque hubiera librería.
+## La evidencia que lo cerró
 
-Se cambiaron las dos cosas. **El disparo no cambió.** La presentación era
-probablemente parte del problema; no era el problema.
+```
+1.json | grade: EXCELENTE | entrega: con-artefacto
+       | FLUJO: ['preflight-check', 'implement-component', 'validate-accessibility']
+       | alcanzó: True | exit: 0
+```
 
-## Lo que queda por probar, y su coste
+Y en el transcript, literal: `tool: "skill"` con `id: "desy-implement-component"` y
+el `SKILL.md` inyectado desde `…/opencode/skills/desy-implement-component`.
 
-1. **Que el skill sea necesario, no cómodo.** El agente hace el botón sin él. Un
-   skill solo se abre si lo que pide no se puede resolver a pelo: una regla que el
-   agente no deduzca de la librería (el tamaño base sin clase de tamaño, el
-   `type="submit"` dentro de formulario, el token del sistema frente a Tailwind).
-   Es contenido, y es la vía más honesta. **Coste:** alto — hay que encontrar qué
-   regla y reescribir el cuerpo.
-2. **Aceptar que el trigger depende del runtime.** Medir si opencode eligió el
-   skill alguna vez en otro Caso; si tampoco, el mecanismo no está en juego en este
-   harness y el tema es de `opencode`, no del skill. **Coste:** bajo, y decide si
-   las demás vías tienen sentido.
-3. **Cambiar el prompt del Caso para que nombre el skill.** Mide el prompt, no el
-   skill. **No se hace.**
+## Qué queda contaminado
 
-## Lo que no se hace
+**Todo lo medido desde el 29/10/2026.** Cualquier Caso cuyo SUT debiera invocar un
+skill salía sin flujo: INDETERMINADO como mucho, y con la línea «no declara de qué
+sección depende» del informe. No es que los skills no se usaran: es que el harness
+no lo veía. Hay que re-medir antes de sacar conclusiones de esas corridas.
 
-- Dar el PR por bueno como arreglo del trigger: **no lo es**. Se mergea, si se
-  mergea, por la mejora de texto.
-- Reabrir el 18: el macro comentado quedó arreglado y probado por otra vía.
+## Lo que NO era
+
+- **El contenido ni la `description` del skill.** El PR #36 (`desy-skills`) mejora
+  la `description` y quita un veto, y se mergea por eso —pero no arreglaba esto, y
+  se dijo en su cuerpo—. El skill se dispara igual con la `description` vieja.
+- **El ticket 18** (macro comentado): arreglo aparte, ya cerrado.
+
+## Archivos
+
+- `src/runner.ts`: `entornoDelSandbox` (`XDG_CONFIG_HOME` a la raíz) e
+  `invocacionesDelStreamV2` (`parseInvocaciones`).
+- `test/sandbox.test.ts`: fija `XDG_CONFIG_HOME = <home>/.config`;
+  `test/caso-runner-observable.test.ts`: la forma de V2, con control negativo.
+- `docs/adr/0013-sut-opencode-v2.md`: nota de corrección con la lección —la
+  convención de rutas y de salida de V2 se re-mide al subir de versión, y un test
+  que reconstruye la ruta desde la misma suposición que el código no la protege.

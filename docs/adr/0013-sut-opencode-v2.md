@@ -29,6 +29,32 @@ Se probaron además `~/.claude/skills` y las entradas `skills` del config (ruta
 absoluta, una por skill y con `~/`): ninguna cargó la skill hasta mover los
 ficheros a la ruta de arriba.
 
+> **Corregido el 19/11/2026, con la 2.2.1 (retro del ticket 19).** Este apartado
+> describía la ruta bien y el sandbox la montaba mal: `XDG_CONFIG_HOME` valía
+> `<home>/.config/opencode` —un nivel de más—, así que V2 buscaba su config en
+> `<home>/.config/opencode/opencode/`, una carpeta **vacía**: `opencode debug
+> config --standalone` no listaba el `opencode.jsonc` del sandbox. El SUT corría
+> **sin ninguna skill**, y por eso los skills dejaron de dispararse en cuanto se
+> pasó a V2 (en V1 se disparaban: 4 de 5 Ejecuciones de octubre). El
+> `entornoDelSandbox` pone ahora `XDG_CONFIG_HOME` a la **raíz** (`<home>/.config`),
+> que es lo que V2 completa con `opencode` hasta el `configDir` del sandbox;
+> `test/sandbox.test.ts` fija esa relación para que no vuelva a desalinearse.
+>
+> **Y un segundo fallo, escondido tras el primero.** En V2 la invocación de un
+> skill **no** es la línea `→ Skill "…"` de V1 (por stderr) que `parseInvocaciones`
+> leía, sino una llamada a la herramienta `skill` en el stream JSON de stdout
+> (`{"part":{"type":"tool","tool":"skill","state":{"input":{"id":"desy-…"}}}}`).
+> Con el primer fallo, nada se invocaba y el parser nunca tuvo qué fallar; al
+> arreglar la ruta, el Flujo seguía `[]` con el skill ya cargado. `parseInvocaciones`
+> lee ahora las dos formas (`invocacionesDelStreamV2`), y
+> `test/caso-runner-observable.test.ts` fija la de V2 con un control negativo.
+>
+> Lección, hermana de la de abajo: la convención de rutas **y la forma de la
+> salida** del binario se **re-miden** con `opencode debug paths`/`debug config` y
+> leyendo un transcript real al subir de versión, y un test que reconstruye la ruta
+> desde la misma suposición que el código no la protege (este la reconstruía y
+> daba verde).
+
 ## Las credenciales no viajan con el sandbox
 
 Las cuentas conectadas (`opencode auth login`) viven en el directorio de datos

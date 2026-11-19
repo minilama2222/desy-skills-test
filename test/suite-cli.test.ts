@@ -103,10 +103,13 @@ if (entrega !== "sin-skill") {
 // SKILL.md que el runner copió al sandbox y lo escribe por stdout, que es el canal
 // del propio SUT. La ruta se toma del \`opencode.jsonc\` que el SUT obedece, no se
 // reconstruye: reconstruirla en el test es cómo se coló un \`opencode/opencode\` que
-// el propio SUT no usa (ADR-0015).
+// el propio SUT no usa (ADR-0015). El \`opencode\` de en medio es el que V2 le añade
+// a \`XDG_CONFIG_HOME\`, que por eso es la raíz \`<home>/.config\` (retro del ticket 19).
 let vistoSkills = "(sin preflight local)";
 try {
-  const cfg = JSON.parse(readFileSync(join(String(process.env.XDG_CONFIG_HOME), "opencode.jsonc"), "utf8"));
+  const cfg = JSON.parse(
+    readFileSync(join(String(process.env.XDG_CONFIG_HOME), "opencode", "opencode.jsonc"), "utf8"),
+  );
   const declarado = cfg.skills[0];
   vistoSkills = readFileSync(join(declarado, "desy-preflight-check", "SKILL.md"), "utf8").trim();
 } catch (e) {

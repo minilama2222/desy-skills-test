@@ -352,11 +352,13 @@ describe("runCaso", () => {
     // `OPENCODE_HOME` fija el directorio de datos (sesiones y `auth.json`): si no
     // se fija, V2 escribe en el del usuario real (ADR-0013). `PWD` va con el
     // `workDir`: `spawnSync({ cwd })` no lo mueve y las rutas relativas del SUT se
-    // resuelven contra `PWD` (ticket 16, ADR-0019).
+    // resuelven contra `PWD` (ticket 16, ADR-0019). `XDG_CONFIG_HOME` es la
+    // **raíz** (`<home>/.config`), no `configDir`: V2 le añade `opencode` para
+    // encontrar `opencode.jsonc` y `skills/` (retro del ticket 19).
     expect(opts.env).toEqual({
       HOME: sandbox.home,
       PWD: sandbox.workDir,
-      XDG_CONFIG_HOME: sandbox.configDir,
+      XDG_CONFIG_HOME: join(sandbox.home, ".config"),
       OPENCODE_HOME: "C:/sandbox/home/.local/share/opencode",
     });
   });

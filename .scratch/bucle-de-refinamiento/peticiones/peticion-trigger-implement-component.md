@@ -87,3 +87,11 @@ npm run run -- --skill implement-component --case boton-primario --n 1 \
 
 → árbol `a2dfb98…`, 2 Ejecuciones, 0 invocaciones del skill. No cierra el trigger;
 sí quita la incoherencia de idioma y el veto.
+
+**Actualización (retro del ticket 19).** El «0 invocaciones» de arriba era un
+**artefacto de la medición**, no del skill: el SUT corría sin skills
+(`XDG_CONFIG_HOME` un nivel de más) y el parser no reconocía la invocación de V2.
+Con el harness arreglado, el mismo Caso da
+`flujoObservado: ["preflight-check","implement-component","validate-accessibility"]`
+y PASA. Este PR se mergea por la mejora de texto, no por el trigger; la causa real
+está en el ticket 19.
