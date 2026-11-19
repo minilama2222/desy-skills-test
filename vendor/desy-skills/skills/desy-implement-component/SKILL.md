@@ -1,6 +1,6 @@
 ---
 name: desy-implement-component
-description: "Generate copy-pasteable DESY component code in desy-html, desy-angular, or desy-ionic. Use when implementing a specific component with given requirements."
+description: "Implementa cualquier componente DESY con el macro de su librería, sea botón, tabla, acordeón u otro. SIEMPRE un componente suelto, nunca una página entera."
 ---
 
 # desy-implement-component
@@ -9,7 +9,7 @@ Genera código copy-pasteable para un componente DESY concreto en la librería a
 
 ## Regla fundamental (lee esto antes de implementar)
 
-> **Antes de generar ningún componente, confirma que el proyecto es un starter DESY clonado (`desy-html-starter`, `desy-angular-starter` o `desy-ionic`). Si no lo es, este skill no aplica — primero hay que aplicar `desy-scaffold-project` para clonar el starter y dejarlo listo.**
+> **Confirma primero que hay un proyecto DESY debajo: el starter clonado (`desy-html-starter`, `desy-angular-starter`, `desy-ionic`) o, como mínimo, `node_modules/<librería>` instalado. Si hay librería, este skill aplica: sigue adelante. Si no la hay, no apliques este skill — primero `desy-scaffold-project` para clonar el starter y dejarlo listo.**
 
 Razón: este skill trabaja **dentro** de un proyecto DESY (sobre la estructura de directorios, los macros de la librería, las convenciones de build del starter). Implementar componentes sin un starter DESY como base produce HTML/TSX/Angular que NO se compila con la toolchain oficial, NO usa los macros reales, y genera un output inconsistente con cualquier proyecto DESY real.
 
