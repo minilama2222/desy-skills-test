@@ -6,25 +6,30 @@ fallo del skill: no es «no entregó», es «no se pudo medir».
 
 **Blocked by:** —
 
-**Status:** ready-for-agent
+**Status:** ready-for-human
+**Status depende de:** el visto bueno a la decisión del último criterio: hoy un corte
+por infraestructura **consume intento** (el presupuesto es también de reloj), pero no
+cuenta como entrega fallida ni como dato del skill. Construido y verde; lo que falta
+es la aceptación.
 
-- [ ] `ejecutarConGuardiaDelRepo` pasa `timeout` a `spawnSync`: hoy no hay ninguno,
+- [x] `ejecutarConGuardiaDelRepo` pasa `timeout` a `spawnSync`: hoy no hay ninguno,
       así que un proceso que no responde bloquea la suite **para siempre**
-- [ ] El límite es configurable (`DESY_SUT_TIMEOUT_MS` o equivalente) con un valor
-      por defecto documentado y holgado: el intento legítimo más largo medido duró
-      ~27 min, y los normales 1-6 min
-- [ ] Un timeout produce una Ejecución **marcada como infraestructura**, no como
+- [x] El límite es configurable (`DESY_SUT_TIMEOUT_MS` o equivalente) con un valor
+      por defecto documentado y holgado: los intentos normales tardaron 1-6 min y
+      el más largo **que entregó algo**, ~12 min
+- [x] Un timeout produce una Ejecución **marcada como infraestructura**, no como
       `sin-artefacto` del skill
-- [ ] Un `provider.transport` / `ENOTFOUND` / `ETIMEDOUT` en la salida se marca
+- [x] Un `provider.transport` / `ENOTFOUND` / `ETIMEDOUT` en la salida se marca
       igual: el SUT existió, pero no hubo medida
-- [ ] El Scorecard los cuenta aparte y no los suma a `No entregó`
-- [ ] Tests: un SUT falso que duerme más que el límite (con `DESY_OPENCODE_BIN`,
+- [x] El Scorecard los cuenta aparte y no los suma a `No entregó`
+- [x] Tests: un SUT falso que duerme más que el límite (con `DESY_OPENCODE_BIN`,
       como `runner.test.ts` ya hace) y uno que imprime `ENOTFOUND`
-- [ ] `docs/agents/testing.md` o el ADR que corresponda explica por qué el límite
-      es de pared y no de CPU
+- [x] `docs/agents/testing.md` o el ADR que corresponda explica por qué el límite
+      es de pared y no de CPU — ver `docs/adr/0021-el-sut-que-no-responde-se-corta.md`
 - [ ] Decisión del humano: si un corte por infraestructura **consume intento**.
       Propuesta: sí lo consume (el presupuesto es de reloj también), pero no
-      cuenta como entrega fallida ni como dato del skill
+      cuenta como entrega fallida ni como dato del skill. **Implementado así**:
+      falta aceptarlo o pedir el cambio
 
 ## La evidencia (suite del 19/11/2026)
 
