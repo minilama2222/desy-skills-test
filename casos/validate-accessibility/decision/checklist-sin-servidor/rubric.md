@@ -38,16 +38,20 @@ dos matizan el Grade.
 
 ## Anclaje en `desy-skills`
 
+Por cada Check, una línea con su sección. La prosa de apoyo de abajo se
+queda **literal**: el ancla se suma, no sustituye.
+
 - detecta-h1-de-mas: desy-validate-accessibility → «Checklist sin servidor (sesiones autónomas)»
 - detecta-fieldset-sin-legend: desy-validate-accessibility → «Checklist sin servidor (sesiones autónomas)»
 - detecta-label-sin-for: desy-validate-accessibility → «Checklist sin servidor (sesiones autónomas)»
 - detecta-skip-link-ausente: desy-validate-accessibility → «Checklist sin servidor (sesiones autónomas)»
 - no-inventa-un-pase: desy-validate-accessibility → «Checklist sin servidor (sesiones autónomas)»
 
-Prosa de apoyo: los cinco `grep` (un solo `h1`, `fieldset`/`legend`, labels,
-skip-link) y el resultado esperado de cada uno viven en «Checklist sin servidor
-(sesiones autónomas)». El skill distingue ese checklist (siempre) de los bloques
-axe-core/pa11y (reference templates, no automáticos).
+- Checklist sin servidor: `desy-validate-accessibility` → «Checklist sin servidor
+  (sesiones autónomas)» (los cinco `grep`: un solo `h1`, `fieldset`/`legend`,
+  labels, skip-link).
+- Regla de agente: el mismo skill distingue este checklist (siempre) de los
+  bloques axe-core/pa11y (reference templates, no automáticos).
 
 ## Qué NO se mide
 

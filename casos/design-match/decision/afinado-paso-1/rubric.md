@@ -35,7 +35,8 @@ como no-negociable. El hecho no-negociable es **reportar la fila**.
 
 ## Anclaje en `desy-skills`
 
-Por cada Check, una línea con su sección. La prosa de apoyo de abajo se queda.
+Por cada Check, una línea con su sección. La prosa de apoyo de abajo se
+queda **literal**: el ancla se suma, no sustituye.
 
 - reporta-la-fila-h1: desy-design-match → «Paso 3 — Mide y reporta discrepancias»
 - reporta-la-fila-lead: desy-design-match → «Paso 3 — Mide y reporta discrepancias»
@@ -43,11 +44,12 @@ Por cada Check, una línea con su sección. La prosa de apoyo de abajo se queda.
 - marca-bloqueante-gap: desy-design-match → «Paso 3 — Mide y reporta discrepancias»
 - no-usa-valor-arbitrario: desy-design-match → «Paso 5 — Aplica el fix mínimo»
 
-Prosa de apoyo: la tabla de discrepancias y sus categorías
-(`🔴 bloqueante` / `🟡 afinable` / `🟢 trivial`) están en «Paso 3 — Mide y reporta
-discrepancias»; el umbral de 4 px, en «"Está suficientemente bien" con > 4px de
-desviación»; y el redondeo al token («redondea al token, nunca al píxel»), en
-«Paso 5 — Aplica el fix mínimo».
+- Tabla de discrepancias y categorías: `desy-design-match` → «Paso 3 — Mide y
+  reporta discrepancias» (`🔴 bloqueante` / `🟡 afinable` / `🟢 trivial`).
+- Umbral de 4 px: `desy-design-match` → «"Está suficientemente bien" con > 4px
+  de desviación».
+- Redondeo al token: `desy-design-match` → «Paso 5 — Aplica el fix mínimo»
+  («redondea al token, nunca al píxel»).
 
 ## Qué NO se mide
 

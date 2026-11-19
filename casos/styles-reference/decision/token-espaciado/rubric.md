@@ -40,17 +40,20 @@ descartarla; el no-negociable es el token positivo (el Guard).
 
 ## Anclaje en `desy-skills`
 
+Por cada Check, una línea con su sección. La prosa de apoyo de abajo se
+queda **literal**: el ancla se suma, no sustituye.
+
 - token-base-16px: desy-styles-reference → «Espaciado (escala de tokens del proyecto)»
 - token-lg-28px: desy-styles-reference → «Espaciado (escala de tokens del proyecto)»
 - explica-la-unidad-base: desy-styles-reference → «Espaciado (escala de tokens del proyecto)»
 - familia-gap-base: desy-styles-reference → «Espaciado (escala de tokens del proyecto)»
 
-Prosa de apoyo: la tabla de tokens está en «Espaciado (escala de tokens del
-proyecto)» (`--spacing-base` 1rem, `--spacing-lg` 1.75rem, y `gap-base` entre las
-utility classes). El emparejamiento bueno/malo (`p-4` → `p-base`, `gap-4` →
-`gap-base`) y la prohibición de valores arbitrarios (`[372px]`, `[3.375rem]`) están
-en «Anti-patterns» y «Ejemplos: bueno vs malo» —se citan como el **contra-ejemplo**
-que la decisión descarta, no como fuente de la regla—.
+- Tokens de espaciado: `desy-styles-reference` → «Espaciado (escala de tokens
+  del proyecto)» (`--spacing-base` 1rem, `--spacing-lg` 1.75rem).
+- Tabla bueno/malo: `desy-styles-reference` → «`p-4` → `p-base`», «`gap-4` →
+  `gap-base`».
+- Valores arbitrarios: `desy-styles-reference` → «Prohíbe los valores
+  arbitrarios (`[372px]`, `[3.375rem]`)».
 
 ## Qué NO se mide
 

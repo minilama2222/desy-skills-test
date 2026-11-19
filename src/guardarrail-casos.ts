@@ -246,26 +246,21 @@ export function problemasDeContradiccion(caso: CasoEnDisco): string[] {
 }
 
 /**
- * Los **ids anclables** del Caso: los que declara menos los del Framework. Un
- * Check del Framework no se ancla nunca (su fuente está fuera de la rúbrica), así
- * que no cuenta ni como anclado ni como deuda. Se calcula en un solo sitio para
- * que el rojo (`problemasDeChecksSinAncla`), la deuda (`deudaDeAnclaje`) y el
- * sobrante de la lista (`problemasDeLaListaDePendientes`) no puedan discrepar
- * sobre cuántos Checks le faltan a un Caso (lo señaló la revisión del diff del
- * ticket 12: el rojo filtraba y la deuda no).
- */
-export function idsAnclables(caso: CasoEnDisco): string[] {
-  return (caso.idsDeChecks ?? []).filter((id) => !IDS_DEL_FRAMEWORK.has(id));
-}
-
-/**
  * Los Checks de un Caso que no tienen ancla, y cuántos tiene en total. Es la
- * única fuente de la resta que hacen el rojo (`problemasDeChecksSinAncla`) y la
- * deuda declarada (`deudaDeAnclaje`): si cada una la calculara, la tolerancia por
+ * única fuente de la resta que hacen el rojo (`problemasDeChecksSinAncla`), la
+ * deuda declarada (`deudaDeAnclaje`) y el sobrante de la lista
+ * (`problemasDeLaListaDePendientes`): si cada una la calculara, la tolerancia por
  * ruta y la medida por Check podrían discrepar.
+ *
+ * Se cuenta sobre **todos** los Checks que el Caso declara, sin filtrar los ids
+ * del Framework. Un Caso-componente que declara `fieldset-con-legend` lo mide, y
+ * un Check medido sin sección es lo que `verificar-casos` existe para cazar: el
+ * filtro anterior lo escondía —un Caso-componente con los dos Guards sin anclar
+ * salía «sin ancla ninguno»— y el informe presentaba esos Checks como si fueran
+ * del Framework (lo destapó el ticket 17).
  */
 function checksSinAncla(caso: CasoEnDisco): { total: number; sinAncla: string[] } {
-  const ids = idsAnclables(caso);
+  const ids = caso.idsDeChecks ?? [];
   const ancladas = new Set((caso.anclas ?? new Map()).keys());
   return { total: ids.length, sinAncla: ids.filter((id) => !ancladas.has(id)) };
 }
@@ -297,28 +292,51 @@ export function problemasDeAnclaSinSeccion(caso: CasoEnDisco): string[] {
 }
 
 /**
- * Un Caso **no ancla un Check del Framework** (retro de la sesión del ticket 12).
- * Los Guards base de un tipo de Caso (`un-solo-h1`, `skip-link`,
- * `fieldset-con-legend`, `labels-visibles`, los de fidelidad, `tokens-del-sistema`)
- * los aporta el Framework: su fuente es el tipo de Caso y se gradúa aunque la
- * rúbrica no los nombre. Anclarlos desde un Caso vuelve a declarar de dónde salen
- * —dos fuentes para un mismo Guard— y, si el Caso fuera `caso-pagina`, lo haría
- * gradúarse dos veces: una por el Framework y otra por el Caso.
+ * Los ids del Framework son de **dos clases**, y confundirlas costó una decisión
+ * equivocada (retro del ticket 12, corregido por el ticket 17):
  *
- * Un Caso que quiere decir que mide la regla cita el Check desde su prosa (la
- * convención del repo para documentar un Check es la **negrita**), pero no lo
- * declara ni lo ancla. El límite es exacto a propósito: un id del Framework es el
- * mismo string en cualquier Caso, y dos Casos anclándolo podrían citar secciones
- * distintas para un Guard que no es suyo.
+ * - **Guard del tipo de Caso**: `un-solo-h1`, `skip-link`, `fidelidad-container`,
+ *   `fidelidad-escala-h1`, `fidelidad-gap`. El Framework los ejecuta **siempre**
+ *   que el Caso tenga su tipo, sin que el Caso los declare. Anclarlos desde un
+ *   Caso vuelve a declarar de dónde salen, y un `caso-pagina` que los declarara lo
+ *   haría gradüarse dos veces.
+ * - **Id que el Framework también usa, y el Caso declara**: `fieldset-con-legend`
+ *   y `labels-visibles` sólo entran en un Caso **componente** si están en su
+ *   `checks.json`; `tokens-del-sistema` lo aporta el Framework a todo Caso. En los
+ *   dos casos el Caso los mide, así que son Checks de negocio: se anclan como
+ *   cualquier otro y el informe cita su sección.
+ *
+ * Sólo la primera clase se rechaza al anclar.
+ */
+const GUARDS_DEL_FRAMEWORK = new Set([
+  "un-solo-h1",
+  "skip-link",
+  "fidelidad-container",
+  "fidelidad-escala-h1",
+  "fidelidad-gap",
+]);
+
+/**
+ * Un Caso **no ancla un Guard del Framework**. Los Guards base de un tipo de Caso
+ * (`un-solo-h1`, `skip-link`, los de fidelidad) los aporta el Framework: su
+ * fuente es el tipo de Caso y se gradúan aunque la rúbrica no los nombre.
+ * Anclarlos desde un Caso vuelve a declarar de dónde salen —dos fuentes para un
+ * mismo Guard— y, si el Caso fuera `caso-pagina`, lo haría gradüarse dos veces:
+ * una por el Framework y otra por el Caso.
+ *
+ * Un id que el Framework comparte con un Check que el Caso **declara**
+ * (`fieldset-con-legend` en un componente, `tokens-del-sistema`) no es este caso:
+ * ahí la fuente de la regla sí es la rúbrica, y el ancla es lo que el agente lee
+ * (ticket 17).
  */
 export function problemasDeAnclaDeFramework(caso: CasoEnDisco): string[] {
   const problemas: string[] = [];
   for (const [id, ancla] of caso.anclas ?? []) {
-    if (!IDS_DEL_FRAMEWORK.has(id)) continue;
+    if (!GUARDS_DEL_FRAMEWORK.has(id)) continue;
     problemas.push(
-      `${caso.ruta}: rubric.md ancla el Check "${id}", que es del Framework (lo ` +
-        `aporta el tipo de Caso, no la rúbrica) a «${ancla.skill} → «${ancla.seccion}»»; ` +
-        "quita la línea de ancla: un Check del Framework no se declara en el Caso",
+      `${caso.ruta}: rubric.md ancla el Check "${id}", que es un Guard del Framework ` +
+        `(lo aporta el tipo de Caso, no la rúbrica) a «${ancla.skill} → «${ancla.seccion}»»; ` +
+        "quita la línea de ancla: un Guard del Framework no se declara en el Caso",
     );
   }
   return problemas;

@@ -53,7 +53,8 @@ no como comparación literal del documento.
 
 ## Anclaje en `desy-skills`
 
-Por cada Check, una línea con su sección. La prosa de apoyo de abajo se queda.
+Por cada Check, una línea con su sección. La prosa de apoyo de abajo se
+queda **literal**: el ancla se suma, no sustituye.
 
 - encadenado-canonico: desy-preflight-check → «Posición en el workflow DESY»
 - campo-nombre: desy-implement-pattern → «Cómo pedimos información (7 patrones)»
@@ -62,14 +63,12 @@ Por cada Check, una línea con su sección. La prosa de apoyo de abajo se queda.
 - accion-siguiente: desy-implement-layout-patterns → «Acciones de página al final del form»
 - accion-volver: desy-implement-layout-patterns → «Acciones de página al final del form»
 
-Prosa de apoyo: los 5 pasos y el «Checklist de salida» están en
-`desy-preflight-check`; el patrón «Datos de identidad» (nombre y NIF/NIE), en
-«Cómo pedimos información» de `desy-implement-pattern`; la casilla legal y las
-acciones de página, en `desy-implement-layout-patterns`. Los anchos, la tipografía
-y los gaps del Gold son de `desy-design-match` («Medidas canónicas» y «Paso 3 —
-Mide y reporta discrepancias»): ningún Check de este Caso los mide (los Guards de
-fidelidad los aporta el Framework contra el Gold-HTML) y la a11y la valida
-`desy-validate-accessibility`.
+- Encadenado y checklist de salida: `desy-preflight-check` → «Posición en el
+  workflow DESY» (los 5 pasos) y «Checklist de salida».
+- Anchos, tipografía y gaps del Gold: `desy-design-match` → «Medidas canónicas»
+  y «Paso 3 — Mide y reporta discrepancias» (container, escala, `gap-lg`).
+- a11y: `desy-validate-accessibility` (checklist de grep).
+- Plantilla de página: `desy-choose-page-template`.
 
 ## Fuera de alcance de este Caso
 

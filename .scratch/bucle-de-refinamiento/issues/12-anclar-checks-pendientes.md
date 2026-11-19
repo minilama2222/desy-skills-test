@@ -4,13 +4,12 @@
 
 **Blocked by:** 06
 
-**Status:** ready-for-human
-**Status depende de:** la casilla de conservación de prosa está a medias por decisión del ticket 17
+**Status:** done
 
 - [x] `PENDIENTES_DE_ANCLAR` (`src/guardarrail-casos.ts`) queda **vacía**: los 13 Casos anclados
 - [x] Cada línea de ancla cita una sección **que existe** en el `SKILL.md` del skill (lo comprueba `npm run verificar-casos`)
 - [x] La sección elegida **dice lo que el Check mide** (no basta con que exista: ver «Cómo elegir la sección»)
-- [ ] La prosa de apoyo de cada `## Anclaje en desy-skills` se conserva **literal**: el ancla se **suma**, no sustituye (hoy se **resumió**: ninguna sección citada se perdió —lo comprueba `verificar-casos`— pero el texto no es el de antes. Cerrada por el ticket 17)
+- [x] La prosa de apoyo de cada `## Anclaje en desy-skills` se conserva **literal**: el ancla se **suma**, no sustituye (el ticket 12 la resumió; la casilla la cerró el ticket 17, que devolvió el texto de `465a071` palabra por palabra)
 - [x] `npm test` y `npm run precommit` en verde, incluido el caso de «un pendiente que ya ancla sus Checks sobra»
 
 ## Por qué no es mecánico

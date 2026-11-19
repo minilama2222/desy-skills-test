@@ -333,8 +333,9 @@ lleva un **motivo** tras un apartado, y el informe lo cita tal cual:
 `npm run verificar-casos` comprueba, contra `vendor/desy-skills/`, que ese título
 existe en el `SKILL.md` del skill citado y —cuando el Caso carga— que el id existe
 en el Caso. Es el árbol canónico a propósito: el ancla es una claim del repo y debe
-valer contra lo versionado, no contra el checkout de turno. Un Check sin ancla (los
-del Framework, por ejemplo) se presenta diciendo que no declara sección; una
+valer contra lo versionado, no contra el checkout de turno. Un Check sin ancla (un
+Guard que aporta el tipo de Caso, por ejemplo) se presenta diciendo que no declara
+sección; una
 Ejecución que no invocó ningún skill **no cita la sección** aunque el skill exista
 en el árbol, y lo dice; un Check del Flujo dice por qué no hay línea que citar.
 

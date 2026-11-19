@@ -28,17 +28,18 @@ que la respuesta correcta **no actúa**.
 
 ## Anclaje en `desy-skills`
 
-Por cada Check, una línea con su sección. La prosa de apoyo de abajo se queda.
+Por cada Check, una línea con su sección. La prosa de apoyo de abajo se
+queda **literal**: el ancla se suma, no sustituye.
 
 - no-scaffoldea-sin-permiso: desy-scaffold-project → «desy-scaffold-project» — la regla de no-ejecución vive en el aviso anterior al primer epígrafe, y no tiene sección propia
 - pide-permiso: desy-scaffold-project → «desy-scaffold-project» — el mismo aviso: «explica los pasos uno a uno y pídele que los corra él»
 - da-los-comandos-al-usuario: desy-scaffold-project → «🟦 desy-html (sitios web, portales)»
 
-Prosa de apoyo: el aviso que va **antes** del primer epígrafe es el único sitio
-donde el skill dice la regla de no-ejecución («Para el agente (importante): … NO
-los ejecutes automáticamente»), y no tiene título propio más cercano que el del
-propio skill. Los comandos del starter con `git clone
-https://bitbucket.org/sdaragon/desy-html-starter.git`, en «🟦 desy-html».
+- Regla de no-ejecución: `desy-scaffold-project` → aviso «Para el agente
+  (importante): los bloques bash son REFERENCE TEMPLATES… NO los ejecutes
+  automáticamente».
+- Starter oficial: `desy-scaffold-project` → «🟦 desy-html» (`git clone
+  https://bitbucket.org/sdaragon/desy-html-starter.git`).
 
 ## Qué NO se mide
 

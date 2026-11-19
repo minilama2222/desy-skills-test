@@ -108,27 +108,31 @@ What a reviewer watches, since no guardrail can read intent:
 The tell: *if the prose were deleted, would a reader still know why this Check
 exists?* The anchor says **where**; the prose says **why**.
 
-## A Framework Check is declared by its Caso, never anchored by it
+## A Guard the type of Caso supplies is never anchored; a Check the Caso declares always is
 
-The Framework's base Guards (`tokens-del-sistema`; for a `caso-pagina`,
-`un-solo-h1`, `skip-link`, `fieldset-con-legend`, `labels-visibles` and the
-fidelity trio) belong to the **type of Caso**, not to a `rubric.md`. Their source
-is `frameworkDeChecks`, and they are graded whether or not the Caso names them.
+Two classes share `IDS_DEL_FRAMEWORK`, and only one is off-limits to an anchor
+(ticket 17, which reversed the blanket rule of ticket 12):
 
-So a Caso that needs one of them measured makes it explicit in **its own way** —
-declaring it in `checks.json` when its type's Framework does not already carry it
-(a `caso-componente`, whose Framework is only `tokens-del-sistema`, declaring
-`labels-visibles`) and citable only from the **prose**, never from an anchor line
-under `## Anclaje en desy-skills`. `npm run verificar-casos` fails on an anchor to
-an `IDS_DEL_FRAMEWORK` id and skips those ids when counting what is left
-unanchored.
+- **A Guard the type of Caso supplies** — `un-solo-h1`, `skip-link`, the fidelity
+  trio, and `tokens-del-sistema` for every type. `frameworkDeChecks` runs it
+  whether or not the Caso names it, so an anchor would be a second source for the
+  same Guard, and a `caso-pagina` that also declared it would be graded twice.
+  `npm run verificar-casos` **fails** on an anchor to one of these.
+- **An id the Framework also uses that the Caso declares** — `fieldset-con-legend`
+  and `labels-visibles` in a `caso-componente`, whose Framework is only
+  `tokens-del-sistema`. The Caso measures them because they are in its
+  `checks.json`, so they are business Checks wearing a shared id: **anchor them**
+  like any other. Without the anchor the report says of a measured Check «el Check
+  no declara de qué sección depende», which is true and useless.
 
-Why: an anchor is a claim that *this Caso* depends on *this section*. A shared
-Guard would collect one such claim per Caso, each free to cite a different
-section, and a `caso-pagina` that also declared it would be graded twice. The
-grader de-duplicates by id as a belt, not as a licence.
+The tell: *does the Framework run this Check without the Caso declaring it?* If
+yes it is a Guard and it is not anchored; if the Caso had to write it down, it is
+the Caso's, and it is.
 
-The tell: if two Casos could anchor the same id, it is the Framework's.
+`checksSinAncla` counts every id the Caso declares, without filtering the
+Framework: filtering it hid a declared Check from `verificar-casos` —a
+`caso-componente` with both Guards unanchored reported «sin ancla ninguno»— and
+presented it as the Framework's (ticket 17).
 
 ## A decision-Caso's Guard is the positive decision
 
