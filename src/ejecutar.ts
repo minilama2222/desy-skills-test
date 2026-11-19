@@ -6,6 +6,7 @@ import type { Pin } from "./pin.js";
 import { esPinLocal } from "./pin.js";
 import type { RunDeps } from "./runner.js";
 import { runCaso } from "./runner.js";
+import type { Evidencia } from "./runner.js";
 import { readFileSync } from "node:fs";
 
 export interface ResultadoEjecucion {
@@ -35,6 +36,12 @@ export interface ResultadoEjecucion {
   flujoAlcanzoSkill: boolean;
   /** Exit code del SUT: ≠ 0 ⇒ crasheó; 0 sin Artefacto ⇒ terminó sin entregar. */
   exitCode: number;
+  /**
+   * Por qué esta Ejecución **no es dato** (ticket 21): el SUT dejó de responder
+   * y se cortó, o la salida dice que no hubo conversación con el proveedor. Un
+   * `exitCode` ≠ 0 por un crash del SUT **no** lo rellena: eso sí es del SUT.
+   */
+  infraestructura?: MotivoDeInfraestructura;
   /** Último paso del Flujo alcanzado, o null si no invocó ningún skill. */
   ultimoPasoDelFlujo: string | null;
   /** Hash del árbol de skills medido (ticket 04): la identidad de la versión. */
@@ -67,6 +74,39 @@ export type Entrega = "con-artefacto" | "sin-artefacto";
  */
 export function entregaDeArtefactos(artefactos: Record<string, string>): Entrega {
   return Object.keys(artefactos).length > 0 ? "con-artefacto" : "sin-artefacto";
+}
+
+/**
+ * Por qué una Ejecución **no se pudo medir** (ticket 21): el SUT se quedó sin
+ * respuesta y hubo que cortarlo. No es un juicio sobre el skill —no llegó a
+ * producir dato— y por eso no puede leerse como «no entregó».
+ *
+ * - `tiempo`: saltó el techo de pared del runner (`TIMEOUT_SUT_MS`).
+ * - `red`: el SUT terminó, pero la salida dice que no hubo conversación con el
+ *   proveedor (`ENOTFOUND`, `provider.transport`, `ECONNRESET`…).
+ */
+export type MotivoDeInfraestructura = "tiempo" | "red";
+
+/** La frase con que `runner.ts` nombra un corte por techo de pared. */
+const MARCA_DE_TIEMPO = "techo de pared, ticket 21";
+
+/** Fallos de transporte del proveedor: el SUT existió, la medida no. */
+const MARCAS_DE_RED = /ENOTFOUND|EAI_AGAIN|ECONNRESET|ECONNREFUSED|ETIMEDOUT|provider\.transport|socket hang up/i;
+
+/**
+ * Regla (ticket 21): ¿esta Ejecución es dato del skill o una falta de medida?
+ *
+ * Se mira la **salida**, que es lo único que queda en disco: el corte por tiempo
+ * deja su frase, y un fallo de transporte deja la suya. Un exit ≠ 0 por un crash
+ * del SUT **no** entra aquí: eso sí es del SUT y se sigue contando como fallo.
+ */
+export function motivoDeInfraestructura(
+  evidencia: Pick<Evidencia, "salida">,
+): MotivoDeInfraestructura | undefined {
+  const texto = `${evidencia.salida.stdout}\n${evidencia.salida.stderr}`;
+  if (texto.includes(MARCA_DE_TIEMPO)) return "tiempo";
+  if (MARCAS_DE_RED.test(texto)) return "red";
+  return undefined;
 }
 
 /**
@@ -127,6 +167,10 @@ export async function ejecutarCaso(
     checks: caso.checks,
     gold: goldDeCaso(caso),
   });
+  // Una sola lectura de la salida decide si esto es dato del skill o una falta
+  // de medida (ticket 21); se escribe en la Evidencia para que el Scorecard no
+  // tenga que volver a interpretar la prosa del SUT.
+  const infraestructura = motivoDeInfraestructura(evidencia);
 
   return {
     skill: caso.skill,
@@ -142,6 +186,7 @@ export async function ejecutarCaso(
     entrega: entregaDeArtefactos(evidencia.artefactos.files),
     flujoAlcanzoSkill: alcanzoSkill(evidencia.transcript.invocaciones, caso.skill),
     exitCode: evidencia.exitCode,
+    ...(infraestructura === undefined ? {} : { infraestructura }),
     ultimoPasoDelFlujo: ultimoPasoDelFlujo(evidencia.transcript.invocaciones),
     salida: evidencia.salida,
     arbolHash: evidencia.arbolHash,

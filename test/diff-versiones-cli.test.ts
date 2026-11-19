@@ -89,6 +89,7 @@ function version(
             correctas,
             entregoMal: 3 - correctas,
             sinArtefacto: 0,
+            sinMedir: 0,
             hallazgosConArtefacto: 0,
             fallos: [],
             guards: { ok: veredicto === "PASA" ? 4 : 2, total: 4 },

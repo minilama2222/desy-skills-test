@@ -131,3 +131,48 @@ describe("pasaSostenido: el criterio de cierre del bucle (ADR-0014)", () => {
     expect(pasaSostenido(["INDETERMINADO", "INDETERMINADO"]).refinado).toBe(false);
   });
 });
+
+/**
+ * Ticket 21: una Ejecución cortada por infraestructura no es «no entregó».
+ * El 19/11/2026 `politicas-privacidad` necesitó 6 intentos porque dos se
+ * quedaron sin respuesta del proveedor; sin separarlas, el Scorecard decía que
+ * el skill había fallado dos veces más de las que falló.
+ */
+describe("las Ejecuciones sin medir no cuentan como fallo del skill (ticket 21)", () => {
+  it("van a `sinMedir` y no engordan `No entregó`", () => {
+    const caso = agregarScorecard(
+      [
+        ejecucion({ grade: "EXCELENTE" }),
+        ejecucion({
+          entrega: "sin-artefacto",
+          artefactos: {},
+          grade: "INACEPTABLE",
+          infraestructura: "tiempo",
+        }),
+        ejecucion({
+          entrega: "sin-artefacto",
+          artefactos: {},
+          grade: "INACEPTABLE",
+          infraestructura: "red",
+        }),
+      ],
+      pin,
+    ).skills[0]!.casos[0]!;
+
+    expect(caso.sinMedir).toBe(2);
+    expect(caso.sinArtefacto).toBe(0);
+    // La igualdad documentada sigue cerrando.
+    expect(caso.correctas + caso.entregoMal + caso.sinArtefacto + caso.sinMedir).toBe(
+      caso.alcanzaronSkill,
+    );
+  });
+
+  it("un fallo del SUT (exit ≠ 0 sin marca de infraestructura) sigue siendo suyo", () => {
+    const caso = agregarScorecard(
+      [ejecucion({ entrega: "sin-artefacto", artefactos: {}, exitCode: 1, grade: "INACEPTABLE" })],
+      pin,
+    ).skills[0]!.casos[0]!;
+    expect(caso.sinMedir).toBe(0);
+    expect(caso.sinArtefacto).toBe(1);
+  });
+});

@@ -1,5 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
-import { alcanzoSkill, entregaDeArtefactos, ejecutarCaso } from "../src/ejecutar.js";
+import {
+  alcanzoSkill,
+  entregaDeArtefactos,
+  ejecutarCaso,
+  motivoDeInfraestructura,
+} from "../src/ejecutar.js";
 import type { CasoComponente } from "../src/caso.js";
 import type { Pin } from "../src/pin.js";
 import type { Sandbox } from "../src/runner.js";
@@ -314,5 +319,43 @@ describe("alcanzoSkill", () => {
     // El Caso puede pedir la familia `implement-*` y satisfacerla con cualquiera
     // de sus miembros; el comodín va en el paso esperado, no en el observado.
     expect(alcanzoSkill(["preflight-check", "implement-pattern"], "implement-*")).toBe(true);
+  });
+});
+
+/**
+ * Ticket 21: separar «no se pudo medir» de «falló el skill».
+ *
+ * Las dos formas medidas en la suite del 19/11: el corte por techo de pared (el
+ * stream que no responde) y el fallo de transporte que sí termina solo
+ * (`getaddrinfo ENOTFOUND`, que tumbó 6 de 6 intentos en la corrida anterior).
+ * Un crash normal del SUT **no** entra aquí.
+ */
+describe("motivoDeInfraestructura (ticket 21)", () => {
+  const con = (stdout: string, stderr = "") => ({ salida: { stdout, stderr } });
+
+  it("el corte por techo de pared se reconoce por la frase del runner", () => {
+    expect(
+      motivoDeInfraestructura(
+        con("", "El SUT no respondió en 1200000 ms (techo de pared, ticket 21): se ha cortado"),
+      ),
+    ).toBe("tiempo");
+  });
+
+  it("un fallo de transporte del proveedor es red, no skill", () => {
+    expect(
+      motivoDeInfraestructura(
+        con('{"type":"error","error":{"type":"provider.transport","message":"getaddrinfo ENOTFOUND api.deepinfra.com"}}'),
+      ),
+    ).toBe("red");
+  });
+
+  it("un crash del SUT no se disfraza de infraestructura", () => {
+    expect(motivoDeInfraestructura(con("TypeError: x is not a function\n", ""))).toBeUndefined();
+  });
+
+  it("una Ejecución normal, sin marcas, es dato del skill", () => {
+    expect(
+      motivoDeInfraestructura(con('{"part":{"type":"tool","tool":"skill"}}', "→ Skill ok")),
+    ).toBeUndefined();
   });
 });

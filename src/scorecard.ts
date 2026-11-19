@@ -52,6 +52,14 @@ export interface CasoScorecard {
   /** Ejecuciones que alcanzaron el skill pero no produjeron Artefacto («no entregó»). */
   sinArtefacto: number;
   /**
+   * Ejecuciones que **no se pudieron medir** (ticket 21): el SUT dejó de
+   * responder y se cortó, o no hubo conversación con el proveedor. No son «no
+   * entregó» —no hubo juicio del skill— y por eso van aparte. La igualdad del
+   * Caso pasa a ser `correctas + entregoMal + sinArtefacto + sinMedir ===
+   * alcanzaronSkill`.
+   */
+  sinMedir: number;
+  /**
    * Ejecuciones con Artefacto que **no** alcanzaron el skill. No son entregas ni
    * `sinArtefacto`: son el complemento del denominador limpio. Con contenido
    * EXCELENTE son el hallazgo de trigger (`hallazgosDeTrigger`).
@@ -252,6 +260,9 @@ function agregarCaso(
   contradicciones?: ReadonlyMap<string, ContradiccionDeSkill>,
 ): CasoScorecard {
   const conDato = conDatoDe(ejecuciones);
+  // Las que no se pudieron medir (ticket 21) no juzgan al skill: van aparte en
+  // `sinMedir` y no se mezclan con las que sí llegaron a entregar o no.
+  const medibles = conDato.filter((e) => e.infraestructura === undefined);
   const entregadas = entregasQueDeciden(ejecuciones);
   const correctas = entregadas.filter(esCorrecta);
   const mejor = mejorEjecucion(ejecuciones);
@@ -269,11 +280,12 @@ function agregarCaso(
     // «Entregó mal» es un juicio de los Checks sobre una entrega que **se midió**:
     // una que no llegó al skill no se juzga, dice otra cosa (ver el hallazgo).
     entregoMal: entregadas.filter((e) => !esCorrecta(e)).length,
-    sinArtefacto: conDato.filter((e) => e.entrega === "sin-artefacto").length,
+    sinArtefacto: medibles.filter((e) => e.entrega === "sin-artefacto").length,
+    sinMedir: conDato.length - medibles.length,
     hallazgosConArtefacto: ejecuciones.filter(
       (e) => e.entrega === "con-artefacto" && !e.flujoAlcanzoSkill,
     ).length,
-    fallos: fallosDe(conDato),
+    fallos: fallosDe(medibles),
     guards: mejor ? guardsDe(mejor) : { ok: 0, total: 0 },
     gradeCalidad: mejor?.grade ?? "INACEPTABLE",
     hallazgosDeTrigger: triggers.length,
@@ -458,9 +470,9 @@ export function renderScorecard(reporte: Scorecard): string {
     // topó. Un Caso que topa con 6 intentos y 2 entregas se lee de un vistazo.
     lineas.push(
       "| Caso | Veredicto | Guards | Grade | Intentos | Entregas | Con dato | " +
-        "Correctas | No entregó | Entregó mal |",
+        "Correctas | No entregó | Entregó mal | Sin medir |",
     );
-    lineas.push("|---|---|---|---|---|---|---|---|---|---|");
+    lineas.push("|---|---|---|---|---|---|---|---|---|---|---|");
 
     for (const caso of skill.casos) {
       const guards =
@@ -468,7 +480,8 @@ export function renderScorecard(reporte: Scorecard): string {
       lineas.push(
         `| ${caso.caso} | ${caso.veredicto} | ${guards} | ${caso.gradeCalidad} | ` +
           `${caso.intentos} | ${caso.entregas} | ${caso.alcanzaronSkill} | ` +
-          `${caso.correctas} | ${caso.sinArtefacto} | ${caso.entregoMal} |`,
+          `${caso.correctas} | ${caso.sinArtefacto} | ${caso.entregoMal} | ` +
+          `${caso.sinMedir} |`,
       );
     }
 
