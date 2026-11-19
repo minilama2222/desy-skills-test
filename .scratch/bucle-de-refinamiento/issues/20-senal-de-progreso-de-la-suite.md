@@ -7,18 +7,18 @@ una corrida de 14 Casos eso deja media hora sin señal.
 
 **Blocked by:** —
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Cada Caso anuncia, al empezar, `[i/N] <skill>/<caso> — empezando ·
+- [x] Cada Caso anuncia, al empezar, `[i/N] <skill>/<caso> — empezando ·
       transcurrido <t> · quedan ~<t>` (la estimación solo si ya hay algún Caso
       hecho)
-- [ ] Al terminar el Caso: `[i/N] <skill>/<caso> — hecho en <t> · quedan ~<t>`
-- [ ] La línea de intento conserva lo que ya dice (faltan N entregas) y **añade**
+- [x] Al terminar el Caso: `[i/N] <skill>/<caso> — hecho en <t> · quedan ~<t>`
+- [x] La línea de intento conserva lo que ya dice (faltan N entregas) y **añade**
       el tiempo transcurrido
-- [ ] Todo por **stderr**: stdout sigue llevando el Scorecard y tiene que poder
+- [x] Todo por **stderr**: stdout sigue llevando el Scorecard y tiene que poder
       redirigirse a un fichero
-- [ ] El resumen final dice cuánto duró la suite
-- [ ] Reglas puras y probadas: `duracionLegible(ms)` y
+- [x] El resumen final dice cuánto duró la suite
+- [x] Reglas puras y probadas: `duracionLegible(ms)` y
       `restoEstimadoMs(transcurrido, completados, total)`, con sus bordes
       (0 Casos hechos ⇒ sin estimación; no falta ninguno ⇒ sin estimación;
       valor imposible ⇒ `—`)

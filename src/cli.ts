@@ -9,6 +9,7 @@ import type { ContextoDelCaso } from "./informe.js";
 import { renderInformeCaso } from "./informe.js";
 import type { Pin } from "./pin.js";
 import { LOCAL, pinLocal, readPin, rutaEnElRepo } from "./pin.js";
+import { duracionLegible, restoEstimadoMs } from "./progreso.js";
 import {
   escribirInformes,
   escribirScorecard,
@@ -467,7 +468,24 @@ async function runSuite(args: string[]): Promise<number> {
   vaciarEjecuciones(rutas.ejecuciones);
 
   const ejecuciones: ResultadoEjecucion[] = [];
-  for (const caso of casos) {
+  // Señal de progreso (ticket 20): sin esto, una suite de 14 Casos pasa media
+  // hora sin decir por dónde va. Todo va por **stderr**, como el resto del
+  // progreso: stdout lleva el Scorecard y tiene que poder redirigirse a un fichero.
+  const inicioSuite = Date.now();
+  const totalCasos = casos.length;
+  let casosHechos = 0;
+
+  for (const [indice, caso] of casos.entries()) {
+    const etiqueta = `${caso.skill}/${caso.id}`;
+    const inicioCaso = Date.now();
+    const transcurrido = inicioCaso - inicioSuite;
+    const resto = restoEstimadoMs(transcurrido, casosHechos, totalCasos);
+    console.error(
+      `[${indice + 1}/${totalCasos}] ${etiqueta} — empezando · transcurrido ` +
+        duracionLegible(transcurrido) +
+        (resto === undefined ? "" : ` · quedan ~${duracionLegible(resto)}`),
+    );
+
     // Se guarda al terminar cada Ejecución, no al acabar el Caso: una suite
     // interrumpida a mitad conserva la Evidencia de las que sí terminaron, y el
     // hallazgo de trigger que se hubiera detectado no se pierde (ticket 07).
@@ -479,13 +497,25 @@ async function runSuite(args: string[]): Promise<number> {
       // está del tope, y las dos cosas cambian cuando el SUT no entrega.
       anunciar: ({ intento, tope, faltan }) =>
         console.error(
-          `[${caso.skill}/${caso.id}] Intento ${intento}/${tope} — faltan ${faltan} entrega/s…`,
+          `[${etiqueta}] Intento ${intento}/${tope} — faltan ${faltan} entrega/s` +
+            ` · lleva ${duracionLegible(Date.now() - inicioSuite)}`,
         ),
       alGuardar: (resultado) => {
         guardarConSuEvidencia(rutas.ejecuciones, resultado);
         ejecuciones.push(resultado);
       },
     });
+
+    casosHechos += 1;
+    const transcurridoTrasCaso = Date.now() - inicioSuite;
+    const restoTrasCaso = restoEstimadoMs(transcurridoTrasCaso, casosHechos, totalCasos);
+    console.error(
+      `[${indice + 1}/${totalCasos}] ${etiqueta} — hecho en ` +
+        duracionLegible(Date.now() - inicioCaso) +
+        (restoTrasCaso === undefined
+          ? ""
+          : ` · quedan ~${duracionLegible(restoTrasCaso)}`),
+    );
   }
 
   const scorecard = agregarScorecard(
@@ -504,6 +534,9 @@ async function runSuite(args: string[]): Promise<number> {
     `Suite: ${r.casos} Caso/s (${r.intentos} intento/s, ${r.entregas} entrega/s) sobre Pin ${etiquetaDelPin(scorecard.pin)} → ` +
       `PASA ${r.pasados} · SUSPENDE ${r.suspendidos} · INDETERMINADO ${r.indeterminados}`,
   );
+  // Cuánto duró la suite (ticket 20): antes había que cronometrarla a mano, y es
+  // el dato con el que se juzga si la próxima corrida ha ido mejor.
+  console.error(`Duración: ${duracionLegible(Date.now() - inicioSuite)}`);
   console.error(`JSON: ${rutaRelativa(rutas.scorecardJson)}`);
   if (version !== undefined) {
     console.error(`Versión: ${rutaRelativa(version)}`);
