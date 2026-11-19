@@ -32,7 +32,9 @@ The list of steps lives in `package.json` (`npm run precommit`); the hook runs i
 whole. Add a step there, never to the hook (retro del ticket 06). A commit that
 exists is a green gate: the hook is `set -e`.
 
-PowerShell has no heredoc: write the message to a file and pass `git commit -F <ruta>`.
+PowerShell has no heredoc: write the message under `.git/` and pass
+`git commit -F <ruta>`. Not under the system temp dir: a reboot wipes it between
+the gate passing and the commit running (retro del ticket 13).
 
 ### Tests that drive a real process, assert sandbox isolation, and what may live in `test/`
 

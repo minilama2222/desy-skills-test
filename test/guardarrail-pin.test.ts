@@ -98,14 +98,32 @@ describe("problemasDelArbolSucio: no se mide un árbol sucio", () => {
     expect(hallazgos[0]).toContain("2 cambio");
   });
 
-  it("un cambio ya preparado para commit no es un árbol sucio", () => {
-    // `bump-pin` reescribe `vendor/` y lo deja preparado: si esto contara como
-    // sucio, el pre-commit se bloquearía a sí mismo y el bump nunca podría
-    // entrar, que es justo el commit que reconcilia el vendor con su pin.
-    expect(
-      problemasDelArbolSucio("M  skills/desy-implement-layout-patterns/SKILL.md\n", "vendor/desy-skills"),
-    ).toEqual([]);
-  });
+  /**
+   * Las cuatro columnas de `git status --porcelain`, una por caso. El fallo que
+   * las motivó (retro del ticket 13) vivió **entre** módulos: `bumpPin` probado
+   * con un git fingido, la regla probada con cadenas inventadas, y nadie había
+   * escrito nunca la cadena `M  ` del dos-columnas. Un lector de `porcelain`
+   * decide por **columna**, así que el espacio de casos es esta tabla, no «un
+   * modificado» y «un preparado». Añadir una columna nueva obliga a mirar las dos.
+   */
+  it.each([
+    ["M ", "preparado (índice limpio)", false],
+    ["A ", "añadido al índice", false],
+    [" M", "modificado en el working tree", true],
+    ["??", "no rastreado", true],
+    ["UU", "conflicto sin resolver", true],
+  ])(
+    "«%s» (%s): %s cuenta como árbol sucio",
+    (estado, _descripcion, sucio) => {
+      const hallazgos = problemasDelArbolSucio(
+        `${estado} skills/desy-implement-layout-patterns/SKILL.md\n`,
+        "vendor/desy-skills",
+      );
+
+      expect(hallazgos.length > 0).toBe(sucio);
+      if (sucio) expect(hallazgos[0]).toContain("skills/desy-implement-layout-patterns/SKILL.md");
+    },
+  );
 
   it("el árbol sucio se sigue cazando aunque haya además un cambio preparado", () => {
     // Control: quitar lo preparado no puede llevarse por delante lo sucio.

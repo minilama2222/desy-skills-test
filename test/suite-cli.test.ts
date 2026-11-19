@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { spawnSync, execFileSync } from "node:child_process";
+import * as os from "node:os";
 import {
   existsSync,
   mkdirSync,
@@ -287,9 +288,17 @@ function expectDentroDelPresupuesto(corrida: Corrida): void {
     "el guion no dejó ninguna marca: la suite no llegó a correr una Ejecución",
   ).toBeGreaterThan(0);
   const techo = SEGUNDOS_POR_EJECUCION * intentos;
-  expect(corrida.segundos, `la suite tardó ${corrida.segundos}s (techo ${techo}s)`).toBeLessThan(
-    techo,
-  );
+  // La carga del sistema en el mensaje (retro del ticket 13): el techo es de
+  // tiempo **real**, y un rojo por contención —otra app al 100 % de CPU, un
+  // reindexado— se ve igual que una regresión de rendimiento. Un fallo que dice
+  // «con carga 16 en 8 núcleos» se descarta en un segundo; uno que sólo dice
+  // «tardó 55 s» manda a investigar el código.
+  const carga = os.loadavg()[0]!.toFixed(1);
+  const nucleos = os.cpus().length;
+  expect(
+    corrida.segundos,
+    `la suite tardó ${corrida.segundos}s (techo ${techo}s; carga ${carga} en ${nucleos} núcleo/s)`,
+  ).toBeLessThan(techo);
 }
 
 describe("suite (comando de CI, ticket 13)", () => {

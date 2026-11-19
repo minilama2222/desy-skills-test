@@ -78,7 +78,12 @@ export function problemasDelArbolSucio(porcelain: string, dir: string): string[]
   const pendientes = porcelain
     .split(/\r?\n/)
     .filter((l) => l.trim().length > 0)
-    .filter((l) => l[0] === " " || l[0] === "?");
+    // `M `, `A `, `R `… tienen el índice con un cambio **ya preparado**; lo demás
+    // —working tree (` M`), no rastreado (`??`), conflicto (`UU`, `AA`, `DU`…)— no
+    // es un cambio preparado y sí es un árbol que no se puede medir. Se pregunta
+    // por «no estar preparado» en vez de por una lista de letras: un estado nuevo
+    // de git cae del lado seguro, que es seguir contando el árbol como sucio.
+    .filter((l) => l[1] !== " ");
 
   if (pendientes.length === 0) return [];
 
