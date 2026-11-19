@@ -377,6 +377,47 @@ export function contradiccionesDeRubric(
 }
 
 /**
+ * Las secciones de skill que una `rubric.md` **nombra**, en orden de aparición y
+ * sin repetir: primero las líneas de ancla (`- <id>: <skill> → «<sección>»`), y
+ * después cualquier cita «<skill> → «<sección>»» de la prosa de apoyo.
+ *
+ * Sirve a `verificar-casos` para comparar una rúbrica con su versión anterior en
+ * git: el ancla **se suma** a la prosa, no la sustituye, y una reescritura que se
+ * lleva por delante una sección citada es un hallazgo (retro de la sesión del
+ * ticket 12). Se compara por **título**, no por número de línea: las líneas se
+ * mueven con cada edición y el título es lo que el autor del skill reconoce.
+ */
+export function seccionesCitadasEnRubric(texto: string): string[] {
+  const citas: string[] = [];
+  const anadir = (cita: string): void => {
+    if (!citas.includes(cita)) citas.push(cita);
+  };
+
+  for (const ancla of anclajesDeRubric(texto).values()) {
+    anadir(`${ancla.skill} → «${ancla.seccion}»`);
+  }
+  // La prosa puede partir la cita de línea («… → «Fieldset+legend sr-only para
+  // grupos\n  semánticos»»), así que se busca sobre el texto con los saltos
+  // convertidos en espacios; el título se colapsa igual que en `tituloPlano`.
+  //
+  // El skill es la última palabra con forma de skill **antes** de la flecha, y
+  // esa ventana no cruza una flecha ni una comilla: la prosa tiene flechas que no
+  // son citas («macro → selector») y, sin la ventana, la segunda cita de un
+  // párrafo se quedaba sin skill. Una cita sin skill a la vista no se lee.
+  const plano = texto.replace(/\s+/g, " ");
+  for (const match of plano.matchAll(/[«"“](.+?)[»"”]/g)) {
+    const antes = plano.slice(0, match.index);
+    const flecha = antes.search(/→\s*$/);
+    if (flecha === -1) continue;
+    const previo = antes.slice(0, flecha).replace(/\s+$/, "");
+    const ultimo = [...previo.matchAll(/`?([a-z][a-z0-9-]+)`?/g)].pop();
+    if (ultimo === undefined) continue;
+    anadir(`${ultimo[1]} → «${match[1]!.trim()}»`);
+  }
+  return citas;
+}
+
+/**
  * Lo que todo Caso declara, sea del tipo que sea. `contradicciones` es aparte de
  * los `checks` a propósito (ticket 13): una contradicción no es una propiedad del
  * Check —no llena `Check.ancla` ni cambia lo que el informe cita como fuente—,

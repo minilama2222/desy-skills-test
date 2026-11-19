@@ -84,6 +84,30 @@ only some attempts deliver. One name covering both is a finding even when the
 number under it is right. (The ticket 03 turned the budget from attempts into
 deliveries; it did not retire the rule, it made it matter.)
 
+## An anchoring a Check adds a line, it does not replace the prose
+
+A `rubric.md` carries two things: the **anchor** line per Check (the mechanical
+half, `- <id>: <skill> → «<section>»`) and the **prose** that explains *why* the
+Caso measures what it measures. Anchoring a Check **adds** the line; the prose
+stays, rewritten at most to stop repeating a title the anchor already names.
+
+What a reviewer watches, since no guardrail can read intent:
+
+- **No cited section disappears.** `npm run verificar-casos` already compares the
+  rubric with its version in `HEAD` and names any section that stopped being
+  cited. A diff that keeps every cited section passes that check; a diff that
+  rewrites the prose into a summary is the reviewer's call — the citations must
+  survive, the sentences around them may not.
+- **The section must *say* what the Check measures.** A title that exists but
+  argues the opposite, or that says nothing about the Check's fact, is a
+  **skill finding**, not an anchor: declare it (ticket-13 style) rather than
+  citing it as the source. The weakest form is an anchor to the skill's own
+  title because the rule has no section of its own; if that is the best a Caso
+  can do, say so in the rubric rather than letting the anchor look ordinary.
+
+The tell: *if the prose were deleted, would a reader still know why this Check
+exists?* The anchor says **where**; the prose says **why**.
+
 ## A decision-Caso's Guard is the positive decision
 
 In a **Caso-decisión** (see ADR-0011), the no-negociable fact — the thing whose

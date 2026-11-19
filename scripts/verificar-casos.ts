@@ -1,11 +1,14 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
 import { join, relative } from "node:path";
-import { anclajesDeRubric, contradiccionesDeRubric } from "../src/caso.js";
+import { anclajesDeRubric, contradiccionesDeRubric, seccionesCitadasEnRubric } from "../src/caso.js";
 import { CASOS_DIR, cargarCaso } from "../src/caso-loader.js";
 import {
   deudaDeAnclaje,
+  problemasDeAnclajePerdidas,
   problemasDelArbolDeCasos,
   type CasoEnDisco,
+  type SeccionesCitadas,
 } from "../src/guardarrail-casos.js";
 import { REPO_ROOT } from "../src/repo.js";
 import { VENDOR_SKILLS_DIR } from "../src/runner.js";
@@ -21,6 +24,12 @@ import { titulosDeSkill } from "../src/seccion-skill.js";
  * Desde el ticket 06 contrasta además las anclas de skill del `rubric.md` contra
  * los títulos reales de los `SKILL.md` de `vendor/desy-skills/skills/`: el árbol
  * canónico, porque es el que el repo versiona y contra el que se mide.
+ *
+ * Desde el retro del ticket 12 compara cada `rubric.md` con su versión en `HEAD`:
+ * el ancla **se suma** a la prosa, así que una reescritura que se lleva por
+ * delante una sección citada es un hallazgo (`problemasDeAnclajePerdidas`). La
+ * referencia es `HEAD` —no el índice— para que el check diga lo mismo antes y
+ * después de `git add`.
  */
 function rutaRelativa(path: string): string {
   return relative(REPO_ROOT, path).split("\\").join("/");
@@ -114,6 +123,52 @@ function leerRubric(
 
 const arbol = describirArbol(seccionesDelArbol());
 const hallazgos = problemasDelArbolDeCasos(arbol);
+
+/**
+ * Las secciones que citaba cada rúbrica en `HEAD`. Se pregunta a git por el
+ * fichero versionado: si el Caso es nuevo, `undefined` y no hay pérdida posible.
+ * Se compara con `HEAD`, no con el índice, para que el check diga lo mismo antes
+ * y después de `git add`.
+ */
+function citasEnHead(ruta: string): string[] | undefined {
+  try {
+    const texto = execFileSync("git", ["show", `HEAD:${ruta}`], {
+      cwd: REPO_ROOT,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    });
+    return seccionesCitadasEnRubric(texto);
+  } catch {
+    return undefined;
+  }
+}
+
+function citasHoy(): SeccionesCitadas[] {
+  if (!existsSync(CASOS_DIR)) return [];
+  const rubricas: SeccionesCitadas[] = [];
+  for (const skill of readdirSync(CASOS_DIR, { withFileTypes: true })) {
+    if (!skill.isDirectory()) continue;
+    for (const tipo of readdirSync(join(CASOS_DIR, skill.name), { withFileTypes: true })) {
+      if (!tipo.isDirectory()) continue;
+      for (const caso of readdirSync(join(CASOS_DIR, skill.name, tipo.name), {
+        withFileTypes: true,
+      })) {
+        if (!caso.isDirectory()) continue;
+        const path = join(CASOS_DIR, skill.name, tipo.name, caso.name, "rubric.md");
+        if (!existsSync(path)) continue;
+        const ruta = rutaRelativa(path);
+        rubricas.push({
+          ruta,
+          actuales: seccionesCitadasEnRubric(readFileSync(path, "utf8")),
+          anteriores: citasEnHead(ruta),
+        });
+      }
+    }
+  }
+  return rubricas;
+}
+
+hallazgos.push(...problemasDeAnclajePerdidas(citasHoy()));
 
 // La deuda declarada se dice aunque no bloquee: un pendiente que no se nombra
 // se olvida, y la lista de `PENDIENTES_DE_ANCLAR` dejaría de vaciarse. Se mide

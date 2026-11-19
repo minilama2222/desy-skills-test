@@ -257,6 +257,45 @@ function checksSinAncla(caso: CasoEnDisco): { total: number; sinAncla: string[] 
 }
 
 /**
+ * El ancla **se suma** a la prosa de apoyo, no la sustituye (retro de la sesión
+ * del ticket 12): al anclar cada Check, la prosa que ya había se reescribe —o se
+ * pierde— sin que nada lo note. La rúbrica es prosa que lee una persona, y una
+ * sección que se cae en una reescritura se lleva su cita con ella.
+ *
+ * Recibe, por Caso, las secciones citadas hoy y las de su versión en `HEAD`, y
+ * devuelve un hallazgo por sección que **desapareció**. Una rúbrica nueva (sin
+ * versión anterior) no tiene de qué perder.
+ *
+ * Se compara por **título**, no por número de línea: las líneas se mueven con
+ * cada edición.
+ */
+export interface SeccionesCitadas {
+  ruta: string;
+  /** Las de la rúbrica en disco, hoy. */
+  actuales: string[];
+  /** Las de la rúbrica en `HEAD`; `undefined` si el Caso es nuevo. */
+  anteriores?: string[];
+}
+
+export function problemasDeAnclajePerdidas(
+  rubricas: SeccionesCitadas[],
+): string[] {
+  const problemas: string[] = [];
+  for (const { ruta, actuales, anteriores } of rubricas) {
+    if (anteriores === undefined) continue;
+    const hoy = new Set(actuales);
+    const perdidas = anteriores.filter((cita) => !hoy.has(cita));
+    if (perdidas.length === 0) continue;
+    problemas.push(
+      `${ruta}: rubric.md ya no cita ${perdidas.length} sección/es que sí citaba en ` +
+        `HEAD (${perdidas.join("; ")}). El ancla se suma a la prosa de apoyo: ` +
+        "reescríbela sin perder ninguna sección citada",
+    );
+  }
+  return problemas;
+}
+
+/**
  * La deuda de anclaje **declarada**, medida por Check: cuántos Checks le faltan a
  * cada Caso de `PENDIENTES_DE_ANCLAR`, y cuáles.
  *
