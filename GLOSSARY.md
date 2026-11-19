@@ -85,7 +85,11 @@ la regla habla de entregas está nombrando la cosa equivocada.
 _Avoid_: llamar "caso" a una Ejecución.
 
 **Framework de checks**:
-El conjunto base de Checks que aplica a un tipo de Caso (Caso-componente o Caso-página), combinado por el grader con los Checks propios del Caso. Evita repetir los guards comunes en cada `checks.json`.
+El conjunto base de Checks que aplica a un tipo de Caso (Caso-componente o Caso-página), combinado por el grader con los Checks propios del Caso. Evita repetir los guards comunes en cada `checks.json`. El de un Caso-componente es sólo `tokens-del-sistema`; el de un Caso-página añade los de a11y y el trío de fidelidad.
+
+**Guard del Framework**:
+Un Check que `frameworkDeChecks` ejecuta **siempre** que el Caso tiene su tipo, lo declare o no: `un-solo-h1`, `skip-link`, el trío de fidelidad y, para todo tipo, `tokens-del-sistema`. El Caso no lo ancla (anclarlo son dos fuentes y, en un Caso-página que además lo declare, un doble Grade). Se distingue de un **Check de negocio con id del Framework** (`fieldset-con-legend` y `labels-visibles` en un Caso-componente), que el Caso sí declara y sí ancla. El test que separa las dos clases: *¿lo ejecuta el Framework sin que el Caso lo declare?* Ver ADR-0020.
+_Avoid_: llamar «del Framework» a un Check sólo porque su id está en `IDS_DEL_FRAMEWORK`; confundirlo con un Check de negocio.
 
 **Artefacto** (de una Ejecución):
 El fichero que el SUT escribió en el sandbox y sobre el que se pasa el Grade. De qué fichero se trata **depende del tipo de Caso**: el fuente (`src/`) para el Caso-componente, el compilado (`dist/`) para el Caso-página. En el Caso-página el Artefacto es **la página que el SUT escribió** (el `dist/X.html` cuya fuente `src/X.html` cambió), no el `dist/` entero del build. Ver ADR-0006 y ADR-0009.
@@ -232,8 +236,12 @@ Check, escrita en su `rubric.md` bajo `## Anclaje en desy-skills` como
 `- <id-del-check>: <skill> → «<título de la sección>»`. Se cita por **texto**
 (el título de la sección), nunca por número de línea, para que sobreviva a las
 ediciones del Skill. `npm run verificar-casos` comprueba que la sección existe.
+El ancla **se suma** a la prosa de apoyo del epígrafe, no la sustituye. Todo Check
+que el Caso declara lleva ancla, salvo los Guards del Framework (que no se anclan)
+y los del propio Caso que aún estén en `PENDIENTES_DE_ANCLAR` (hoy, ninguno). Ver
+ADR-0020.
 _Avoid_: anclar por número de línea o por ruta de fichero; inventar el ancla
-cuando el Check no la declara.
+cuando el Check no la declara; anclar un Guard del Framework.
 
 **Replay del grader**:
 Volver a pasar por `grader.ts` los Artefactos de una Ejecución ya guardada y exigir
