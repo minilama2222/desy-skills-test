@@ -64,8 +64,21 @@ misma variable al proceso hijo que lance. La regla y el fallo que la originó
 están en `CODING_STANDARDS.md` → «A test that needs the repo's own state redirects
 it»; aquí sólo el puntero.
 
-## El gate
+## Un test que lee `vendor/` o `casos/`
 
+Un test afirma la **forma** del árbol real — la sección que el Caso ancla existe,
+el Caso existe — y prueba el **texto** con un fixture. Con el árbol real, cada
+mejora legítima de un Skill ponía rojo `npm test` por algo que no es un defecto del
+harness; es justo el rojo que el tier rápido dice que no debe ser (ticket 08).
+
+Leer el árbol a propósito se declara, con su motivo, en `ARBOL_REAL_EXENTO`
+(`scripts/verificar-tests.ts`): hoy lo hacen `informe.test.ts` (cita la sección
+anclada, no afirma su texto), `sandbox.test.ts` (enumera las skills para copiarlas),
+`caso-pagina-paso-1.test.ts` (lee el Gold del Caso, una fixture) y `runner.test.ts`
+(lee un fichero de su sandbox temporal). La regla que lo vigila es
+`pruebasQueAfirmanContenidoDelArbol`, en `npm run verificar-tests`.
+
+## El gate
 `vitest run [fichero]` para mirar un fichero mientras se trabaja. `npm run test:gate`
 corre la suite entera, recoge los dos canales y reproduce el exit code: es lo que
 usa el pre-commit, y su exit es el veredicto (ver `AGENTS.md`).

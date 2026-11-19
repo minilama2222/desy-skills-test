@@ -4,12 +4,14 @@ import { REPO_ROOT } from "../src/repo.js";
 import {
   ficherosQueNoSonTests,
   pruebasConNavegador,
+  pruebasQueAfirmanContenidoDelArbol,
   type FicheroDeTest,
 } from "../src/guardarrail-tests.js";
 
 /**
  * Guardarraíl: ningún test de la suite abre un navegador **ni lanza un binario
- * externo** sin declararlo (ver el retro del ticket 06 y el del 13).
+ * externo** sin declararlo (ver el retro del ticket 06 y el del 13), ni **afirma
+ * el contenido de un árbol real** (retro del ticket 08).
  *
  * Un adaptador así (p. ej. el de la Captura de Gold) vive en `scripts/`, porque
  * dentro de la suite deja procesos vivos y la cuelga — y el pre-commit corre
@@ -46,6 +48,36 @@ const FICHEROS_EXCLUIDOS = new Set([
   "test/runner.test.ts",
 ]);
 
+/**
+ * Ficheros exentos de la regla del árbol real, con el motivo. Leer `vendor/` o
+ * `casos/` desde un test se permite cuando lo que se afirma es la **forma** o el
+ * **texto que un Caso real mide**, no una instantánea de la prosa del Skill:
+ *
+ * - `informe.test.ts` cita la sección **que el Caso ancla** (`desy-styles-reference`
+ *   → «Componentes con `c-*`», la que `verificar-casos` ya obliga a que exista) y
+ *   comprueba que el informe la recorta por título. Si esa sección cambiara de
+ *   texto, la cita seguiría valiendo: no se afirma el texto, se afirma que el
+ *   informe toma la sección y no el fichero entero.
+ * - `sandbox.test.ts` enumera los subdirectorios con `SKILL.md` del `vendor/` para
+ *   que el sandbox copie lo mismo que el runner. Es la forma del árbol.
+ */
+const ARBOL_REAL_EXENTO = new Map<string, string>([
+  ["test/informe.test.ts", "cita la sección anclada por el Caso; no afirma su texto"],
+  ["test/sandbox.test.ts", "enumera las skills del vendor para copiarlas al sandbox"],
+  [
+    "test/caso-pagina-paso-1.test.ts",
+    "lee el Gold del propio Caso (una fixture), no la prosa del Skill",
+  ],
+  [
+    "test/runner.test.ts",
+    "lee un fichero de su sandbox temporal; el vendor sólo dice de dónde se copia",
+  ],
+  [
+    "test/guardarrail-tests-arbol.test.ts",
+    "es el test de esta regla: lee el tier rápido para fijar que ya no lee el árbol",
+  ],
+]);
+
 function ficherosDeTest(): FicheroDeTest[] {
   const ficheros: FicheroDeTest[] = [];
   const walk = (dir: string): void => {
@@ -57,6 +89,25 @@ function ficherosDeTest(): FicheroDeTest[] {
         const path = relative(REPO_ROOT, full).split("\\").join("/");
         if (FICHEROS_EXCLUIDOS.has(path)) continue;
         ficheros.push({ path, contenido: readFileSync(full, "utf8") });
+      }
+    }
+  };
+  walk(TEST_DIR);
+  return ficheros;
+}
+
+/** Todos los tests del árbol, sin excluir nada: la regla del árbol real juzga también los exentos de binarios. */
+function todosLosTests(): FicheroDeTest[] {
+  const ficheros: FicheroDeTest[] = [];
+  const walk = (dir: string): void => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const full = join(dir, entry.name);
+      if (entry.isDirectory()) walk(full);
+      else if (entry.name.endsWith(".test.ts")) {
+        ficheros.push({
+          path: relative(REPO_ROOT, full).split("\\").join("/"),
+          contenido: readFileSync(full, "utf8"),
+        });
       }
     }
   };
@@ -91,20 +142,26 @@ function ficherosDeTestDir(): { path: string; esTest: boolean }[] {
 const hallazgos = [
   ...pruebasConNavegador(ficherosDeTest()),
   ...ficherosQueNoSonTests(ficherosDeTestDir()),
+  ...pruebasQueAfirmanContenidoDelArbol(todosLosTests()).filter((h) => {
+    const path = h.split(":")[0]!;
+    return !ARBOL_REAL_EXENTO.has(path);
+  }),
 ];
 
 if (hallazgos.length === 0) {
   console.log(
-    "OK: ningún test abre un navegador ni lanza un binario externo, y test/ no tiene restos.",
+    "OK: ningún test abre un navegador, lanza un binario externo ni afirma el " +
+      "contenido de un árbol real, y test/ no tiene restos.",
   );
   process.exit(0);
 }
 
-console.log(`La suite tiene ${hallazgos.length} test/s con un proceso externo:`);
+console.log(`La suite tiene ${hallazgos.length} test/s con un problema:`);
 for (const h of hallazgos) console.log(`  - ${h}`);
 console.log(
   "\nMueve la verificación a un script en scripts/ (como " +
-    "scripts/verificar-captura-gold.ts), inyecta un doble, o declara la " +
-    "excepción con motivo en FICHEROS_EXCLUIDOS de este fichero.",
+    "scripts/verificar-captura-gold.ts), inyecta un doble, prueba el texto con un " +
+    "fixture, o declara la excepción con motivo en FICHEROS_EXCLUIDOS o " +
+    "ARBOL_REAL_EXENTO de este fichero.",
 );
 process.exit(1);

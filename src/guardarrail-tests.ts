@@ -90,6 +90,21 @@ const MARCADORES_DE_DOBLE = [
  */
 const BINARIOS_PERMITIDOS = ["git", "robocopy"];
 
+/**
+ * Los árboles cuyo **contenido** no se afirma desde un test: el de skills del
+ * `vendor/` y el de `casos/`. Un test dice que su **forma** está (la sección
+ * existe, el Caso existe); el texto concreto (`gap-x-4`, «página de prueba») lo
+ * presenta la checklist del tier rápido, o se prueba con un fixture. Con el árbol
+ * real, cada mejora legítima de un Skill ponía rojo `npm test`, que es justo lo
+ * que ese tier dice que no debe ser (ticket 08).
+ */
+const ARBOLES_DE_CONTENIDO_MARCADORES = [
+  "VENDOR_SKILLS_DIR",
+  "CASOS_DIR",
+  "lectorDeSecciones",
+  "lectorDeSkillMd",
+];
+
 /** ¿El fichero lanza un proceso externo con `spawn`/`exec`/`fork`? */
 function lanzaProcesoExterno(contenido: string): boolean {
   return /\b(?:spawn|spawnSync|exec|execSync|execFile|execFileSync|fork)\s*\(/.test(
@@ -151,6 +166,44 @@ export function pruebasConNavegador(ficheros: FicheroDeTest[]): string[] {
         "(y en Windows `spawn` ignora un `PATH` inyectado, así que puede acabar " +
         "llamando al real). Sustitúyelo por un doble inyectado de verdad o declara " +
         "la excepción con motivo en scripts/verificar-tests.ts",
+    );
+  }
+  return hallazgos;
+}
+
+/**
+ * Devuelve una descripción por test que **afirma el contenido** de un árbol real
+ * (el skill vendido o `casos/`) en vez de su forma, o vacío si la suite está
+ * limpia.
+ *
+ * La regla nace de la revisión del ticket 08, donde el mismo género apareció dos
+ * veces: un test del tier rápido afirmaba que los hechos seguían vigentes en el
+ * `vendor/`, y cada mejora legítima de un Skill —mover un `gap-x-4`, reescribir
+ * una sección— ponía rojo `npm test` por algo que no era un defecto del harness.
+ * Después vinieron `test/informe.test.ts` y `test/sandbox.test.ts`, que leen el
+ * árbol a propósito.
+ *
+ * La regla **no prohíbe leer el árbol**: lo que caza es leerlo **para afirmar su
+ * texto**. Se declara por fichero en `scripts/verificar-tests.ts`, con el motivo.
+ */
+export function pruebasQueAfirmanContenidoDelArbol(
+  ficheros: FicheroDeTest[],
+): string[] {
+  const hallazgos: string[] = [];
+  for (const fichero of ficheros) {
+    const arbol = ARBOLES_DE_CONTENIDO_MARCADORES.find((marcador) =>
+      fichero.contenido.includes(marcador),
+    );
+    if (arbol === undefined) continue;
+    // Sin lectura de fichero no hay contenido que afirmar: importar la ruta no
+    // basta (p. ej. para montar un sandbox).
+    if (!/readFileSync\s*\(/.test(fichero.contenido)) continue;
+    hallazgos.push(
+      `${fichero.path}: lee un árbol real (${arbol}) y puede estar afirmando su ` +
+        "contenido; un test afirma la forma (la sección existe, el Caso existe) y " +
+        "prueba el texto con un fixture, para que una mejora legítima de un Skill no " +
+        "rompa `npm test`. Si aquí se lee a propósito, declara el fichero con su " +
+        "motivo en ARBOL_REAL_EXENTO de scripts/verificar-tests.ts",
     );
   }
   return hallazgos;

@@ -38,3 +38,9 @@ PowerShell has no heredoc: write the message to a file and pass `git commit -F <
 
 See `docs/agents/testing.md`.
 
+### The fast tier
+
+`npm run replay-grader` re-grades stored Executions (in `precommit`) and
+`npm run checklist-casos` says which Casos to re-run after editing a `SKILL.md`
+(never in `precommit`). See the `## Tier rápido` section of the README.
+
