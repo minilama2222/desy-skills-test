@@ -60,8 +60,15 @@ const TIPOS_VALIDOS = new Set(["componente", "pagina", "decision"]);
 /**
  * Devuelve un hallazgo por problema de un Caso, o vacío si el árbol está sano.
  * Acumula varios problemas del mismo Caso.
+ *
+ * `lista` es la de pendientes (`PENDIENTES_DE_ANCLAR` por defecto). Se puede
+ * pasar otra para probar la tolerancia por ruta y las reglas de la lista: desde
+ * el ticket 12 la real está vacía, y así se queda.
  */
-export function problemasDelArbolDeCasos(casos: CasoEnDisco[]): string[] {
+export function problemasDelArbolDeCasos(
+  casos: CasoEnDisco[],
+  lista: ReadonlyMap<string, string> = PENDIENTES_DE_ANCLAR,
+): string[] {
   const hallazgos: string[] = [];
   // El vocabulario de ids conocido: todos los que declara cualquier Caso del
   // árbol. Es lo que permite distinguir un id que **sobró** (dejó de estar en su
@@ -94,11 +101,11 @@ export function problemasDelArbolDeCasos(casos: CasoEnDisco[]): string[] {
       hallazgos.push(`${caso.ruta}: no carga — ${caso.errorDeCarga}`);
     }
     for (const problema of problemasDeRubric(caso, vocabulario)) hallazgos.push(problema);
-    for (const problema of problemasDeAnclaje(caso)) hallazgos.push(problema);
+    for (const problema of problemasDeAnclaje(caso, lista)) hallazgos.push(problema);
     for (const problema of problemasDeContradiccion(caso)) hallazgos.push(problema);
   }
-  if (esArbolCompleto(casos)) {
-    for (const problema of problemasDeLaListaDePendientes(casos)) hallazgos.push(problema);
+  if (esArbolCompleto(casos, lista)) {
+    for (const problema of problemasDeLaListaDePendientes(casos, lista)) hallazgos.push(problema);
   }
   return hallazgos;
 }
@@ -117,38 +124,28 @@ export function problemasDelArbolDeCasos(casos: CasoEnDisco[]): string[] {
 /**
  * Los Casos que **todavía no** anclan sus Checks, con el ticket que los anclar.
  *
- * Es deuda declarada, no una excepción: cada uno es un Caso anterior al anclaje
- * por Check (ticket 06), cuya rúbrica describe en prosa de apoyo en qué secciones
- * del skill vive la regla, sin decir a qué Check corresponde cada una. Anclar
- * exige **juicio** sobre qué sección cubre ese Check —inventarlo haría que el
- * informe citara secciones que no dicen lo que el Check mide—, así que se hace
- * Caso a Caso, cuando se toca el skill, y no de golpe.
+ * Nació como deuda declarada en el ticket 06 (cada Caso anterior al anclaje por
+ * Check describía en prosa de apoyo en qué secciones del skill vive la regla, sin
+ * decir a qué Check corresponde cada una) y el **ticket 12** la saldó entera:
+ * los trece Casos anclan hoy cada Check. La lista **queda vacía y así se queda**:
+ * cualquier Caso sin anclar es un rojo, que es la regla del 06 entera.
  *
- * La lista tiene tres propiedades que la hacen honesta:
+ * Se conserva la lista —y no se borra— porque tiene tres propiedades que siguen
+ * valiendo si algún día hace falta una excepción temporal:
  *
  * - **Sólo admite Casos que existen**: un nombre que sobra es un hallazgo (la
  *   lista no puede crecer con fantasmas), y así se ve cuándo vaciarla.
  * - **Un Caso que sale de la lista no puede quedar sin anclar**: si se anclaró,
  *   fuera de la lista; si se borró, fuera también.
  * - **Un Caso nuevo sin ancla rompe el build**, que es el objetivo: el silencio
- *   sólo se tolera donde ya estaba.
+ *   sólo se tolera donde ya estaba, y hoy no está en ningún sitio.
  */
-export const PENDIENTES_DE_ANCLAR: ReadonlyMap<string, string> = new Map([
-  ["casos/angular-translator/componente/boton-primario-angular", "ticket 12"],
-  ["casos/choose-library/decision/portal-turistico", "ticket 12"],
-  ["casos/choose-page-template/decision/404-portal-publico", "ticket 12"],
-  ["casos/component-recognizer/decision/reconocimiento-login", "ticket 12"],
-  ["casos/design-match/decision/afinado-paso-1", "ticket 12"],
-  ["casos/implement-pattern/componente/politicas-privacidad", "ticket 12"],
-  ["casos/implement-pattern/pagina/patron-pagina-paso-1-nombre-nif", "ticket 12"],
-  ["casos/preflight-check/decision/proyecto-no-existe", "ticket 12"],
-  ["casos/preflight-check/decision/proyecto-ok-libreria-version", "ticket 12"],
-  ["casos/scaffold-project/decision/no-scaffoldea-sin-permiso", "ticket 12"],
-  ["casos/styles-reference/decision/token-espaciado", "ticket 12"],
-  ["casos/validate-accessibility/decision/checklist-sin-servidor", "ticket 12"],
-]);
+export const PENDIENTES_DE_ANCLAR: ReadonlyMap<string, string> = new Map([]);
 
-export function problemasDeAnclaje(caso: CasoEnDisco): string[] {
+export function problemasDeAnclaje(
+  caso: CasoEnDisco,
+  lista: ReadonlyMap<string, string> = PENDIENTES_DE_ANCLAR,
+): string[] {
   const problemas: string[] = [];
   const delCaso = new Set(caso.idsDeChecks ?? []);
 
@@ -173,7 +170,7 @@ export function problemasDeAnclaje(caso: CasoEnDisco): string[] {
     }
   }
 
-  problemas.push(...problemasDeChecksSinAncla(caso));
+  problemas.push(...problemasDeChecksSinAncla(caso, lista));
   return problemas;
 }
 
@@ -194,12 +191,15 @@ export function problemasDeAnclaje(caso: CasoEnDisco): string[] {
  * La prosa de apoyo sigue siendo válida: lo que se exige es que **además** cada
  * Check tenga su línea de ancla.
  */
-function problemasDeChecksSinAncla(caso: CasoEnDisco): string[] {
+function problemasDeChecksSinAncla(
+  caso: CasoEnDisco,
+  lista: ReadonlyMap<string, string>,
+): string[] {
   const { total, sinAncla } = checksSinAncla(caso);
   if (sinAncla.length === 0) return [];
   // La deuda declarada se tolera aquí, pero se **dice** en el resumen del script:
   // si no, un pendiente se vuelve invisible y la lista crece.
-  if (PENDIENTES_DE_ANCLAR.has(caso.ruta)) return [];
+  if (lista.has(caso.ruta)) return [];
   return [
     `${caso.ruta}: rubric.md no ancla ${sinAncla.length} de sus ${total} ` +
       `Check/s (${sinAncla.join(", ")})`,
@@ -267,8 +267,9 @@ function checksSinAncla(caso: CasoEnDisco): { total: number; sinAncla: string[] 
  * de `checksSinAncla`, así que un Caso al que le quede uno no puede salir «sin
  * deuda» aquí y en rojo allí.
  *
- * Sirve para que `verificar-casos` diga el progreso y para que el ticket 12 sepa
- * qué le queda sin abrir cada Caso a mano.
+ * Sirve para que `verificar-casos` diga el progreso. Con la lista vacía (ticket
+ * 12) ya no mide nada: cualquier Check sin ancla es un rojo del guardarraíl.
+ * La lista es un argumento para poder probar la regla sin la constante vacía.
  */
 export interface DeudaDeAnclaje {
   ruta: string;
@@ -280,10 +281,13 @@ export interface DeudaDeAnclaje {
   sinAncla: string[];
 }
 
-export function deudaDeAnclaje(casos: CasoEnDisco[]): DeudaDeAnclaje[] {
+export function deudaDeAnclaje(
+  casos: CasoEnDisco[],
+  lista: ReadonlyMap<string, string> = PENDIENTES_DE_ANCLAR,
+): DeudaDeAnclaje[] {
   const porRuta = new Map(casos.map((c) => [c.ruta, c]));
   const deuda: DeudaDeAnclaje[] = [];
-  for (const [ruta, ticket] of PENDIENTES_DE_ANCLAR) {
+  for (const [ruta, ticket] of lista) {
     const caso = porRuta.get(ruta);
     if (caso === undefined) continue;
     const { total, sinAncla } = checksSinAncla(caso);
@@ -302,13 +306,17 @@ export function deudaDeAnclaje(casos: CasoEnDisco[]): DeudaDeAnclaje[] {
  * - Un pendiente que **ya ancla** todos sus Checks sobra: no se puede dejar ahí
  *   para siempre.
  *
- * Devuelve un hallazgo por cada caso, con qué hacer.
+ * Devuelve un hallazgo por cada caso, con qué hacer. La lista es un argumento,
+ * como en `deudaDeAnclaje`: desde el ticket 12 la real está vacía.
  */
-export function problemasDeLaListaDePendientes(casos: CasoEnDisco[]): string[] {
+export function problemasDeLaListaDePendientes(
+  casos: CasoEnDisco[],
+  lista: ReadonlyMap<string, string> = PENDIENTES_DE_ANCLAR,
+): string[] {
   const problemas: string[] = [];
   const porRuta = new Map(casos.map((c) => [c.ruta, c]));
 
-  for (const [ruta, ticket] of PENDIENTES_DE_ANCLAR) {
+  for (const [ruta, ticket] of lista) {
     const caso = porRuta.get(ruta);
     if (caso === undefined) {
       problemas.push(
@@ -332,13 +340,17 @@ export function problemasDeLaListaDePendientes(casos: CasoEnDisco[]): string[] {
 
 /**
  * ¿Este árbol es el del repo entero? La lista de pendientes sólo tiene sentido
- * sobre el árbol completo: en una prueba de un Caso suelto, los 13 Casos del repo
- * no están y serían «fantasmas» todos. Cuando falta alguno, la lista no se juzga:
- * sus propias pruebas la juzgan con la lista entera.
+ * sobre el árbol completo: en una prueba de un Caso suelto, los Casos del repo no
+ * están y serían «fantasmas» todos. Cuando falta alguno, la lista no se juzga:
+ * sus propias pruebas la juzgan con la lista entera. Desde el ticket 12 la lista
+ * está vacía, así que las reglas de la lista sólo disparan con listas de prueba.
  */
-function esArbolCompleto(casos: CasoEnDisco[]): boolean {
+function esArbolCompleto(
+  casos: CasoEnDisco[],
+  lista: ReadonlyMap<string, string>,
+): boolean {
   const rutas = new Set(casos.map((c) => c.ruta));
-  return [...PENDIENTES_DE_ANCLAR.keys()].every((ruta) => rutas.has(ruta));
+  return [...lista.keys()].every((ruta) => rutas.has(ruta));
 }
 
 /**

@@ -118,7 +118,8 @@ const hallazgos = problemasDelArbolDeCasos(arbol);
 // La deuda declarada se dice aunque no bloquee: un pendiente que no se nombra
 // se olvida, y la lista de `PENDIENTES_DE_ANCLAR` dejaría de vaciarse. Se mide
 // por Check (`deudaDeAnclaje`): anclar uno de doce no es estar más cerca según la
-// lista, pero sí según lo que queda por hacer.
+// lista, pero sí según lo que queda por hacer. Desde el ticket 12 la lista está
+// vacía y este bloque no imprime nada; sigue aquí por si vuelve a haber deuda.
 const deuda = deudaDeAnclaje(arbol);
 if (deuda.length > 0) {
   const checks = deuda.reduce((suma, d) => suma + d.sinAncla.length, 0);

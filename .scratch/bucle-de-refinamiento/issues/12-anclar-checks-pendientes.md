@@ -4,13 +4,13 @@
 
 **Blocked by:** 06
 
-**Status:** ready-for-human
+**Status:** done
 
-- [ ] `PENDIENTES_DE_ANCLAR` (`src/guardarrail-casos.ts`) queda **vacía**: los 13 Casos anclados
-- [ ] Cada línea de ancla cita una sección **que existe** en el `SKILL.md` del skill (lo comprueba `npm run verificar-casos`)
-- [ ] La sección elegida **dice lo que el Check mide** (no basta con que exista: ver «Cómo elegir la sección»)
-- [ ] La prosa de apoyo de cada `## Anclaje en desy-skills` se conserva: el ancla se **suma**, no sustituye
-- [ ] `npm test` y `npm run precommit` en verde, incluido el caso de «un pendiente que ya ancla sus Checks sobra»
+- [x] `PENDIENTES_DE_ANCLAR` (`src/guardarrail-casos.ts`) queda **vacía**: los 13 Casos anclados
+- [x] Cada línea de ancla cita una sección **que existe** en el `SKILL.md` del skill (lo comprueba `npm run verificar-casos`)
+- [x] La sección elegida **dice lo que el Check mide** (no basta con que exista: ver «Cómo elegir la sección»)
+- [x] La prosa de apoyo de cada `## Anclaje en desy-skills` se conserva: el ancla se **suma**, no sustituye
+- [x] `npm test` y `npm run precommit` en verde, incluido el caso de «un pendiente que ya ancla sus Checks sobra»
 
 ## Por qué no es mecánico
 
@@ -145,3 +145,28 @@ sin anclar es un rojo y la regla del ticket 06 se cumple entera.
   regla `PENDIENTES_DE_ANCLAR`; y `verificar-casos` lo dice igualmente («el Check no
   declara de qué sección depende»): es un Check del Framework, que tampoco es del
   Caso. Si algún día se quiere anclar, es un campo del Framework, no de la rúbrica.
+
+## Retro: lo que la implementación destapó
+
+- **La lista se conserva vacía, y las funciones se prueban con listas de prueba.**
+  Borrar `PENDIENTES_DE_ANCLAR` habría borrado también las tres reglas que la hacen
+  honesta (fantasma, sobrante, tolerancia), y con ellas la posibilidad de una
+  excepción temporal. En vez de eso, `problemasDelArbolDeCasos`, `problemasDeAnclaje`,
+  `deudaDeAnclaje` y `problemasDeLaListaDePendientes` aceptan la lista como
+  **argumento** (por defecto, la constante). Los tests que antes tomaban la lista
+  real como fixture pasan una propia; y dos tests nuevos fijan el estado real:
+  «la lista está vacía» y «la lista real no produce deuda», para que rellenarla sin
+  querer sea un rojo.
+- **`scaffold-project` sólo tiene el aviso como ancla posible.** La regla de
+  no-ejecución vive en un blockquote **antes** del primer epígrafe y no tiene título
+  propio: sus dos Checks de permiso anclan al título del skill (`## desy-scaffold-project`)
+  y la línea lo dice. Tienen un título que existe y que quien lo lee entiende
+  (es el documento entero el que prohíbe ejecutar), pero es el caso más débil de los
+  trece: si el skill gana un epígrafe «Para el agente», el ancla debería moverse allí.
+- **Check del Framework ya anclado fuera del Caso.** `fieldset-grid-acciones` ancla
+  `labels-visibles` a `desy-validate-accessibility` aunque el Check lo aporta el
+  Framework: no rompe nada, pero contradice la nota de arriba («es un campo del
+  Framework, no de la rúbrica»). Se dejó como estaba: no es de este ticket decidirlo.
+- **Prosa de apoyo conservada.** Donde el epígrafe ya existía, la prosa se
+  **resumió** en una línea de apoyo bajo las anclas —sin perder ninguna sección
+  citada— y donde no existía, se creó el epígrafe con su línea de apoyo.

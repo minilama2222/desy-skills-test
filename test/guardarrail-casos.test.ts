@@ -8,6 +8,14 @@ import {
   type CasoEnDisco as CasoParaValidar,
 } from "../src/guardarrail-casos.js";
 
+/**
+ * Una lista de pendientes de prueba. Desde el ticket 12, la real
+ * (`PENDIENTES_DE_ANCLAR`) está vacía y así se queda: las reglas de la lista
+ * siguen existiendo para una excepción temporal, y se prueban con esto.
+ */
+const pendientes = (...rutas: string[]): ReadonlyMap<string, string> =>
+  new Map(rutas.map((ruta) => [ruta, "ticket 99"]));
+
 /** Un Caso bien formado (Caso-componente). */
 const casoOk = (overrides: Partial<CasoParaValidar> = {}): CasoParaValidar => ({
   ruta: "casos/implement-component/componente/boton-primario",
@@ -301,15 +309,20 @@ describe("anclas de skill del Caso (ticket 06)", () => {
     expect(hallazgos).toEqual([]);
   });
 
-  it("tolera los Checks sin ancla de un Caso que está en PENDIENTES_DE_ANCLAR", () => {
+  it("tolera los Checks sin ancla de un Caso que está en una lista de pendientes", () => {
     // Deuda declarada: el pendiente existe, pero no rompe el build mientras esté
     // nombrado. El script lo anuncia aparte.
-    const [ruta] = [...PENDIENTES_DE_ANCLAR.keys()];
-    const hallazgos = problemasDelArbolDeCasos([
-      casoOk({ ruta, idsDeChecks: ["a", "b"], anclas: undefined }),
-    ]);
+    const ruta = "casos/skill-x/decision/caso-x";
+    const hallazgos = problemasDelArbolDeCasos(
+      [casoOk({ ruta, idsDeChecks: ["a", "b"], anclas: undefined })],
+      pendientes(ruta),
+    );
 
     expect(hallazgos).toEqual([]);
+  });
+
+  it("la lista real de pendientes está vacía: ningún Caso se tolera por estar en ella (ticket 12)", () => {
+    expect([...PENDIENTES_DE_ANCLAR.keys()]).toEqual([]);
   });
 
   it("un Caso que NO está en la lista y no ancla sus Checks sigue siendo un rojo", () => {
@@ -378,15 +391,15 @@ describe("contradicciones declaradas del Caso (ticket 13)", () => {
 });
 
 describe("problemasDeLaListaDePendientes: la deuda declarada no miente", () => {
-  /** Los 13 pendientes, para que no salgan como fantasmas los que no mido. */
+  const RUTAS = ["casos/skill-a/decision/caso-a", "casos/skill-b/decision/caso-b"];
+  const LISTA = pendientes(...RUTAS);
+  /** Los pendientes de prueba, para que no salgan como fantasmas los que no mido. */
   const todosLosPendientes = (over: Partial<CasoParaValidar> = {}): CasoParaValidar[] =>
-    [...PENDIENTES_DE_ANCLAR.keys()].map((ruta) =>
-      casoOk({ ruta, idsDeChecks: ["a"], anclas: undefined, ...over }),
-    );
+    RUTAS.map((ruta) => casoOk({ ruta, idsDeChecks: ["a"], anclas: undefined, ...over }));
 
   it("un pendiente que no está en el árbol es un fantasma, y se señala", () => {
-    const [ruta] = [...PENDIENTES_DE_ANCLAR.keys()];
-    const hallazgos = problemasDeLaListaDePendientes(todosLosPendientes().slice(1));
+    const [ruta] = RUTAS;
+    const hallazgos = problemasDeLaListaDePendientes(todosLosPendientes().slice(1), LISTA);
 
     expect(hallazgos).toHaveLength(1);
     expect(hallazgos[0]).toContain(ruta!);
@@ -394,33 +407,37 @@ describe("problemasDeLaListaDePendientes: la deuda declarada no miente", () => {
   });
 
   it("un pendiente que ya ancla todos sus Checks sobra, y se señala", () => {
-    const [ruta] = [...PENDIENTES_DE_ANCLAR.keys()];
+    const [ruta] = RUTAS;
     const casos = todosLosPendientes().map((caso) =>
       caso.ruta === ruta
         ? { ...caso, anclas: new Map([["a", { skill: "s", seccion: "x" }]]) }
         : caso,
     );
-    const hallazgos = problemasDeLaListaDePendientes(casos);
+    const hallazgos = problemasDeLaListaDePendientes(casos, LISTA);
 
     expect(hallazgos).toHaveLength(1);
     expect(hallazgos[0]).toContain("ya ancla sus 1 Check/s");
   });
 
   it("un pendiente que sigue sin anclar no se señala: ésa es la deuda real", () => {
+    expect(problemasDeLaListaDePendientes(todosLosPendientes(), LISTA)).toEqual([]);
+  });
+
+  it("sin lista (la real, vacía) no hay nada que delatar", () => {
     expect(problemasDeLaListaDePendientes(todosLosPendientes())).toEqual([]);
   });
 });
 
 describe("deudaDeAnclaje: la deuda se mide por Check, no por ruta (retro del ticket 07)", () => {
-  /** Los 13 pendientes, igual que en los tests de la lista: los que no mido existen. */
+  const RUTAS = ["casos/skill-a/decision/caso-a", "casos/skill-b/decision/caso-b"];
+  const LISTA = pendientes(...RUTAS);
+  /** Los pendientes de prueba, igual que en los tests de la lista. */
   const todosLosPendientes = (over: Partial<CasoParaValidar> = {}): CasoParaValidar[] =>
-    [...PENDIENTES_DE_ANCLAR.keys()].map((ruta) =>
-      casoOk({ ruta, idsDeChecks: ["a"], anclas: undefined, ...over }),
-    );
+    RUTAS.map((ruta) => casoOk({ ruta, idsDeChecks: ["a"], anclas: undefined, ...over }));
 
-  const [primera] = [...PENDIENTES_DE_ANCLAR.keys()];
+  const [primera] = RUTAS;
   const deudaDel = (caso: CasoParaValidar): ReturnType<typeof deudaDeAnclaje> =>
-    deudaDeAnclaje([caso]).filter((d) => d.ruta === caso.ruta);
+    deudaDeAnclaje([caso], LISTA).filter((d) => d.ruta === caso.ruta);
 
   it("dice cuántos Checks le faltan a un pendiente y cuáles son", () => {
     const deuda = deudaDel(casoOk({ ruta: primera!, idsDeChecks: ["a", "b", "c"] }));
@@ -428,13 +445,17 @@ describe("deudaDeAnclaje: la deuda se mide por Check, no por ruta (retro del tic
     expect(deuda).toHaveLength(1);
     expect(deuda[0]).toMatchObject({
       ruta: primera,
-      ticket: PENDIENTES_DE_ANCLAR.get(primera!),
+      ticket: LISTA.get(primera!),
       ancladas: 0,
       total: 3,
       sinAncla: ["a", "b", "c"],
     });
   });
 
+  it("la lista real no produce deuda: todos los Casos están anclados (ticket 12)", () => {
+    expect(deudaDeAnclaje(todosLosPendientes())).toEqual([]);
+  });
+  
   it("un pendiente a medio anclar sigue en la deuda, con el progreso", () => {
     // El agujero que esto cierra: `problemasDeChecksSinAncla` tolera el Caso
     // entero por estar en la lista, así que 1 de 2 anclados pasaba por «sin
@@ -450,6 +471,7 @@ describe("deudaDeAnclaje: la deuda se mide por Check, no por ruta (retro del tic
     expect(
       problemasDelArbolDeCasos(
         todosLosPendientes().map((caso) => (caso.ruta === primera ? medio : caso)),
+        LISTA,
       ),
     ).toEqual([]);
   });
@@ -465,6 +487,7 @@ describe("deudaDeAnclaje: la deuda se mide por Check, no por ruta (retro del tic
     expect(
       problemasDeLaListaDePendientes(
         todosLosPendientes().map((caso) => (caso.ruta === primera ? completo : caso)),
+        LISTA,
       ),
     ).toHaveLength(1);
   });

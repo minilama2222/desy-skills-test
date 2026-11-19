@@ -18,6 +18,21 @@ framework para un sitio que no lo necesita).
 - **cabecera-advanced** (peso 1): la cabecera recomendada es `header-advanced`
   (3 bandas), coherente con la familia portal.
 
+## Anclaje en `desy-skills`
+
+Por cada Check, el skill y la sección de su `SKILL.md` donde vive la regla. El
+informe por Caso cita esa sección **por título**, no por número de línea, y
+`npm run verificar-casos` comprueba que el título existe en el `SKILL.md`.
+
+- libreria-desy-html: desy-choose-library → «Decision framework (3 preguntas)»
+- starter-correcto: desy-choose-library → «Regla fundamental (lee esto antes de recomendar)»
+- cabecera-advanced: desy-choose-library → «Pregunta 1: ¿Qué tipo de producto?»
+
+Prosa de apoyo: la tabla de «Decision framework (3 preguntas)» empareja
+**sitio web / portal** con `desy-html` y `header-advanced`; la «Regla
+fundamental» es la que hace del starter (`desy-html-starter`) la forma de usar la
+librería. El «Output esperado» recoge los tres hechos en la recomendación.
+
 ## Qué NO se mide
 
 No hay HTML: el artefacto es la recomendación del SUT. Se juzga la **librería**

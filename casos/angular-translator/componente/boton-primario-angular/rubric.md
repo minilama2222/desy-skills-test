@@ -34,12 +34,18 @@ traducción 1:1 en un componente compuesto cuando no toca.
 
 ## Anclaje en `desy-skills`
 
-- Patrón general: `desy-angular-translator` → «Patrones generales de traducción»
-  (macro → selector, props → inputs con `[binding]`).
-- Tabla de equivalencias: `desy-angular-translator` → `<desy-button>` ≡
-  `{{ componentButton({...}) }}`.
-- `classes` con la misma semántica: `desy-angular-translator` → «Parámetros que
-  están en AMBAS librerías».
+Por cada Check, una línea con su sección. La prosa de apoyo de abajo se queda.
+
+- usa-selector-desy-button: desy-angular-translator → «Tabla de equivalencias por componente (15+ validados)»
+- conserva-la-variante-primaria: desy-angular-translator → «Patrones generales de traducción»
+- traduce-el-binding-de-texto: desy-angular-translator → «Parámetros que están en AMBAS librerías (con la misma semántica)»
+- no-deja-el-macro-nunjucks: desy-angular-translator → «Tabla de equivalencias por componente (15+ validados)»
+
+Prosa de apoyo: el patrón general (macro → selector, props → inputs con
+`[binding]`) está en «Patrones generales de traducción»; la equivalencia
+`<desy-button>` ≡ `{{ componentButton({...}) }}`, en «Tabla de equivalencias por
+componente»; y la misma semántica de `classes` en ambas librerías, en
+«Parámetros que están en AMBAS librerías».
 
 ## Qué NO se mide
 

@@ -38,6 +38,25 @@ inventado (que no existe en el catálogo) suspende; una variante no documentada
 para ese componente baja el Quality. La fila del componente se lee de la tabla de
 identificación, así que una variante válida asignada a **otro** componente no cuela.
 
+## Anclaje en `desy-skills`
+
+Por cada Check, el skill y la sección de su `SKILL.md` donde vive la regla. El
+informe por Caso cita esa sección **por título**, no por número de línea, y
+`npm run verificar-casos` comprueba que el título existe en el `SKILL.md`.
+
+- reconoce-input-group: desy-component-recognizer → «3. **"input" vs "input-group" vs "date-input" vs "datepicker"**»
+- reconoce-header-mini: desy-component-recognizer → «5. **header vs header-mini vs header-advanced**»
+- reconoce-accion-button: desy-component-recognizer → «11. **Acción subrayada = `button` transparente, no `link`**»
+- reconoce-accion-primaria: desy-component-recognizer → «Linter de variantes (post-reconocimiento)»
+- reconoce-footer: desy-component-recognizer → «Paso 4: Output en tabla»
+- no-inventa-header-advanced: desy-component-recognizer → «5. **header vs header-mini vs header-advanced**»
+
+Prosa de apoyo: las «Reglas críticas de matching» son el catálogo de
+confusiones típicas —`input` vs `input-group` (regla 3), las tres cabeceras
+(regla 5), el botón transparente (regla 11)—; el «Linter de variantes» es quien
+valida `primario` ≡ `primary` contra el catálogo, y la tabla del «Paso 4» es
+donde sale la fila del `footer`.
+
 ## Qué NO se mide
 
 No hay HTML: el artefacto es la tabla de identificación del SUT. No se juzga el

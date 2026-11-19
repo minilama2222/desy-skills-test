@@ -32,12 +32,16 @@ carpeta con ficheros sueltos que **no** es un proyecto DESY (el criterio es
 
 ## Anclaje en `desy-skills`
 
-- Sentinel y check: `desy-preflight-check` → «Paso 1: Detección de existencia
-  del proyecto» (`PROYECTO_OK` / `PROYECTO_NO_EXISTE`).
-- Bifurcación: `desy-preflight-check` → «Paso 2: Si PROYECTO_NO_EXISTE →
-  bifurcar al scaffold».
-- Anti-pattern: `desy-preflight-check` → «Continuar planificando 5 pasos de
-  implementación cuando preflight devolvió NO_EXISTE».
+Por cada Check, una línea con su sección. La prosa de apoyo de abajo se queda.
+
+- identifica-no-existe: desy-preflight-check → «Paso 1: Detección de existencia del proyecto»
+- bifurca-a-scaffold: desy-preflight-check → «Paso 2: Si PROYECTO_NO_EXISTE → bifurcar al scaffold»
+- no-arranca-implementacion: desy-preflight-check → «Anti-patterns»
+
+Prosa de apoyo: el sentinel y el check (`PROYECTO_OK` / `PROYECTO_NO_EXISTE`)
+están en «Paso 1»; la bifurcación obligatoria al scaffold, en «Paso 2»; y el
+anti-pattern «Continuar planificando 5 pasos de implementación cuando preflight
+devolvió NO_EXISTE», en «Anti-patterns».
 
 ## Qué NO se mide
 

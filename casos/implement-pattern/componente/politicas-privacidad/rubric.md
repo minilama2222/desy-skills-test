@@ -35,14 +35,21 @@ guards son de **macro y de tokens**, no de HTML renderizado.
 
 ## Anclaje en `desy-skills`
 
-- Patrón atómico: `desy-implement-pattern` → «Cómo pedimos información» →
-  «Aceptar políticas de privacidad»; anti-pattern «eliminar el
-  `<fieldset><legend class="sr-only">` "porque no se ve"».
-- Macro y props: `desy-implement-component` → «`componentCheckboxes` /
-  `componentRadios` — similar a input-group».
-- Group semántico y legend sr-only: `desy-implement-layout-patterns` → «Patrón de
-  un único checkbox (privacidad, términos)».
-- Tokens: `desy-styles-reference` (escala de espaciado `xs/sm/base/lg/xl/2xl/3xl`).
+Por cada Check, una línea con su sección. La prosa de apoyo de abajo se queda.
+
+- usa-macro-checkboxes: desy-implement-component → «`componentCheckboxes` / `componentRadios` — similar a input-group»
+- sin-props-inventados: desy-implement-component → «`componentCheckboxes` / `componentRadios` — similar a input-group»
+- legend-sr-only: desy-implement-layout-patterns → «Patrón de un único checkbox (privacidad, términos)»
+- texto-politica: desy-implement-layout-patterns → «Patrón de un único checkbox (privacidad, términos)»
+- espaciado-del-sistema: desy-styles-reference → «Espaciado (escala de tokens del proyecto)»
+
+Prosa de apoyo: el patrón atómico «Aceptar políticas de privacidad» está en
+`desy-implement-pattern` → «Cómo pedimos información», con su anti-pattern
+(«eliminar el `<fieldset><legend class="sr-only">` "porque no se ve"»); la macro y
+sus props, en «`componentCheckboxes` / `componentRadios`»; el group semántico con
+`legend sr-only`, en «Patrón de un único checkbox (privacidad, términos)»; y la
+escala de espaciado (`xs/sm/base/lg/xl/2xl/3xl`), en «Espaciado» de
+`desy-styles-reference`.
 
 ## Fuera de alcance de este Caso
 

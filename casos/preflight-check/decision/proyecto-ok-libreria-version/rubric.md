@@ -29,12 +29,14 @@ leer el `package.json`.
 
 ## Anclaje en `desy-skills`
 
-- Check de existencia: `desy-preflight-check` → «Paso 1: Detección de existencia
-  del proyecto» (`PROYECTO_OK`).
-- Lectura del `package.json`: `desy-preflight-check` → «Paso 3: Si PROYECTO_OK →
-  identificar contexto» (proyecto, librería, versión, comandos dev/build).
-- Anti-pattern: `desy-preflight-check` → «Asumir librería sin verificar» y
-  «Asumir versión outdated».
+- identifica-libreria: desy-preflight-check → «Paso 3: Si PROYECTO_OK → identificar contexto»
+- identifica-version: desy-preflight-check → «Paso 3: Si PROYECTO_OK → identificar contexto»
+- identifica-proyecto-ok: desy-preflight-check → «Paso 1: Detección de existencia del proyecto»
+
+Prosa de apoyo: el check de existencia (`PROYECTO_OK`) está en «Paso 1»; la
+lectura del `package.json` con proyecto, librería, versión y comandos, en «Paso 3»;
+y los anti-patterns «Asumir librería sin verificar» y «Asumir versión outdated», en
+«Errores típicos que evita».
 
 ## Qué NO se mide
 

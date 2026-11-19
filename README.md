@@ -332,10 +332,11 @@ Ejecución que no invocó ningún skill **no cita la sección** aunque el skill 
 en el árbol, y lo dice; un Check del Flujo dice por qué no hay línea que citar.
 
 El guardarraíl exige que **cada** Check del Caso tenga su ancla; un Caso nuevo sin
-anclar rompe el build. Los Casos anteriores al anclaje por Check están en
-`PENDIENTES_DE_ANCLAR` (`src/guardarrail-casos.ts`), con el ticket que los anclará:
-`verificar-casos` los enumera al pasar y falla si la lista nombra un Caso que no
-existe o que ya está anclado. Es deuda declarada, no una excepción silenciosa.
+anclar rompe el build. `PENDIENTES_DE_ANCLAR` (`src/guardarrail-casos.ts`) es la
+lista de excepciones temporales y **hoy está vacía**: los trece Casos anteriores al
+anclaje por Check se anclaron en el ticket 12. Se conserva porque `verificar-casos`
+sigue enumerando lo que hubiera en ella y falla si nombra un Caso que no existe o
+que ya está anclado: si alguien la usa, no puede quedarse desactualizada en silencio.
 
 
 ## Pin
