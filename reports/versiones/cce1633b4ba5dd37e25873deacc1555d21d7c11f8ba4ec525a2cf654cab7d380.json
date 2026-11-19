@@ -1,0 +1,448 @@
+{
+  "arbolHash": "cce1633b4ba5dd37e25873deacc1555d21d7c11f8ba4ec525a2cf654cab7d380",
+  "pin": {
+    "ref": "0d6263d",
+    "commit": "0d6263d",
+    "fecha": "2026-11-19"
+  },
+  "skills": [
+    {
+      "skill": "angular-translator",
+      "casos": [
+        {
+          "caso": "boton-primario-angular",
+          "tipo": "caso-componente",
+          "veredicto": "INDETERMINADO",
+          "entregas": 0,
+          "intentos": 6,
+          "alcanzaronSkill": 6,
+          "correctas": 0,
+          "entregoMal": 0,
+          "sinArtefacto": 6,
+          "hallazgosConArtefacto": 0,
+          "fallos": [],
+          "guards": {
+            "ok": 1,
+            "total": 2
+          },
+          "gradeCalidad": "INACEPTABLE",
+          "hallazgosDeTrigger": 0,
+          "triggerConEvidencia": 0,
+          "contradiccionesDeclaradas": []
+        }
+      ],
+      "pasados": 0,
+      "suspendidos": 0,
+      "indeterminados": 1
+    },
+    {
+      "skill": "choose-library",
+      "casos": [
+        {
+          "caso": "portal-turistico",
+          "tipo": "caso-decision",
+          "veredicto": "PASA",
+          "entregas": 3,
+          "intentos": 3,
+          "alcanzaronSkill": 3,
+          "correctas": 3,
+          "entregoMal": 0,
+          "sinArtefacto": 0,
+          "hallazgosConArtefacto": 0,
+          "fallos": [],
+          "guards": {
+            "ok": 1,
+            "total": 1
+          },
+          "gradeCalidad": "EXCELENTE",
+          "hallazgosDeTrigger": 0,
+          "triggerConEvidencia": 0,
+          "contradiccionesDeclaradas": []
+        }
+      ],
+      "pasados": 1,
+      "suspendidos": 0,
+      "indeterminados": 0
+    },
+    {
+      "skill": "choose-page-template",
+      "casos": [
+        {
+          "caso": "404-portal-publico",
+          "tipo": "caso-decision",
+          "veredicto": "PASA",
+          "entregas": 3,
+          "intentos": 3,
+          "alcanzaronSkill": 3,
+          "correctas": 3,
+          "entregoMal": 0,
+          "sinArtefacto": 0,
+          "hallazgosConArtefacto": 0,
+          "fallos": [],
+          "guards": {
+            "ok": 1,
+            "total": 1
+          },
+          "gradeCalidad": "EXCELENTE",
+          "hallazgosDeTrigger": 0,
+          "triggerConEvidencia": 0,
+          "contradiccionesDeclaradas": []
+        }
+      ],
+      "pasados": 1,
+      "suspendidos": 0,
+      "indeterminados": 0
+    },
+    {
+      "skill": "component-recognizer",
+      "casos": [
+        {
+          "caso": "reconocimiento-login",
+          "tipo": "caso-decision",
+          "veredicto": "SUSPENDE",
+          "entregas": 3,
+          "intentos": 3,
+          "alcanzaronSkill": 3,
+          "correctas": 0,
+          "entregoMal": 3,
+          "sinArtefacto": 0,
+          "hallazgosConArtefacto": 0,
+          "fallos": [
+            {
+              "id": "reconoce-input-group",
+              "severity": "guard"
+            },
+            {
+              "id": "reconoce-header-mini",
+              "severity": "guard"
+            },
+            {
+              "id": "reconoce-accion-button",
+              "severity": "guard"
+            },
+            {
+              "id": "reconoce-accion-primaria",
+              "severity": "quality"
+            },
+            {
+              "id": "reconoce-footer",
+              "severity": "quality"
+            },
+            {
+              "id": "no-inventa-header-advanced",
+              "severity": "quality"
+            }
+          ],
+          "guards": {
+            "ok": 0,
+            "total": 3
+          },
+          "gradeCalidad": "INACEPTABLE",
+          "hallazgosDeTrigger": 0,
+          "triggerConEvidencia": 0,
+          "contradiccionesDeclaradas": []
+        }
+      ],
+      "pasados": 0,
+      "suspendidos": 1,
+      "indeterminados": 0
+    },
+    {
+      "skill": "design-match",
+      "casos": [
+        {
+          "caso": "afinado-paso-1",
+          "tipo": "caso-decision",
+          "veredicto": "SUSPENDE",
+          "entregas": 3,
+          "intentos": 3,
+          "alcanzaronSkill": 3,
+          "correctas": 0,
+          "entregoMal": 3,
+          "sinArtefacto": 0,
+          "hallazgosConArtefacto": 0,
+          "fallos": [
+            {
+              "id": "no-usa-valor-arbitrario",
+              "severity": "quality"
+            }
+          ],
+          "guards": {
+            "ok": 2,
+            "total": 2
+          },
+          "gradeCalidad": "BUENO",
+          "hallazgosDeTrigger": 0,
+          "triggerConEvidencia": 0,
+          "contradiccionesDeclaradas": []
+        }
+      ],
+      "pasados": 0,
+      "suspendidos": 1,
+      "indeterminados": 0
+    },
+    {
+      "skill": "implement-component",
+      "casos": [
+        {
+          "caso": "boton-primario",
+          "tipo": "caso-componente",
+          "veredicto": "PASA",
+          "entregas": 3,
+          "intentos": 5,
+          "alcanzaronSkill": 5,
+          "correctas": 3,
+          "entregoMal": 0,
+          "sinArtefacto": 2,
+          "hallazgosConArtefacto": 0,
+          "fallos": [],
+          "guards": {
+            "ok": 4,
+            "total": 4
+          },
+          "gradeCalidad": "EXCELENTE",
+          "hallazgosDeTrigger": 0,
+          "triggerConEvidencia": 0,
+          "contradiccionesDeclaradas": []
+        }
+      ],
+      "pasados": 1,
+      "suspendidos": 0,
+      "indeterminados": 0
+    },
+    {
+      "skill": "implement-layout-patterns",
+      "casos": [
+        {
+          "caso": "fieldset-grid-acciones",
+          "tipo": "caso-componente",
+          "veredicto": "PASA",
+          "entregas": 3,
+          "intentos": 3,
+          "alcanzaronSkill": 3,
+          "correctas": 3,
+          "entregoMal": 0,
+          "sinArtefacto": 0,
+          "hallazgosConArtefacto": 0,
+          "fallos": [],
+          "guards": {
+            "ok": 4,
+            "total": 4
+          },
+          "gradeCalidad": "EXCELENTE",
+          "hallazgosDeTrigger": 0,
+          "triggerConEvidencia": 0,
+          "contradiccionesDeclaradas": []
+        }
+      ],
+      "pasados": 1,
+      "suspendidos": 0,
+      "indeterminados": 0
+    },
+    {
+      "skill": "implement-pattern",
+      "casos": [
+        {
+          "caso": "politicas-privacidad",
+          "tipo": "caso-componente",
+          "veredicto": "PASA",
+          "entregas": 3,
+          "intentos": 6,
+          "alcanzaronSkill": 5,
+          "correctas": 3,
+          "entregoMal": 0,
+          "sinArtefacto": 2,
+          "hallazgosConArtefacto": 1,
+          "fallos": [],
+          "guards": {
+            "ok": 3,
+            "total": 3
+          },
+          "gradeCalidad": "EXCELENTE",
+          "hallazgosDeTrigger": 1,
+          "triggerConEvidencia": 1,
+          "contradiccionesDeclaradas": []
+        },
+        {
+          "caso": "patron-pagina-paso-1-nombre-nif",
+          "tipo": "caso-pagina",
+          "veredicto": "INDETERMINADO",
+          "entregas": 0,
+          "intentos": 6,
+          "alcanzaronSkill": 5,
+          "correctas": 0,
+          "entregoMal": 0,
+          "sinArtefacto": 5,
+          "hallazgosConArtefacto": 0,
+          "fallos": [],
+          "guards": {
+            "ok": 4,
+            "total": 9
+          },
+          "gradeCalidad": "INACEPTABLE",
+          "hallazgosDeTrigger": 0,
+          "triggerConEvidencia": 0,
+          "contradiccionesDeclaradas": []
+        }
+      ],
+      "pasados": 1,
+      "suspendidos": 0,
+      "indeterminados": 1
+    },
+    {
+      "skill": "preflight-check",
+      "casos": [
+        {
+          "caso": "proyecto-no-existe",
+          "tipo": "caso-decision",
+          "veredicto": "SUSPENDE",
+          "entregas": 3,
+          "intentos": 3,
+          "alcanzaronSkill": 3,
+          "correctas": 0,
+          "entregoMal": 3,
+          "sinArtefacto": 0,
+          "hallazgosConArtefacto": 0,
+          "fallos": [
+            {
+              "id": "no-arranca-implementacion",
+              "severity": "quality"
+            }
+          ],
+          "guards": {
+            "ok": 1,
+            "total": 1
+          },
+          "gradeCalidad": "BUENO",
+          "hallazgosDeTrigger": 0,
+          "triggerConEvidencia": 0,
+          "contradiccionesDeclaradas": []
+        },
+        {
+          "caso": "proyecto-ok-libreria-version",
+          "tipo": "caso-decision",
+          "veredicto": "PASA",
+          "entregas": 3,
+          "intentos": 3,
+          "alcanzaronSkill": 3,
+          "correctas": 3,
+          "entregoMal": 0,
+          "sinArtefacto": 0,
+          "hallazgosConArtefacto": 0,
+          "fallos": [],
+          "guards": {
+            "ok": 1,
+            "total": 1
+          },
+          "gradeCalidad": "EXCELENTE",
+          "hallazgosDeTrigger": 0,
+          "triggerConEvidencia": 0,
+          "contradiccionesDeclaradas": []
+        }
+      ],
+      "pasados": 1,
+      "suspendidos": 1,
+      "indeterminados": 0
+    },
+    {
+      "skill": "scaffold-project",
+      "casos": [
+        {
+          "caso": "no-scaffoldea-sin-permiso",
+          "tipo": "caso-decision",
+          "veredicto": "INDETERMINADO",
+          "entregas": 0,
+          "intentos": 6,
+          "alcanzaronSkill": 0,
+          "correctas": 0,
+          "entregoMal": 0,
+          "sinArtefacto": 0,
+          "hallazgosConArtefacto": 6,
+          "fallos": [],
+          "guards": {
+            "ok": 0,
+            "total": 0
+          },
+          "gradeCalidad": "INACEPTABLE",
+          "hallazgosDeTrigger": 0,
+          "triggerConEvidencia": 0,
+          "contradiccionesDeclaradas": []
+        }
+      ],
+      "pasados": 0,
+      "suspendidos": 0,
+      "indeterminados": 1
+    },
+    {
+      "skill": "styles-reference",
+      "casos": [
+        {
+          "caso": "token-espaciado",
+          "tipo": "caso-decision",
+          "veredicto": "PASA",
+          "entregas": 3,
+          "intentos": 3,
+          "alcanzaronSkill": 3,
+          "correctas": 3,
+          "entregoMal": 0,
+          "sinArtefacto": 0,
+          "hallazgosConArtefacto": 0,
+          "fallos": [],
+          "guards": {
+            "ok": 2,
+            "total": 2
+          },
+          "gradeCalidad": "EXCELENTE",
+          "hallazgosDeTrigger": 0,
+          "triggerConEvidencia": 0,
+          "contradiccionesDeclaradas": []
+        }
+      ],
+      "pasados": 1,
+      "suspendidos": 0,
+      "indeterminados": 0
+    },
+    {
+      "skill": "validate-accessibility",
+      "casos": [
+        {
+          "caso": "checklist-sin-servidor",
+          "tipo": "caso-decision",
+          "veredicto": "SUSPENDE",
+          "entregas": 3,
+          "intentos": 3,
+          "alcanzaronSkill": 3,
+          "correctas": 0,
+          "entregoMal": 3,
+          "sinArtefacto": 0,
+          "hallazgosConArtefacto": 0,
+          "fallos": [
+            {
+              "id": "detecta-fieldset-sin-legend",
+              "severity": "guard"
+            },
+            {
+              "id": "detecta-label-sin-for",
+              "severity": "quality"
+            },
+            {
+              "id": "no-inventa-un-pase",
+              "severity": "quality"
+            }
+          ],
+          "guards": {
+            "ok": 1,
+            "total": 2
+          },
+          "gradeCalidad": "INACEPTABLE",
+          "hallazgosDeTrigger": 0,
+          "triggerConEvidencia": 0,
+          "contradiccionesDeclaradas": []
+        }
+      ],
+      "pasados": 0,
+      "suspendidos": 1,
+      "indeterminados": 0
+    }
+  ]
+}
