@@ -95,12 +95,14 @@ Cinco piezas, cada una resuelve uno de los cinco fallos de arriba:
 - (a) **Replay del grader:** artefactos commiteados → `grader.ts`, afirmar los mismos grades. Protege frente a deriva del grader.
 - (b) **Checklist skill → Casos:** afirma el contenido de `SKILL.md` del que depende cada Caso (tabla de tokens, `gap-x-4` legacy, instrucción de copiar la página de prueba…) y dice **qué Casos hay que re-correr**. **No** es un gate duro: fallará cada vez que se mejore un skill legítimamente.
 
-### Puente a `desy-skills` (ver ADR-0017)
+### Puente a `desy-skills` (ver la petición `peticion-copiar-pagina-prueba.md` y `refinar-skill`)
 
 - **Una petición por cambio**, en `.scratch/bucle-de-refinamiento/peticiones/<slug>.md`, nombrada por el cambio y no por la fecha.
 - El repo `desy-skills` **nunca** recibe documentación de este harness: recibe cambios de skill por PR, siguiendo su `CONTRIBUTING.md` (worktree, rama `skill/*` o `improve/*`, anatomía de `SKILL.md`).
 - El `/handoff` de Matt (`~/.agents/skills/handoff`) es el **único objeto que cruza**: escribe en `%TEMP%` un puntero a la petición más los skills sugeridos. No duplica contenido.
+- **Así se lee hoy (ticket 11):** este puente no tiene ADR. El ADR-0017 que esta spec citaba no se escribió, y el acuerdo vigente está en `.opencode/skills/refinar-skill/` (`SKILL.md` y `FASES.md`). Tampoco está construido el cierre automático: las fases 3 y 5 las ejecuta la persona, y el PASA sostenido se lee comparando dos versiones a mano.
 - **Cierre:** la misma checklist del tier rápido (b) comprueba, al cambiar de versión, si el texto que la petición pedía ya está en el skill.
+  **No está construido** (ticket 11): `peticiones/` no lo lee ningún guardarraíl, y una petición se cierra a mano midiendo. Ver el [README](../../README.md#el-bucle-de-refinamiento).
 
 ## Out of Scope
 

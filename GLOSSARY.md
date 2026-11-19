@@ -132,7 +132,34 @@ meterla en `Check.ancla`.
 
 **Caso indeterminado**:
 El veredicto agregado de un Caso cuando **ninguna** de sus N Ejecuciones alcanzó el skill bajo test. No es suspenso: no hay dato para juzgar el skill (el agente no arrancó ninguna vez). Es un tercer estado además de aprobado/suspendido, y el scorecard debe representarlo. Ver ADR-0007.
-_Avoid_: contarlo como suspenso del skill.
+_Avoid_: contarlo como suspenso del skill. Un Caso con cero **Entregas** también sale INDETERMINADO —alcanzó el skill y no produjo Artefacto—, pero por otra razón: ver Veredicto de un Caso.
+
+**Bucle de refinamiento**:
+El ciclo que convierte un Scorecard en un Skill mejorado y el Skill mejorado en un
+Scorecard nuevo: editar el skill → `checklist-casos` → `run` de esos Casos →
+informe por Caso → decidir skill vs check → `suite` con PASA sostenido → cerrar el
+Pin → Petición. Cada vuelta mide una **Versión de skills** distinta y la deja
+comparada por su Scorecard de versión. Vive en `.scratch/bucle-de-refinamiento/`
+(spec y tickets) y lo conduce `refinar-skill` en fases. Ver el
+[README](./README.md#el-bucle-de-refinamiento).
+_Avoid_: llamar «bucle» a `npm run suite` (eso es **medir** una vuelta, no cerrarla);
+llamarlo «CI» —el CI corre el gate del harness, no refina el skill.
+
+**Petición** (de cambio de skill):
+El documento que pide **un** cambio concreto en un `SKILL.md` de `desy-skills`:
+fichero destino, evidencia (el Check, la línea del Artefacto, la Ejecución), la
+sección que lo causa, restricciones y el criterio con el que se valida. Vive en
+`.scratch/bucle-de-refinamiento/peticiones/<slug>.md`, nombrada por el cambio y no
+por la fecha, con la forma de
+[`_plantilla.md`](./.scratch/bucle-de-refinamiento/peticiones/_plantilla.md). El
+repo `desy-skills` **nunca**
+recibe la Petición: recibe el cambio como PR, y aquí se comprueba midiendo.
+Ningún guardarraíl la lee —`peticiones/` no está en `verificar-tracker`—, así que
+su cierre (que el cambio se aplicó y el Caso da PASA sostenido) se comprueba a
+mano, con la misma checklist que lee el skill editado.
+_Avoid_: llamarla «issue» o «handoff» (el handoff es el sobre que la señala, no el
+contenido); escribirla por un Caso INDETERMINADO —eso no es un hallazgo sobre el
+skill—; meter evals o documentación del harness en `desy-skills`.
 
 **Check**:
 La aserción declarativa individual dentro de `expected/checks.json`.
@@ -175,9 +202,10 @@ _Avoid_: usar «Grade» para este agregado; llamar «suspenso» al indeterminado
 Dos corridas **consecutivas** del mismo Caso, contadas por separado, y las dos
 PASA. Es el criterio para declarar un skill **refinado** (ADR-0014): una sola
 corrida PASA con una entrega de tres significa «acertó una vez». Lo calcula
-`pasaSostenido` (`src/scorecard.ts`).
+`pasaSostenido` (`src/scorecard.ts`) y **hoy lo lee la persona**: `npm run
+diff-versiones` compara las dos versiones y no dice si el Caso está refinado.
 _Avoid_: llamar «refinado» a un Caso que pasó una vez; contar los INDETERMINADO
-como aprobados blandos.
+como aprobados blandos; dar por hecho que un comando lo comprueba.
 
 **Presupuesto de intentos**:
 Lo que cuesta tener `n` Entregas de un Caso: se corre —se **intenta**— hasta
@@ -290,6 +318,19 @@ El contenido de `skills/**` que una corrida copió al sandbox, identificado por 
 tenga commit. La **conclusión** que se guarda de una Versión de skills es su
 Scorecard de versión (ADR-0016).
 _Avoid_: usar el commit como sinónimo de versión: un commit no dice lo que se midió.
+
+**`arbolHash`**:
+El hash del contenido de `skills/**` —sin `assets/catalog.json`— que la corrida
+copió al sandbox. Es la identidad de una **Versión de skills**: nombra su Scorecard
+de versión, así que dos corridas del mismo contenido son la misma versión y la
+segunda **pisa** el fichero en vez de dejar dos verdades. Lo calcula `hashDelArbol`
+(`src/guardarrail-pin.ts`) sobre el árbol del sandbox y el Scorecard lo declara.
+No es lo que impide medir un `vendor/` manipulado —eso lo hace el guardarraíl de
+árbol sucio, con `git status`—: el hash se calcula para **nombrar** lo medido y
+compararlo, no para validarlo contra un commit.
+_Avoid_: llamarlo «hash del Pin» (el Pin es un commit, y el hash no lo verifica);
+confundirlo con el SHA de git del checkout; dar por hecho que el hash cierra la
+puerta a medir una edición de `vendor/`.
 
 **Pin local**:
 El Pin de una corrida que mide los skills de un **checkout del usuario** (`.scratch/…`, un clon propio) en vez de `vendor/`, para iterar sobre un skill sin re-pinear por cada frase. Se declara como `local (sin commit)` —en el JSON, en el H1 del Scorecard y por consola— y nunca escribe en `vendor/`. Se activa con `--skills-local <ruta>`; el árbol que se mide `<ruta>/skills/` pasa por el mismo guardarraíl de árbol sucio. Canónico sigue siendo upstream por SHA (ADR-0003): es comodidad declarada, no una segunda vía de verdad. Ver el ticket 05.

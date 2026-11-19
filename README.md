@@ -7,6 +7,7 @@ Cada **Caso** alimenta al SUT (agente `opencode run` headless) con una entrada y
 - Vocabulario del dominio: [`GLOSSARY.md`](./GLOSSARY.md)
 - Decisiones: [`docs/adr/`](./docs/adr/)
 - Spec y tickets: [`.scratch/desy-skills-test-harness/`](./.scratch/desy-skills-test-harness/)
+- El bucle que convierte un scorecard en un skill mejor: [El bucle de refinamiento](#el-bucle-de-refinamiento), con su spec y sus tickets en [`.scratch/bucle-de-refinamiento/`](./.scratch/bucle-de-refinamiento/)
 
 ## Uso
 
@@ -234,6 +235,56 @@ no significa lo de hoy: [`reports/legado/README.md`](reports/legado/README.md).
 ```bash
 npm run archivar-legado                      # una vez, a mano: no se re-genera
 ```
+
+## El bucle de refinamiento
+
+Hasta aquí el README explica cómo **medir**. Esta sección explica cómo una medida
+se convierte en un skill mejor, y en otra medida.
+
+```
+editar el skill (desy-skills) → checklist-casos → run de esos Casos → informe por Caso
+  → decidir (skill o check) → Petición → [en desy-skills: el PR] → medir otra vez
+  → suite completa con PASA sostenido → bump-pin
+```
+
+Las seis fases, con su criterio de salida, los gates y el formato del fichero de
+estado, están en
+[`.opencode/skills/refinar-skill/FASES.md`](./.opencode/skills/refinar-skill/FASES.md).
+Ese skill es el que conduce el bucle; esta sección es su mapa, no su copia.
+
+### Paso a paso: qué hace la persona y qué el agente
+
+| # | Paso | La persona | El agente | Dónde queda |
+|---|---|---|---|---|
+| 0 | Registrar la versión base | Lanza `npm run suite` si no hay un scorecard reciente (es caro: es su decisión) | Lee el `arbolHash` del scorecard y **crea** el fichero de ciclo con `base:`, el formato de `FASES.md` (hoy no hay ninguno abierto: `ciclos/` aún no existe) | `.scratch/bucle-de-refinamiento/ciclos/<slug>.md` |
+| 1 | Diagnosticar | **Gate:** recorta, añade o reordena la agenda | Ordena los Casos: cero entregas (INDETERMINADO, no es el skill) → entregas incorrectas (el informe da el Check, la línea y la sección) → entrega correcta sin invocar el skill (es el frontmatter). Recomienda skill o check | La agenda, en el fichero de ciclo |
+| 2 | Escribir la Petición | **Gate:** aprueba el texto, el alcance y el criterio | Redacta una Petición por cambio con [`_plantilla.md`](./.scratch/bucle-de-refinamiento/peticiones/_plantilla.md): evidencia con números, sección causante literal, restricciones | [`peticiones/`](./.scratch/bucle-de-refinamiento/peticiones/), estado `propuesta` |
+| 3 | Aplicar en `desy-skills` | Abre la rama y el PR en el otro repo (su `CONTRIBUTING.md`) | **Nada.** Da la ruta de la Petición y los skills sugeridos; si cambia de repo, ofrece el handoff | El PR, en `desy-skills` |
+| 4 | Medir | **Gate:** *¿PASA sostenido?* — mira las dos corridas | Corre el Caso con `--skills-local <ruta del worktree>`, dos veces; cuenta entregas por separado. Si un Check falló y el skill decía lo correcto, propone cambiar **el Caso**, no el skill | Dos Ejecuciones y su informe |
+| 5 | Cerrar y comparar | Lanza la `suite` de regresión y firma el `bump-pin` (el agente no lo lanza) | Propone `diff-versiones <base> <nuevo>`, lee el PASA sostenido **a mano** y rellena la declaración de cierre | Petición `aplicada`, ciclo `cerrado` |
+
+Dos cosas que el bucle **no** hace por ti: `pasaSostenido` existe como regla
+(`src/scorecard.ts`) pero ningún comando lo lee —`diff-versiones` compara las dos
+versiones y no dice «refinado»—, y nada valida una Petición: `peticiones/` queda
+fuera de `verificar-tracker`, así que que un cambio se aplicó se comprueba
+midiendo, no leyendo un estado.
+
+Con `--skills-local` se itera sin re-pinear por cada frase (ver
+[Medir un checkout local](#medir-un-checkout-local)); el canónico sigue siendo
+upstream por SHA, y la corrida local se declara como `local (sin commit)`.
+
+### Cuándo cerrar y volver a abrir
+
+Un ciclo se cierra cuando el Caso da **PASA sostenido** —dos corridas consecutivas,
+cada una con al menos una entrega— y la suite de regresión no ha movido ningún otro
+veredicto. Lo que sobra de la vuelta —una idea no aprobada, un Caso que no se pudo
+medir— se queda en la agenda; no viaja en la Petición.
+
+Un CI verde no cierra nada: el gate mide **el harness** (que el grader no derive,
+que los Casos carguen), no la calidad de los skills. Ésa la mide `npm run suite`.
+
+La spec y los tickets del bucle están en
+[`.scratch/bucle-de-refinamiento/`](./.scratch/bucle-de-refinamiento/).
 
 ## Tier rápido: ¿derivó el grader? y ¿qué Casos toca mi edición?
 

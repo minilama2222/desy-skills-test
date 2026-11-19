@@ -13,12 +13,50 @@
  * que hay en disco. El resto (¿la lista de Casos del README describe bien cada
  * uno?) es juicio, y vive en `CODING_STANDARDS.md`, no aquí.
  *
- * Es **pura**: recibe el texto del README y el conteo real, y devuelve un
- * hallazgo por problema. El recolector del FS vive en `scripts/verificar-readme.ts`.
+ * El ticket 11 le sumó una segunda claim del mismo género: los **enlaces
+ * relativos** del README. Al documentar el bucle, el README pasó a enlazar el
+ * mapa de `refinar-skill`, la plantilla de Petición y la spec; una ruta que se
+ * mueve dejaba un enlace muerto en la puerta de entrada y ningún guardarraíl lo
+ * veía. `problemasDeEnlaces` comprueba que la ruta existe —el ancla `#…` no,
+ * porque eso es juicio— y el adaptador resuelve el FS. Desde la revisión cubre
+ * los tres documentos de la raíz, no sólo el README: el término `Petición` del
+ * glosario recién estrenado podía enlazar una plantilla que ya no está.
+ *
+ * Es **pura**: recibe el texto del documento —y, en el conteo, el total en disco—
+ * y devuelve un hallazgo por problema. El recolector del FS vive en
+ * `scripts/verificar-readme.ts`.
  */
 
 /** La forma canónica en que el README declara el número de Casos. */
 const DECLARACION_RE = /\*\*(\d+)\*\*\s+Casos?\b/;
+
+/** Un enlace relativo de markdown: `[texto](./ruta.md)`, nunca `https://…`. */
+const ENLACE_RE = /\]\((\.{1,2}\/[^)\s#]+)\)/g;
+
+/** Una coincidencia de la regla, o `undefined` si no se leyó la ruta. */
+function sinRuta(ruta: string | undefined): string | undefined {
+  return ruta;
+}
+
+/**
+ * Las rutas que el README enlaza, ya decodificadas (un `%20` es un espacio: la
+ * regla habla de la ruta del repo, y la codificación es de la URL). Un `%` mal
+ * formado se deja tal cual en vez de lanzar: la regla devuelve hallazgos, no
+ * excepciones. Exportada para que el script no re-invente la regla.
+ */
+export function rutasEnlazadas(readme: string): string[] {
+  const rutas: string[] = [];
+  for (const match of readme.matchAll(ENLACE_RE)) {
+    const ruta = sinRuta(match[1]);
+    if (ruta === undefined) continue;
+    try {
+      rutas.push(decodeURIComponent(ruta));
+    } catch {
+      rutas.push(ruta);
+    }
+  }
+  return rutas;
+}
 
 /**
  * El número de Casos que el README declara, o `undefined` si no lo declara.
@@ -27,6 +65,30 @@ export function casosDeclaradosEnReadme(readme: string): number | undefined {
   const match = DECLARACION_RE.exec(readme);
   if (!match) return undefined;
   return Number(match[1]);
+}
+
+/**
+ * Devuelve un hallazgo por cada enlace relativo del documento cuya ruta no existe.
+ * `existe` lo resuelve el adaptador contra el disco; aquí sólo se enumeran las
+ * rutas, para que la regla sea pura y probarla no toque el FS.
+ *
+ * Nace con el ticket 11: el README pasó a enlazar el mapa del bucle, la plantilla
+ * de Petición y `refinar-skill`, y un enlace roto en la puerta de entrada del repo
+ * no rompía nada. Se mira el **fichero**, no su ancla `#…`: una sección se renombra
+ * sin que la ruta deje de existir, y avisar de eso es juicio, no mecánica.
+ */
+export function problemasDeEnlaces(
+  documento: string,
+  texto: string,
+  existe: (ruta: string) => boolean,
+): string[] {
+  return rutasEnlazadas(texto)
+    .filter((ruta) => !existe(ruta))
+    .map(
+      (ruta) =>
+        `${documento}: el enlace \`${ruta}\` no lleva a ninguna ruta del repo. ` +
+        "Un enlace relativo que no se comprueba se rompe al mover un fichero.",
+    );
 }
 
 /**

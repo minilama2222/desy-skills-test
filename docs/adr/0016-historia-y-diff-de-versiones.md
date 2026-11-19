@@ -79,7 +79,9 @@ El ticket 09 añade dos cosas pequeñas, sin infraestructura nueva:
 
 - `pasaSostenido` (ADR-0014) ya tiene de dónde leer las dos corridas
   consecutivas: son dos versiones versionadas. La regla sigue donde estaba; el
-  ticket 09 le da la historia que le faltaba.
+  ticket 09 le dio la historia que le faltaba, pero **nadie la llama desde `src/`**:
+  el PASA sostenido se lee a mano comparando dos versiones. Hacer que
+  `diff-versiones` lo diga es trabajo aparte, no de este ticket.
 - Un scorecard sin `arbolHash` —árbol de Ejecuciones anterior al ticket 04— no se
   versiona: no hay versión que nombrar. La suite lo dice por stderr y sigue.
 - El diff es **puro** (`diffDeVersiones` en `src/versiones.ts`) y el adaptador

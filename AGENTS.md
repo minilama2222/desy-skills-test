@@ -46,3 +46,13 @@ See `docs/agents/testing.md`.
 `npm run checklist-casos` says which Casos to re-run after editing a `SKILL.md`
 (never in `precommit`). See the `## Tier rápido` section of the README.
 
+### El bucle de refinamiento
+
+El flujo que convierte un Scorecard en un Skill mejor y en otro Scorecard está
+documentado en la sección `## El bucle de refinamiento` del README: el mapa de los
+seis pasos, qué hace la persona y qué el agente, y dónde queda cada cosa. Las
+fases y los gates los conduce `.opencode/skills/refinar-skill/`; el README es el
+mapa, no la copia. Las Peticiones viven en
+`.scratch/bucle-de-refinamiento/peticiones/` y **nada las valida**: su cierre se
+comprueba midiendo.
+

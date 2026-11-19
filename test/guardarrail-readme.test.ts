@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   casosDeclaradosEnReadme,
+  problemasDeEnlaces,
   problemasDelReadme,
 } from "../src/guardarrail-readme.js";
 
@@ -19,6 +20,60 @@ describe("casosDeclaradosEnReadme", () => {
 
   it("no confunde el prefijo de otra cifra", () => {
     expect(casosDeclaradosEnReadme("Hay **17** Casos:")).toBe(17);
+  });
+});
+
+describe("problemasDeEnlaces", () => {
+  const existe = (ruta: string): boolean => ruta === "./GLOSSARY.md" || ruta === "./docs/adr/";
+
+  it("no señala un enlace relativo cuya ruta existe", () => {
+    expect(
+      problemasDeEnlaces("README.md", "[glosario](./GLOSSARY.md) y [adr](./docs/adr/)", existe),
+    ).toEqual([]);
+  });
+
+  it("señala un enlace relativo cuya ruta no existe", () => {
+    const hallazgos = problemasDeEnlaces("README.md", "[bucle](./.scratch/no-existe/)", existe);
+
+    expect(hallazgos).toHaveLength(1);
+    expect(hallazgos[0]).toContain("./.scratch/no-existe/");
+  });
+
+  it("mira el fichero, no el ancla: una sección se renombra sin mover el fichero", () => {
+    // El ancla es prosa y se lee a ojo; lo que el guardarraíl puede afirmar es que
+    // la ruta existe. Si mirarse el ancla fuese regla, este caso sería un hallazgo.
+    expect(problemasDeEnlaces("README.md", "[glosario](./GLOSSARY.md#lo-que-sea)", existe)).toEqual([]);
+  });
+
+  it("no mira las URL absolutas", () => {
+    expect(
+      problemasDeEnlaces("README.md", "[desy](https://github.com/minilama2222/desy-skills)", existe),
+    ).toEqual([]);
+  });
+
+  it("enumera un enlace por hallazgo, no uno por README", () => {
+    const readme = "[a](./no-a.md) y [b](./no-b.md)";
+    // El segundo control: con dos rotos, dos hallazgos. Que la regla enumere es lo
+    // que evita arreglar uno y dar el otro por bueno.
+    const hallazgos = problemasDeEnlaces("README.md", readme, existe);
+
+    expect(hallazgos.map((h) => (h.includes("no-a") ? "a" : "b"))).toEqual(["a", "b"]);
+  });
+
+  it("no se rompe con una ruta cuyo `%` está mal formado: la deja tal cual y la señala", () => {
+    // Antes el adaptador hacía `decodeURIComponent` y una ruta con `%zz` lanzaba
+    // `URIError`: el guardarraíl reventaba en vez de dar un hallazgo. La regla
+    // devuelve hallazgos, no excepciones.
+    const hallazgos = problemasDeEnlaces("README.md", "[x](./a%zz.md)", existe);
+
+    expect(hallazgos).toHaveLength(1);
+    expect(hallazgos[0]).toContain("./a%zz.md");
+  });
+
+  it("decodifica la ruta antes de preguntar: `%20` es un espacio del fichero", () => {
+    const existeConEspacio = (ruta: string): boolean => ruta === "./mi fichero.md";
+
+    expect(problemasDeEnlaces("README.md", "[x](./mi%20fichero.md)", existeConEspacio)).toEqual([]);
   });
 });
 
