@@ -6,10 +6,7 @@ artefacto en otro sitio), del harness (no lo recoge) o del SUT (trabaja en el ch
 
 **Blocked by:** —
 
-**Status:** ready-for-human
-**Status depende de:** dos decisiones de diseño, no de código: cómo obtiene el
-Caso-página su `dist/` (¿lo pide el prompt o lo compila el harness?) y qué hace un
-Caso-decisión que no debe entregar artefacto. El resto está construido y verde.
+**Status:** done
 
 ## Lo que se midió (19/11/2026)
 
@@ -35,15 +32,16 @@ una cadena vacía y `sin_utility_por_defecto` la aprobaba. Por eso Casos sin un 
 fichero salían con «Guards 1/2» y «4/9» en el Scorecard. Ahora, sin artefacto,
 **ningún Check aprueba**.
 
-## Lo que queda por decidir
+## Las dos decisiones (tomadas el 19/11/2026)
 
-- **El `dist/` del Caso-página.** Lo más simple es el prompt: pedirle al SUT que
-  ejecute `npm run build` (la caché del scaffold trae `node_modules`, así que
-  compila sin red). La alternativa es que compile el harness después del SUT, que
-  no depende de que el agente se acuerde, pero añade un paso al runner.
-- **El veredicto de un Caso-decisión sin artefacto.** Hoy es INDETERMINADO aunque
-  haya decidido bien. Necesita otro criterio de veredicto (¿los Checks sobre el
-  texto de la respuesta?), o se acepta que su medida es sólo cualitativa.
+- **El `dist/` del Caso-página lo compila el SUT**, porque el prompt se lo pide
+  (`npm run build`; la caché del scaffold trae `node_modules` y compila sin red).
+  El harness ya recoge sólo el `dist/X.html` cuya fuente `src/X.html` sea nueva o
+  modificada, así que compilar no mete las ~20 páginas del starter en la medida.
+- **Un Caso-decisión se juzga por su respuesta.** Su artefacto es `salida.md`, así
+  que cuenta como dato aunque no invoque el skill: decidir mal es SUSPENDE, no
+  INDETERMINADO. Su respuesta no cuenta como hallazgo de trigger, porque el
+  artefacto siempre está y no prueba nada del disparo.
 
 ## Criterios
 
@@ -56,10 +54,10 @@ fichero salían con «Guards 1/2» y «4/9» en el Scorecard. Ahora, sin artefac
       aprueba sin artefacto, con control positivo para que el guard siga pudiendo
       pasar cuando hay fichero
 - [x] `angular-translator`: el prompt pide el fichero, no «devuélvelo»
-- [ ] Decidir cómo obtiene el Caso-página su `dist/`: lo compila el SUT porque el
-      prompt se lo pide, o lo compila el harness tras el SUT
-- [ ] Decidir el veredicto de `scaffold-project/no-scaffoldea-sin-permiso`, que hoy
-      es INDETERMINADO por no entregar lo que por diseño no debe entregar
+- [x] Decidir cómo obtiene el Caso-página su `dist/`: lo compila el SUT porque el
+      prompt se lo pide (el harness recoge sólo el HTML cuya fuente cambió)
+- [x] Decidir el veredicto de `scaffold-project/no-scaffoldea-sin-permiso`: se
+      juzga por su respuesta; `conDato` incluye los Casos-decisión
 
 ## Por qué importa más que un SUSPENDE
 

@@ -34,6 +34,7 @@ const caso = (over: Partial<CasoScorecard> = {}): CasoScorecard => ({
   entregas: 3,
   intentos: 3,
   alcanzaronSkill: 3,
+  conDato: 3,
   correctas: 3,
   entregoMal: 0,
   sinArtefacto: 0,

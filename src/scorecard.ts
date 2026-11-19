@@ -1,4 +1,4 @@
-import { cuentaComoEntrega, type ResultadoEjecucion } from "./ejecutar.js";
+import { cuentaComoEntrega, daDato, type ResultadoEjecucion } from "./ejecutar.js";
 import type { ContradiccionDeSkill } from "./caso.js";
 import type { Grade } from "./grader.js";
 import type { Pin } from "./pin.js";
@@ -43,8 +43,16 @@ export interface CasoScorecard {
   entregas: number;
   /** Los **intentos** que costaron esas entregas: todas las Ejecuciones del Caso. */
   intentos: number;
-  /** Ejecuciones cuyo Flujo observado contiene el skill bajo test (denominador limpio). */
+  /** Ejecuciones cuyo Flujo observado contiene el skill bajo test (literal). */
   alcanzaronSkill: number;
+  /**
+   * El **denominador limpio** del Caso: las Ejecuciones que dan dato sobre el
+   * skill. Coincide con `alcanzaronSkill` salvo en un Caso-decisión, cuya
+   * respuesta es el artefacto y se juzga aunque el skill no se invoque (ticket
+   * 22). La igualdad del Caso es `correctas + entregoMal + sinArtefacto +
+   * sinMedir === conDato`.
+   */
+  conDato: number;
   /** De las `entregas`, las de Grade EXCELENTE («entregó bien»). */
   correctas: number;
   /** De las `entregas`, las que no aprobaron los Checks («entregó mal»). */
@@ -144,7 +152,7 @@ function esCorrecta(ejecucion: ResultadoEjecucion): boolean {
  * `veredictoDe`, `mejorEjecucion` y `agregarCaso` lo comparten.
  */
 function conDatoDe(ejecuciones: ResultadoEjecucion[]): ResultadoEjecucion[] {
-  return ejecuciones.filter((e) => e.flujoAlcanzoSkill);
+  return ejecuciones.filter((e) => daDato(e));
 }
 
 /**
@@ -157,6 +165,9 @@ function conDatoDe(ejecuciones: ResultadoEjecucion[]): ResultadoEjecucion[] {
  * puedan divergir; el informe por Caso (`src/informe.ts`) lo re-exporta.
  */
 export function esHallazgoDeTrigger(ejecucion: ResultadoEjecucion): boolean {
+  // Un Caso-decisión siempre tiene artefacto (su respuesta): tenerlo no prueba
+  // nada del trigger, así que su ausencia de skill no es el hallazgo del 07.
+  if (ejecucion.tipo === "caso-decision") return false;
   return (
     ejecucion.entrega === "con-artefacto" &&
     ejecucion.grade === GRADE_CORRECTO &&
@@ -251,8 +262,9 @@ function mejorEjecucion(ejecuciones: ResultadoEjecucion[]): ResultadoEjecucion |
  * El resumen de un Caso. **Todas las cuentas se miden sobre el denominador
  * limpio** (las Ejecuciones que alcanzaron el skill, ADR-0007): re-mezclar las
  * que no arrancaron el skill es justo el bug que el ticket 15 separó. Así
- * `correctas + entregoMal + sinArtefacto === alcanzaronSkill`, y un Caso
- * INDETERMINADO sale a cero en las tres (no se contradice con su veredicto).
+ * `correctas + entregoMal + sinArtefacto + sinMedir === conDato`, y un Caso
+ * INDETERMINADO sale a cero en las tres primeras (no se contradice con su
+ * veredicto).
  */
 function agregarCaso(
   caso: string,
@@ -275,7 +287,8 @@ function agregarCaso(
     veredicto: veredictoDe(ejecuciones),
     entregas: entregadas.length,
     intentos: ejecuciones.length,
-    alcanzaronSkill: conDato.length,
+    alcanzaronSkill: ejecuciones.filter((e) => e.flujoAlcanzoSkill).length,
+    conDato: conDato.length,
     correctas: correctas.length,
     // «Entregó mal» es un juicio de los Checks sobre una entrega que **se midió**:
     // una que no llegó al skill no se juzga, dice otra cosa (ver el hallazgo).
@@ -479,7 +492,7 @@ export function renderScorecard(reporte: Scorecard): string {
         caso.guards.total === 0 ? "—" : `${caso.guards.ok}/${caso.guards.total}`;
       lineas.push(
         `| ${caso.caso} | ${caso.veredicto} | ${guards} | ${caso.gradeCalidad} | ` +
-          `${caso.intentos} | ${caso.entregas} | ${caso.alcanzaronSkill} | ` +
+          `${caso.intentos} | ${caso.entregas} | ${caso.conDato} | ` +
           `${caso.correctas} | ${caso.sinArtefacto} | ${caso.entregoMal} | ` +
           `${caso.sinMedir} |`,
       );

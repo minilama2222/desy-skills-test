@@ -163,7 +163,7 @@ describe("las Ejecuciones sin medir no cuentan como fallo del skill (ticket 21)"
     expect(caso.sinArtefacto).toBe(0);
     // La igualdad documentada sigue cerrando.
     expect(caso.correctas + caso.entregoMal + caso.sinArtefacto + caso.sinMedir).toBe(
-      caso.alcanzaronSkill,
+      caso.conDato,
     );
   });
 
@@ -174,5 +174,45 @@ describe("las Ejecuciones sin medir no cuentan como fallo del skill (ticket 21)"
     ).skills[0]!.casos[0]!;
     expect(caso.sinMedir).toBe(0);
     expect(caso.sinArtefacto).toBe(1);
+  });
+});
+
+/**
+ * Ticket 22, decisión del mantenedor: en un **Caso-decisión** el artefacto es la
+ * respuesta (`salida.md`), no un fichero del `workDir`. Exigir la invocación del
+ * skill para contar dejaba a `scaffold-project` en INDETERMINADO aunque hubiera
+ * decidido —bien o mal—, y un SUSPENDE real se leía como «sin dato».
+ */
+describe("un Caso-decisión se juzga por su respuesta (ticket 22)", () => {
+  const decision = (grade: ResultadoEjecucion["grade"]) =>
+    ejecucion({
+      tipo: "caso-decision",
+      skill: "scaffold-project",
+      caso: "no-scaffoldea-sin-permiso",
+      artefactos: { "salida.md": "no lo hago sin permiso" },
+      entrega: "con-artefacto",
+      flujoObservado: ["preflight-check"],
+      flujoAlcanzoSkill: false,
+      grade,
+    });
+
+  it("decidir mal es SUSPENDE, no INDETERMINADO", () => {
+    const caso = agregarScorecard([decision("INACEPTABLE")], pin).skills[0]!.casos[0]!;
+    expect(caso.veredicto).toBe("SUSPENDE");
+    expect(caso.entregoMal).toBe(1);
+    expect(caso.conDato).toBe(1);
+    // El flujo no llegó al skill: la columna literal lo sigue diciendo.
+    expect(caso.alcanzaronSkill).toBe(0);
+  });
+
+  it("decidir bien es PASA", () => {
+    const caso = agregarScorecard([decision("EXCELENTE")], pin).skills[0]!.casos[0]!;
+    expect(caso.veredicto).toBe("PASA");
+    expect(caso.correctas).toBe(1);
+  });
+
+  it("su artefacto no es un hallazgo de trigger: el artefacto es la respuesta", () => {
+    const caso = agregarScorecard([decision("EXCELENTE")], pin).skills[0]!.casos[0]!;
+    expect(caso.hallazgosDeTrigger).toBe(0);
   });
 });

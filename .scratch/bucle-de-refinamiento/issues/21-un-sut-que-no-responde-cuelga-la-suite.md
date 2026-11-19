@@ -6,11 +6,7 @@ fallo del skill: no es «no entregó», es «no se pudo medir».
 
 **Blocked by:** —
 
-**Status:** ready-for-human
-**Status depende de:** el visto bueno a la decisión del último criterio: hoy un corte
-por infraestructura **consume intento** (el presupuesto es también de reloj), pero no
-cuenta como entrega fallida ni como dato del skill. Construido y verde; lo que falta
-es la aceptación.
+**Status:** done
 
 - [x] `ejecutarConGuardiaDelRepo` pasa `timeout` a `spawnSync`: hoy no hay ninguno,
       así que un proceso que no responde bloquea la suite **para siempre**
@@ -26,10 +22,9 @@ es la aceptación.
       como `runner.test.ts` ya hace) y uno que imprime `ENOTFOUND`
 - [x] `docs/agents/testing.md` o el ADR que corresponda explica por qué el límite
       es de pared y no de CPU — ver `docs/adr/0021-el-sut-que-no-responde-se-corta.md`
-- [ ] Decisión del humano: si un corte por infraestructura **consume intento**.
-      Propuesta: sí lo consume (el presupuesto es de reloj también), pero no
-      cuenta como entrega fallida ni como dato del skill. **Implementado así**:
-      falta aceptarlo o pedir el cambio
+- [x] Decisión del humano: un corte por infraestructura **consume intento** (el
+      presupuesto es de reloj también), pero no cuenta como entrega fallida ni
+      como dato del skill. **Aceptado el 19/11/2026**
 
 ## La evidencia (suite del 19/11/2026)
 

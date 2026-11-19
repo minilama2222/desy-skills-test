@@ -86,6 +86,7 @@ function version(
             entregas: 3,
             intentos: 3,
             alcanzaronSkill: 3,
+            conDato: 3,
             correctas,
             entregoMal: 3 - correctas,
             sinArtefacto: 0,

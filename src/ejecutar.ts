@@ -120,15 +120,30 @@ export function alcanzoSkill(flujoObservado: string[], skill: string): boolean {
 }
 
 /**
+ * Regla: ¿esta Ejecución **da dato** sobre el skill bajo test? Normalmente sí
+ * cuando el Flujo alcanzó el skill. La excepción son los **Caso-decisión**: su
+ * artefacto es la respuesta (`salida.md`), no un fichero del `workDir`, así que
+ * la respuesta se juzga con los Checks aunque el skill no se haya invocado
+ * (decisión del mantenedor, ticket 22).
+ */
+export function daDato(
+  ejecucion: Pick<ResultadoEjecucion, "tipo" | "flujoAlcanzoSkill">,
+): boolean {
+  return ejecucion.flujoAlcanzoSkill || ejecucion.tipo === "caso-decision";
+}
+
+/**
  * Regla (ticket 03): ¿esta Ejecución es una **entrega del Caso** que cuenta para
- * el presupuesto y el veredicto? Hace falta la Entrega **y** haber alcanzado el
+ * el presupuesto y el veredicto? Hace falta la Entrega **y** dar dato sobre el
  * skill: un Artefacto escrito sin invocar el skill no midió el skill, así que no
  * rellena su presupuesto de entregas ni lo aprueba (es el hallazgo de trigger,
  * ticket 07). La comparten el bucle que corre (`cli.ts`) y el que agrega
  * (`scorecard.ts`): si discreparan, el bucle podría parar sin haber medido nada.
  */
-export function cuentaComoEntrega(ejecucion: Pick<ResultadoEjecucion, "entrega" | "flujoAlcanzoSkill">): boolean {
-  return ejecucion.entrega === "con-artefacto" && ejecucion.flujoAlcanzoSkill;
+export function cuentaComoEntrega(
+  ejecucion: Pick<ResultadoEjecucion, "tipo" | "entrega" | "flujoAlcanzoSkill">,
+): boolean {
+  return ejecucion.entrega === "con-artefacto" && daDato(ejecucion);
 }
 
 /**
