@@ -862,3 +862,52 @@ describe("el Guard de tokens ignora el material comentado", () => {
     expect(passedTokens(html)).toBe(true);
   });
 });
+
+/**
+ * Ticket 22. Con `artefactos: {}` el evaluador mira una cadena vacía, y
+ * `sin_utility_por_defecto` la daba por buena: un Caso que no entregó ni un
+ * fichero salía con «Guards 1/2» en el Scorecard. Nada aprueba lo que no está.
+ */
+describe("no hay artefacto: ningún Check puede aprobar (ticket 22)", () => {
+  it("todos los Checks fallan cuando el SUT no entregó ningún fichero", () => {
+    const resultado = grado(
+      { artefactos: artefactos({}), transcript: transcript("preflight-check") },
+      {
+        tipo: "caso-componente",
+        checks: [
+          {
+            id: "tokens-del-sistema",
+            severity: "guard",
+            weight: 0,
+            assert: { kind: "sin_utility_por_defecto" },
+          },
+          checkQuality("usa-macro", 1, "componentBoton"),
+        ],
+      },
+    );
+
+    expect(resultado.detalle.every((d) => !d.passed)).toBe(true);
+    expect(resultado.grade).toBe("INACEPTABLE");
+  });
+
+  it("control: con un artefacto, el mismo guard vuelve a poder pasar", () => {
+    const resultado = grado(
+      {
+        artefactos: artefactos({ "index.html": htmlValidoPagina("<componentBoton></componentBoton>") }),
+        transcript: transcript(),
+      },
+      {
+        tipo: "caso-componente",
+        checks: [
+          {
+            id: "tokens-del-sistema",
+            severity: "guard",
+            weight: 0,
+            assert: { kind: "sin_utility_por_defecto" },
+          },
+        ],
+      },
+    );
+    expect(resultado.detalle[0]!.passed).toBe(true);
+  });
+});

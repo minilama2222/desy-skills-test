@@ -642,16 +642,25 @@ export function grado(
   // que reproduce el Gold hereda sus clases legadas; es fidelidad, no invención).
   const utilidadesGold = utilidadesDelGold(caso.gold);
 
+  // Un Check no puede aprobar sobre un artefacto que no existe (ticket 22). Con
+  // `files: {}` el evaluador mira una cadena vacía, y hay guards que la dan por
+  // buena —`sin_utility_por_defecto` no encuentra utilidades prohibidas en nada—,
+  // así que un Caso que no entregó ni un fichero pintaba «Guards 1/2». Nada
+  // aprueba lo que no está.
+  const sinArtefacto = Object.keys(evidencia.artefactos.files).length === 0;
+
   const detalle: DetalleCheck[] = checks.map((check) => ({
     id: check.id,
     severity: check.severity,
-    passed: evaluar(
-      check.assert,
-      evidencia.artefactos,
-      evidencia.transcript,
-      caso.gold,
-      utilidadesGold,
-    ),
+    passed:
+      !sinArtefacto &&
+      evaluar(
+        check.assert,
+        evidencia.artefactos,
+        evidencia.transcript,
+        caso.gold,
+        utilidadesGold,
+      ),
     assert: check.assert,
     ...(check.ancla === undefined ? {} : { ancla: check.ancla }),
   }));
