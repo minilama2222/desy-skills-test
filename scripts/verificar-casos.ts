@@ -125,22 +125,53 @@ const arbol = describirArbol(seccionesDelArbol());
 const hallazgos = problemasDelArbolDeCasos(arbol);
 
 /**
- * Las secciones que citaba cada rúbrica en `HEAD`. Se pregunta a git por el
- * fichero versionado: si el Caso es nuevo, `undefined` y no hay pérdida posible.
- * Se compara con `HEAD`, no con el índice, para que el check diga lo mismo antes
- * y después de `git add`.
+ * Las secciones que citaba cada rúbrica en `HEAD`, y las que **no se pudieron
+ * leer**. `undefined` en `citas` significa «el Caso no está en HEAD» (es nuevo);
+ * un `error` significa «no pude medir».
+ *
+ * La distinción es la que la revisión del diff del ticket 12 echó de menos: el
+ * primer adaptador devolvía `undefined` en ambos casos, así que un `git` ausente
+ * (CI Windows) o un clon sin `HEAD` **desactivaba la regla entera imprimiendo
+ * OK** —el alibi que `CODING_STANDARDS.md` prohíbe—. Aquí el fallo se dice.
  */
-function citasEnHead(ruta: string): string[] | undefined {
+function citasEnHead(ruta: string): { citas?: string[]; error?: string } {
   try {
     const texto = execFileSync("git", ["show", `HEAD:${ruta}`], {
       cwd: REPO_ROOT,
       encoding: "utf8",
       stdio: ["ignore", "pipe", "ignore"],
     });
-    return seccionesCitadasEnRubric(texto);
-  } catch {
-    return undefined;
+    return { citas: seccionesCitadasEnRubric(texto) };
+  } catch (error) {
+    // `git show` falla igual si el fichero no está en HEAD (Caso nuevo) que si no
+    // hay git o no hay HEAD. Lo segundo se detecta preguntando si el fichero
+    // estaba versionado: `git ls-files` con el fichero en el índice.
+    if (!gitDisponible()) {
+      return { error: "no se pudo ejecutar git: la comparación con HEAD no se midió" };
+    }
+    const err = error as { stderr?: unknown; status?: number };
+    const stderr = typeof err.stderr === "string" ? err.stderr : "";
+    if (/does not exist|path .* does not exist|unknown revision/i.test(stderr)) {
+      return {};
+    }
+    return { error: `git show HEAD:${ruta} falló: ${stderr.trim() || String(error)}` };
   }
+}
+
+let gitOk: boolean | undefined;
+function gitDisponible(): boolean {
+  if (gitOk === undefined) {
+    try {
+      execFileSync("git", ["rev-parse", "HEAD"], {
+        cwd: REPO_ROOT,
+        stdio: ["ignore", "ignore", "ignore"],
+      });
+      gitOk = true;
+    } catch {
+      gitOk = false;
+    }
+  }
+  return gitOk;
 }
 
 function citasHoy(): SeccionesCitadas[] {
@@ -157,10 +188,12 @@ function citasHoy(): SeccionesCitadas[] {
         const path = join(CASOS_DIR, skill.name, tipo.name, caso.name, "rubric.md");
         if (!existsSync(path)) continue;
         const ruta = rutaRelativa(path);
+        const anterior = citasEnHead(ruta);
         rubricas.push({
           ruta,
           actuales: seccionesCitadasEnRubric(readFileSync(path, "utf8")),
-          anteriores: citasEnHead(ruta),
+          ...(anterior.citas === undefined ? {} : { anteriores: anterior.citas }),
+          ...(anterior.error === undefined ? {} : { error: anterior.error }),
         });
       }
     }

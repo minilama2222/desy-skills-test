@@ -175,7 +175,6 @@ export function problemasDeAnclaje(
   problemas.push(...problemasDeAnclaDeFramework(caso));
   return problemas;
 }
-
 /**
  * Todo Check del Caso tiene su ancla (retro del ticket 06). El informe por Caso
  * cita la sección de la que depende **cada** Check; sin ancla no tiene qué citar
@@ -197,12 +196,7 @@ function problemasDeChecksSinAncla(
   caso: CasoEnDisco,
   lista: ReadonlyMap<string, string>,
 ): string[] {
-  // Un Check del Framework que el Caso declara no se ancla: su fuente está fuera
-  // de la rúbrica (`problemasDeAnclaDeFramework` lo dice si se ancla de todas
-  // formas), así que no entra en la cuenta de Checks sin ancla.
-  const ids = (caso.idsDeChecks ?? []).filter((id) => !IDS_DEL_FRAMEWORK.has(id));
-  const { sinAncla } = checksSinAncla(caso, ids);
-  const total = ids.length;
+  const { total, sinAncla } = checksSinAncla(caso);
   if (sinAncla.length === 0) return [];
   // La deuda declarada se tolera aquí, pero se **dice** en el resumen del script:
   // si no, un pendiente se vuelve invisible y la lista crece.
@@ -252,15 +246,26 @@ export function problemasDeContradiccion(caso: CasoEnDisco): string[] {
 }
 
 /**
+ * Los **ids anclables** del Caso: los que declara menos los del Framework. Un
+ * Check del Framework no se ancla nunca (su fuente está fuera de la rúbrica), así
+ * que no cuenta ni como anclado ni como deuda. Se calcula en un solo sitio para
+ * que el rojo (`problemasDeChecksSinAncla`), la deuda (`deudaDeAnclaje`) y el
+ * sobrante de la lista (`problemasDeLaListaDePendientes`) no puedan discrepar
+ * sobre cuántos Checks le faltan a un Caso (lo señaló la revisión del diff del
+ * ticket 12: el rojo filtraba y la deuda no).
+ */
+export function idsAnclables(caso: CasoEnDisco): string[] {
+  return (caso.idsDeChecks ?? []).filter((id) => !IDS_DEL_FRAMEWORK.has(id));
+}
+
+/**
  * Los Checks de un Caso que no tienen ancla, y cuántos tiene en total. Es la
  * única fuente de la resta que hacen el rojo (`problemasDeChecksSinAncla`) y la
  * deuda declarada (`deudaDeAnclaje`): si cada una la calculara, la tolerancia por
  * ruta y la medida por Check podrían discrepar.
  */
-function checksSinAncla(
-  caso: CasoEnDisco,
-  ids: string[] = caso.idsDeChecks ?? [],
-): { total: number; sinAncla: string[] } {
+function checksSinAncla(caso: CasoEnDisco): { total: number; sinAncla: string[] } {
+  const ids = idsAnclables(caso);
   const ancladas = new Set((caso.anclas ?? new Map()).keys());
   return { total: ids.length, sinAncla: ids.filter((id) => !ancladas.has(id)) };
 }
@@ -338,13 +343,27 @@ export interface SeccionesCitadas {
   actuales: string[];
   /** Las de la rúbrica en `HEAD`; `undefined` si el Caso es nuevo. */
   anteriores?: string[];
+  /**
+   * Por qué no se pudo comparar con `HEAD` (sin `git`, sin `HEAD`, un fallo de
+   * git). Un check que no puede medir **lo dice**; callar y salir en verde es el
+   * alibi que este repo prohíbe (revisión del diff del ticket 12).
+   */
+  error?: string;
 }
 
 export function problemasDeAnclajePerdidas(
   rubricas: SeccionesCitadas[],
 ): string[] {
   const problemas: string[] = [];
-  for (const { ruta, actuales, anteriores } of rubricas) {
+  for (const { ruta, actuales, anteriores, error } of rubricas) {
+    if (error !== undefined) {
+      problemas.push(
+        `${ruta}: no se pudo comparar la rúbrica con HEAD — ${error}. La regla ` +
+          "del ancla que se suma a la prosa no se midió: arréglalo (git en el PATH, " +
+          "un HEAD válido) antes de confiar en este verde",
+      );
+      continue;
+    }
     if (anteriores === undefined) continue;
     const hoy = new Set(actuales);
     const perdidas = anteriores.filter((cita) => !hoy.has(cita));

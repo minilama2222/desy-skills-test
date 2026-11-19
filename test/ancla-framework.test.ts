@@ -58,9 +58,9 @@ describe("problemasDeAnclaDeFramework: un Check del Framework no se ancla", () =
     ).toEqual([]);
   });
 
-  it("el caso real ya no ancla ninguno: el árbol queda limpio(con la lista vacía)", () => {
-    // La dirección que importa: el guardarraíl del árbol, con su lista real
-    // (vacía), calla sobre este Caso.
+  it("un Caso que solo ancla sus Checks propios pasa el guardarraíl entero", () => {
+    // Control de que la regla no tumba un Caso sano: los mismos ids que arriba
+    // dan rojo si uno de ellos se ancla, y verde si ninguno lo hace.
     expect(
       problemasDelArbolDeCasos([
         {
