@@ -116,7 +116,6 @@ function main(argv: string[]): number {
   }
 
   const lecturas: { origen: string; ejecucion: ResultadoEjecucion }[] = [];
-  const sinGrade: string[] = [];
   for (const path of ficherosJson(dir)) {
     const relativo = relative(process.cwd(), path).split("\\").join("/");
     let raw: unknown;
@@ -130,26 +129,22 @@ function main(argv: string[]): number {
     lecturas.push({ origen: relativo, ejecucion: raw });
   }
 
-  // El respaldo (Checks desde el Caso) se resuelve antes de re-graduar: una
-  // Ejecución sin `assert` por Check (anterior al ticket 06) sólo se puede
-  // re-graduar con los Checks de hoy, y eso se anuncia en vez de callarlo.
+  // Hoy el replay re-gradua SIEMPRE con los Checks del Caso del disco (la
+  // Ejecución no guarda el peso, ver `checksDeLaEjecucion`), así que el Caso se
+  // resuelve para todas, no sólo para las viejas. Un Caso que ya no está es un
+  // error explícito por Ejecución, no un hueco silencioso.
   const porCaso = new Map<string, CasoDelDisco | undefined>();
   for (const { ejecucion } of lecturas) {
     const clave = `${ejecucion.skill}/${ejecucion.caso}`;
     if (porCaso.has(clave)) continue;
-    porCaso.set(
-      clave,
-      ejecucion.detalle.some((d) => d.assert === undefined)
-        ? casoDelDisco(ejecucion.skill, ejecucion.caso)
-        : undefined,
-    );
+    porCaso.set(clave, casoDelDisco(ejecucion.skill, ejecucion.caso));
   }
 
-  let resultados;
+  let resultados: ResultadoDelReplay[];
   try {
     resultados = replayDeEjecuciones(lecturas, (skill, caso) =>
       porCaso.get(`${skill}/${caso}`),
-    ).resultados;
+    );
   } catch (error) {
     console.log((error as Error).message);
     return 1;
@@ -165,30 +160,25 @@ function main(argv: string[]): number {
     }
     if (r.origenChecks === "desde-el-caso") {
       console.log(
-        `AVISO  ${r.origen}: sin \`assert\` por Check en la Ejecución; se re-graduó con ` +
-          "los Checks del Caso de hoy (no con los que se graduó).",
+        `AVISO  ${r.origen}: se re-graduó con los Checks del Caso de hoy (la ` +
+          "Ejecución no guarda el peso del Check), no con los que se graduó.",
       );
     }
   }
-  for (const path of sinGrade) {
-    console.log(`SIN GRADE  ${path}: no declara un Grade con el que comparar.`);
-  }
 
   const fallos = derivas(resultados);
-  if (fallos.length === 0 && sinGrade.length === 0) {
+  if (fallos.length === 0) {
     console.log(
       `OK: ${resultados.length} Ejecución/es re-graduadas, todas con el mismo Grade.`,
     );
     return 0;
   }
 
-  if (fallos.length > 0) {
-    console.log(
-      `El grader DERRIVA en ${fallos.length} de ${resultados.length} Ejecución/es: las ` +
-        "de arriba. O la Evidencia se escribió con otra versión del grader (áncora la " +
-        "expectativa), o el cambio del grader movió un Grade ya medido y toca decidirlo.",
-    );
-  }
+  console.log(
+    `El grader DERRIVA en ${fallos.length} de ${resultados.length} Ejecución/es: las ` +
+      "de arriba. O la Evidencia se escribió con otra versión del grader (áncora la " +
+      "expectativa), o el cambio del grader movió un Grade ya medido y toca decidirlo.",
+  );
   return 1;
 }
 

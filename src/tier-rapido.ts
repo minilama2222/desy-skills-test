@@ -25,14 +25,13 @@ import { join } from "node:path";
  */
 
 /**
- * De dónde salen las dos cosas que el replay necesita para re-graduar sin que el
- * Caso del disco se cuele en la cuenta: los Checks con los que se graduó y el
- * Gold-HTML con el que se compararon los guards de fidelidad.
+ * De dónde salen los Checks con los que se re-graduó:
  *
- * `desde-la-ejecucion` (el camino normal) re-gradua con lo que la propia
- * Ejecución trae. `desde-el-caso` es el respaldo: una Ejecución anterior al
- * ticket 06 no lleva `assert` por Check, y sin él no hay aserción que volver a
- * evaluar. Se lee el Caso del disco y se dice en voz alta.
+ * - `desde-el-caso` (hoy, siempre): del Caso del disco, porque la Ejecución no
+ *   guarda el peso del Check y sin él el Grade de calidad no se puede reproducir
+ *   (ver `checksDeLaEjecucion`). Se dice en voz alta: re-graduar con los Checks de
+ *   hoy no es exactamente lo que se graduó.
+ * - `desde-la-ejecucion`: lo que trae la propia Ejecución, el día que la persista.
  */
 export type OrigenDeLosChecks = "desde-la-ejecucion" | "desde-el-caso";
 
@@ -40,22 +39,6 @@ export interface CasoDelDisco {
   checks: Check[];
   /** El Gold-HTML del Caso-página, si lo tiene. */
   gold?: string;
-}
-
-export interface ReplayDeEjecucion {
-  /** La Ejecución guardada, tal cual se leyó. */
-  ejecucion: ResultadoEjecucion;
-  /** La ruta de su fichero de Evidencia, para poder abrirla. */
-  origen: string;
-  /** De dónde se tomaron los Checks con los que se re-graduó. */
-  origenChecks: OrigenDeLosChecks;
-  /**
-   * Los campos de la Ejecución que no vinieron con ella (`exitCode` del ticket
-   * 02, `arbolHash` del 04). No hace fallar el replay —el Grade es lo que se
-   * comprueba—, pero se dice: la mitad de la Evidencia no estaba cuando se
-   * escribió.
-   */
-  faltanCampos: string[];
 }
 
 export type EstadoDelReplay = "reproduce" | "deriva";
@@ -71,11 +54,6 @@ export interface ResultadoDelReplay {
   caso: string;
   /** El fichero de Evidencia, o su ruta relativa, para poder abrirla. */
   origen: string;
-  /**
-   * La Ejecución tal como se leyó. Viaja para que el adaptador pueda decir qué
-   * campos le faltan (tickets 02/04) sin volver a leer el fichero.
-   */
-  ejecucion: ResultadoEjecucion;
   /** De dónde salieron los Checks con los que se re-graduó. */
   origenChecks: OrigenDeLosChecks;
   /** Los campos que la Ejecución no traía (ver `camposQueFaltan`). */
@@ -102,24 +80,25 @@ function evidenciaDe(ejecucion: ResultadoEjecucion) {
   };
 }
 
-/** ¿La Ejecución guardada trae lo mínimo para re-graduarse sola? */
-function checksDeLaEjecucion(ejecucion: ResultadoEjecucion): Check[] | undefined {
-  if (ejecucion.detalle.length === 0) return undefined;
-  const checks: Check[] = [];
-  for (const check of ejecucion.detalle) {
-    if (check.assert === undefined) return undefined;
-    checks.push({
-      id: check.id,
-      severity: check.severity,
-      // El peso no viaja en el detalle: el Grade de calidad lo decide, y el
-      // replay sólo compara con el Grade guardado. Un 1 es neutro para el
-      // veredicto de cada Check; si el de hoy discrepara del guardado, el score
-      // del Caso se vería en `scorecard.test.ts`, no aquí.
-      weight: 1,
-      assert: check.assert,
-    });
-  }
-  return checks;
+/**
+ * ¿La Ejecución guardada trae los Checks con los que se graduó, para
+ * re-graduarse **sola**? Hoy la respuesta es siempre que no, y se dice por qué:
+ *
+ * - `DetalleCheck` guarda `id`, `severity`, `passed` y `assert`, pero **no el
+ *   peso**, y el Grade de calidad se calcula con él (`grado` reparte el ratio por
+ *   `check.weight`, `src/grader.ts:645-648`). Re-graduar con un peso inventado
+ *   cambiaría el Grade de un Caso con pesos distintos —medido: un `BUENO` de
+ *   pesos 1/5 se leía `ACEPTABLE`— y el replay acusaría al grader de una deriva
+ *   que era suya.
+ * - Tampoco guarda el **ancla** ni el epígrafe de la rúbrica, así que los Checks
+ *   no se pueden reconstruir completos.
+ *
+ * Por eso el camino normal re-gradua con los Checks del Caso del disco y lo
+ * declara (`desde-el-caso`). El día que la Ejecución persista el peso, esta
+ * función devuelve sus Checks y el replay deja de mirar `casos/`.
+ */
+function checksDeLaEjecucion(_ejecucion: ResultadoEjecucion): Check[] | undefined {
+  return undefined;
 }
 
 /**
@@ -134,16 +113,17 @@ export function replayDeEjecucion(
   origen: string,
   casoDelDisco: CasoDelDisco | undefined,
 ): ResultadoDelReplay {
-  const deLaEjecucion = checksDeLaEjecucion(ejecucion);
-  const checks = deLaEjecucion ?? casoDelDisco?.checks;
+  // Hoy la Ejecución no basta para re-graduarse sola (ver `checksDeLaEjecucion`),
+  // así que `casoDelDisco` es lo único que hay: sin él no se puede re-graduar, y
+  // el error de abajo lo nombra.
+  const checks = casoDelDisco?.checks;
   const origenChecks: OrigenDeLosChecks =
-    deLaEjecucion === undefined ? "desde-el-caso" : "desde-la-ejecucion";
+    checksDeLaEjecucion(ejecucion) === undefined ? "desde-el-caso" : "desde-la-ejecucion";
 
   const base: Omit<ResultadoDelReplay, "gradeActual" | "estado" | "checksQueCambian"> = {
     skill: ejecucion.skill,
     caso: ejecucion.caso,
     origen,
-    ejecucion,
     origenChecks,
     faltanCampos: camposQueFaltan(ejecucion),
     gradeGuardado: ejecucion.grade,
@@ -188,10 +168,9 @@ function sinAncla(check: Check): object {
 }
 
 /**
- * Los hechos que una Ejecución guardada no conserva y que el ticket 08 declaró
- * obligatorios (`exitCode` del ticket 02, `arbolHash` del 04). Es opcional en el
- * tipo porque una Ejecución vieja existe; el replay lo **dice** en vez de
- * reventar, y el guardarraíl falla sólo si el fichero no trae ni el Grade.
+ * Los hechos que una Ejecución guardada no conserva (`exitCode` del ticket 02,
+ * `arbolHash` del 04). Una Ejecución vieja existe; el replay lo **dice** en vez
+ * de reventar por ello.
  */
 export function camposQueFaltan(ejecucion: Partial<ResultadoEjecucion>): string[] {
   const faltan: string[] = [];
@@ -210,14 +189,10 @@ export function camposQueFaltan(ejecucion: Partial<ResultadoEjecucion>): string[
 export function replayDeEjecuciones(
   lecturas: { origen: string; ejecucion: ResultadoEjecucion }[],
   casos: (skill: string, caso: string) => CasoDelDisco | undefined,
-): { resultados: ResultadoDelReplay[]; declaranGrade: number } {
-  return {
-    resultados: lecturas.map(({ origen, ejecucion }) =>
-      replayDeEjecucion(ejecucion, origen, casos(ejecucion.skill, ejecucion.caso)),
-    ),
-    declaranGrade: lecturas.filter(({ ejecucion }) => typeof ejecucion.grade === "string")
-      .length,
-  };
+): ResultadoDelReplay[] {
+  return lecturas.map(({ origen, ejecucion }) =>
+    replayDeEjecucion(ejecucion, origen, casos(ejecucion.skill, ejecucion.caso)),
+  );
 }
 
 /** ¿Cuántas Ejecuciones no reproducen su Grade? Es el veredicto del guardarraíl. */

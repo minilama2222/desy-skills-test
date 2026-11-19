@@ -228,7 +228,8 @@ gastar una corrida del SUT. Corre en el precommit (`npm run replay-grader`); si 
 hay Evidencia guardada —un clon limpio, `reports/` está ignorado— lo **dice** y no
 inventa un verde. Ver el ticket 08 del bucle de refinamiento.
 _Avoid_: confundirlo con re-correr la suite (eso mide el Skill; el replay sólo
-protege el grader).
+protege el grader); re-graduar con los `assert` de la Ejecución sin su peso (cambia
+el Grade de calidad de un Caso con pesos distintos).
 
 **Lista de Casos a re-correr** (checklist Skill → Casos):
 Los Casos que hay que re-correr tras editar una sección de un `SKILL.md`, porque el

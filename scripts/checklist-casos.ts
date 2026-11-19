@@ -18,7 +18,7 @@ import { skillsDeCheckout } from "../src/guardarrail-pin.js";
  * Caso lo espera. Por eso **nunca** está en `precommit`; se lanza a mano y sale
  * con `1` cuando hay algo que re-correr, que es su resultado normal mientras se
  * itera. Lo que sí es guardarraíl es la lista de hechos en sí:
- * `test/checklist-casos.test.ts` afirma que cada uno cita una sección que existe
+ * `test/tier-rapido.test.ts` afirma que cada uno cita una sección que existe
  * y que nombra un Caso que existe.
  *
  * Mira el mismo árbol que la suite: `vendor/` o el `--skills-local` que se va a

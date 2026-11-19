@@ -250,10 +250,12 @@ npm run checklist-casos -- --skills-local ../desy-skills
 **`replay-grader`** vuelve a pasar por `grader.ts` las Ejecuciones guardadas en
 `--reports` (por defecto `reports/suite`) y exige el **mismo Grade** que la
 primera vez: un cambio en el grader que mueva un Grade ya medido se ve así, sin
-gastar una sola corrida. Re-gradua con los `assert` que trae cada Ejecución (ticket
-06); si es anterior a él y no los trae, usa los Checks del Caso y lo **dice**.
-Corre en el precommit, pero sólo mira los árboles que existen: `reports/` está
-ignorado, así que en un clon limpio no hay nada que afirmar y sale verde diciéndolo.
+gastar una sola corrida. Re-gradúa con los Checks **del Caso**, no con los de la
+Ejecución —la Evidencia no guarda el peso de cada Check y el Grade de calidad se
+calcula con él—, y lo declara por Ejecución; el Gold de un Caso-página sale
+también del Caso. Corre en el precommit, pero sólo mira los árboles que existen:
+`reports/` está ignorado, así que en un clon limpio no hay nada que afirmar y sale
+verde diciéndolo.
 
 **`checklist-casos`** contrasta los hechos de los que depende cada Caso (el texto
 de una sección de un `SKILL.md`) contra el árbol consultado. Están los tres que el
@@ -261,9 +263,10 @@ bucle nombra —la tabla de tokens de `desy-styles-reference`, el `gap-x-4` lega
 `desy-implement-layout-patterns` y la página de prueba de
 `desy-implement-component`— y, si alguno cambió, **nombra los Casos a re-correr**.
 **No es un gate**: falla cada vez que un Skill se mejora de forma legítima, y ese
-rojo no es un defecto de nada (por eso nunca está en `precommit`). Lo que sí
-protege el build es la lista de hechos en sí: cada uno cita una sección y un Caso
-reales (`test/tier-rapido.test.ts`).
+rojo no es un defecto de nada (por eso nunca está en `precommit`). La lista de
+hechos sí se protege: `test/tier-rapido.test.ts` comprueba que cada sección citada
+existe y que cada Caso existe —contra el árbol real—, y que el hecho se lee bien
+—con un fixture—.
 
 ## Reporte
 

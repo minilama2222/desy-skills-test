@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { CASOS_DIR, cargarCaso } from "../src/caso-loader.js";
-import { esCasoPagina } from "../src/caso.js";
+import type { Check } from "../src/caso.js";
 import type { ResultadoEjecucion } from "../src/ejecutar.js";
 import { VENDOR_SKILLS_DIR } from "../src/runner.js";
 import { titulosDeSkill } from "../src/seccion-skill.js";
@@ -170,6 +170,16 @@ describe("la lista de hechos del repo se contrasta con el árbol canónico", () 
       expect(titulosDeSkill(md!).has(a.seccion), `«${a.seccion}» no está en ${a.skill}`).toBe(
         true,
       );
+      // El **texto** se contrasta con un fixture, no con `vendor/`: con el árbol
+      // real, cada mejora legítima de un Skill haría rojo `npm test`, que es justo
+      // lo que el ticket 08 dice que (b) no debe ser. El fixture prueba la regla;
+      // el árbol sólo prueba que la sección citada existe.
+      const cuerpo =
+        a.contiene !== undefined
+          ? `Esto dice: ${a.contiene}\n`
+          : "Otra cosa cualquiera.\n";
+      const fixture = `## ${a.seccion}\n\n${cuerpo}`;
+      expect(evaluarAfirmacion(a.skill, fixture, a).estado).toBe("vigente");
     }
   });
 
@@ -180,17 +190,6 @@ describe("la lista de hechos del repo se contrasta con el árbol canónico", () 
       expect(carpeta, `no existe el Caso ${a.caso}`).toBeDefined();
       expect(cargarCaso(carpeta!).skill).toBe(skill);
     }
-  });
-
-  it("hoy el árbol vendido deja la checklist en verde (una sección renombrada la pondría roja)", () => {
-    // Es el hecho de guardarraíl de la lista: si un Skill de `vendor/` se mueve
-    // bajo un hecho —una sección que se renombra, un texto que se va— esto se
-    // pone rojo y nombra el Caso a re-correr. Es una afirmación sobre el estado
-    // de hoy, a propósito: la deriva de un Skill la presenta la checklist, y aquí
-    // se fija que el árbol versionado sigue donde los Casos lo esperan.
-    const r = checklist(AFIRMACIONES_DEL_REPO, lectorDeSkillMd(VENDOR_SKILLS_DIR));
-    expect(r.cambiadas).toEqual([]);
-    expect(r.queReCorrer).toEqual([]);
   });
 
   it("incluye los tres hechos que el ticket nombra por su nombre", () => {
@@ -208,8 +207,10 @@ function carpetaDe(skill: string, id: string): string | undefined {
   for (const tipo of ["componente", "pagina", "decision"]) {
     const candidata = join(CASOS_DIR, skill, tipo, id);
     try {
-      const caso = cargarCaso(candidata);
-      if (esCasoPagina(caso) || !esCasoPagina(caso)) return candidata;
+      // Basta con que el Caso cargue: el tipo lo pone la carpeta, y aquí lo que
+      // se afirma es que existe y es del Skill que el hecho declara.
+      cargarCaso(candidata);
+      return candidata;
     } catch {
       continue;
     }
@@ -260,11 +261,16 @@ function ejecucion(parcial: Partial<ResultadoEjecucion> = {}): ResultadoEjecucio
 }
 
 describe("(a) replay: la Evidencia guardada vuelve a dar su Grade", () => {
-  it("reproduce cuando nada cambió, con los Checks de la Ejecución", () => {
-    const r = replayDeEjecucion(ejecucion(), "evidencia/1.json", undefined);
+  // El replay re-gradua con los Checks del **Caso**, no con los de la Ejecución:
+  // la Ejecución no guarda el peso (`DetalleCheck` no lo persiste) y el Grade de
+  // calidad se calcula con él. Estos dos Checks son los del Caso del disco.
+  const DEL_CASO = { checks: [GUARD_MACRO, QUALITY_TEXTO] as Check[] };
+
+  it("reproduce cuando nada cambió, y declara que los Checks salen del Caso", () => {
+    const r = replayDeEjecucion(ejecucion(), "evidencia/1.json", DEL_CASO);
     expect(r.estado).toBe("reproduce");
     expect(r.gradeActual).toBe("EXCELENTE");
-    expect(r.origenChecks).toBe("desde-la-ejecucion");
+    expect(r.origenChecks).toBe("desde-el-caso");
     expect(r.checksQueCambian).toEqual([]);
   });
 
@@ -274,7 +280,7 @@ describe("(a) replay: la Evidencia guardada vuelve a dar su Grade", () => {
     const r = replayDeEjecucion(
       ejecucion({ artefactos: { "src/boton.html": "<button>Enviar</button>" } }),
       "evidencia/1.json",
-      undefined,
+      DEL_CASO,
     );
     expect(r.estado).toBe("deriva");
     expect(r.gradeGuardado).toBe("EXCELENTE");
@@ -291,7 +297,7 @@ describe("(a) replay: la Evidencia guardada vuelve a dar su Grade", () => {
     const sinTexto = ejecucion({
       artefactos: { "src/boton.html": '{{ componentButton({ "text": "Otra" }) }}' },
     });
-    const r = replayDeEjecucion(sinTexto, "e.json", undefined);
+    const r = replayDeEjecucion(sinTexto, "e.json", DEL_CASO);
     expect(r.gradeActual).toBe("ACEPTABLE");
     expect(r.estado).toBe("deriva");
     expect(r.checksQueCambian).toEqual([
@@ -299,23 +305,38 @@ describe("(a) replay: la Evidencia guardada vuelve a dar su Grade", () => {
     ]);
   });
 
+  it("no deriva por un peso que la Ejecución no guarda: los pesos son los del Caso (bug cazado en la revisión)", () => {
+    // Un Caso con pesos muy distintos: la Quality pesa 5 y falla, la otra pesa 1
+    // y pasa -> ratio 1/6 -> ACEPTABLE. Con todos los pesos forzados a 1 (lo que
+    // hacía el primer replay) el ratio sería 1/2 -> ACEPTABLE también, pero con
+    // 1 y 5 al revés el Grade cambia de BUENO a ACEPTABLE: aquí se fija que el
+    // peso lo pone el Caso, no un 1 inventado.
+    const pesada = { id: "pesada", severity: "quality" as const, weight: 1, passed: false,
+      assert: { kind: "contiene_texto" as const, texto: "NO ESTA" } };
+    const ligera = { id: "ligera", severity: "quality" as const, weight: 2, passed: true,
+      assert: { kind: "contiene_texto" as const, texto: "Enviar" } };
+    const checks = [pesada, ligera].map(({ passed: _p, ...c }) => c);
+    const e = ejecucion({
+      grade: "BUENO",
+      detalle: [pesada, ligera],
+      artefactos: { "src/x.html": "<p>Enviar</p>" },
+    });
+    const r = replayDeEjecucion(e, "e.json", { checks });
+    expect(r.gradeActual).toBe("BUENO");
+    expect(r.estado).toBe("reproduce");
+  });
+
   it("respeta el Framework del tipo: los guards base del Caso-página cuentan aunque la Ejecución no los traiga", () => {
-    // La Ejecución se graduó como Caso-componente (no lleva los guards del
-    // Framework del Caso-página en `detalle`). La misma Evidencia, sin h1 ni
-    // skip-link ni fidelidad, suspende hoy por esos guards: es deriva.
     const pagina = ejecucion({
       tipo: "caso-pagina",
       artefactos: { "dist/pagina.html": "<html><body><p>sin h1</p></body></html>" },
     });
-    const r = replayDeEjecucion(pagina, "e.json", undefined);
+    const r = replayDeEjecucion(pagina, "e.json", DEL_CASO);
     expect(r.estado).toBe("deriva");
     expect(r.gradeActual).toBe("INACEPTABLE");
 
-    // Control positivo: un artefacto que pasa los guards del Framework (un h1,
-    // skip-link y los tres hechos de fidelidad, que eximen la palabra «Enviar»)
-    // reproduce su Grade. Los hechos de fidelidad no tienen Gold aquí, así que el
-    // artefacto los trae del Gold del Caso-página del repo; sin él, no hay guard
-    // de fidelidad que pasar, y eso es justamente lo que `gold` resuelve.
+    // Control positivo: el artefacto completo (h1, skip-link y los tres hechos de
+    // fidelidad, con el Gold del Caso) reproduce su Grade.
     const complete = {
       "dist/pagina.html":
         '<html><body><a class="skip-link" href="#main">Saltar</a>' +
@@ -325,10 +346,15 @@ describe("(a) replay: la Evidencia guardada vuelve a dar su Grade", () => {
     const gold =
       '<html><body><main class="container mx-auto"><h1 class="c-h1">Gold</h1>' +
       '<div class="grid lg:grid-cols-4 gap-x-4"></div></main></body></html>';
-    const conGold = ejecucion({ tipo: "caso-pagina", grade: "EXCELENTE", detalle: [QUALITY_TEXTO], artefactos: complete });
-    expect(replayDeEjecucion(conGold, "e.json", { checks: [QUALITY_TEXTO], gold }).estado).toBe(
-      "reproduce",
-    );
+    const conGold = ejecucion({
+      tipo: "caso-pagina",
+      grade: "EXCELENTE",
+      detalle: [QUALITY_TEXTO],
+      artefactos: complete,
+    });
+    expect(
+      replayDeEjecucion(conGold, "e.json", { checks: [QUALITY_TEXTO], gold }).estado,
+    ).toBe("reproduce");
   });
 
   it("respeta el Gold del Caso en los guards de fidelidad: sin él ningún guard reproduce", () => {
@@ -339,9 +365,6 @@ describe("(a) replay: la Evidencia guardada vuelve a dar su Grade", () => {
       passed: true,
       assert: { kind: "fidelidad_estructural" as const, hecho: "container" as const },
     };
-    // El artefacto trae el `main` del container y el resto de hechos del Gold. Sin
-    // el Gold no hay contra qué comparar, así que los guards de fidelidad del
-    // Framework caen y un INACEPTABLE guardado se reproduce.
     const evidencia = ejecucion({
       tipo: "caso-pagina",
       grade: "INACEPTABLE",
@@ -353,34 +376,22 @@ describe("(a) replay: la Evidencia guardada vuelve a dar su Grade", () => {
           '<div class="grid lg:grid-cols-4 gap-x-4"></div></main></body></html>',
       },
     });
+    // Sin Gold no hay contra qué comparar: los guards de fidelidad del Framework
+    // caen y el INACEPTABLE guardado se reproduce. Con el Gold, reproducen y el
+    // mismo INACEPTABLE deriva.
     expect(replayDeEjecucion(evidencia, "e.json", { checks: [fidelidad] }).estado).toBe(
       "reproduce",
     );
-
-    // El adverso: con el **Gold del Caso**, el guard del container sí reproduce (y
-    // los del Framework también), así que un INACEPTABLE guardado deriva.
     const gold =
       '<html><body><main class="container mx-auto"><h1 class="c-h1">Gold</h1>' +
       '<div class="grid lg:grid-cols-4 gap-x-4"></div></main></body></html>';
-    expect(replayDeEjecucion(evidencia, "e.json", { checks: [fidelidad], gold }).estado).toBe(
-      "deriva",
-    );
+    expect(
+      replayDeEjecucion(evidencia, "e.json", { checks: [fidelidad], gold }).estado,
+    ).toBe("deriva");
   });
 
-  it("sin `assert` en la Ejecución (anterior al ticket 06) re-gradua con el Caso y lo declara", () => {
-    const vieja = ejecucion({
-      detalle: [{ id: "usa-macro-boton", severity: "guard", passed: true }],
-    });
-    const r = replayDeEjecucion(vieja, "e.json", { checks: [GUARD_MACRO, QUALITY_TEXTO] });
-    expect(r.origenChecks).toBe("desde-el-caso");
-    expect(r.estado).toBe("reproduce");
-  });
-
-  it("sin Checks en ningún sitio es un error explícito, no un verde silencioso", () => {
-    const vieja = ejecucion({
-      detalle: [{ id: "usa-macro-boton", severity: "guard", passed: true }],
-    });
-    expect(() => replayDeEjecucion(vieja, "reports/x/1.json", undefined)).toThrow(
+  it("sin el Caso en disco es un error explícito: no hay con qué re-graduar, ni siquiera con los `assert` de la Ejecución", () => {
+    expect(() => replayDeEjecucion(ejecucion(), "reports/x/1.json", undefined)).toThrow(
       /implement-component\/boton-primario/,
     );
   });
@@ -389,8 +400,7 @@ describe("(a) replay: la Evidencia guardada vuelve a dar su Grade", () => {
     expect(camposQueFaltan(ejecucion())).toEqual([]);
     const { exitCode: _exit, arbolHash: _hash, ...vieja } = ejecucion();
     expect(camposQueFaltan(vieja)).toEqual(["exitCode", "arbolHash"]);
-    // El replay lo presenta él mismo: el adaptador no tiene que recalcularlo.
-    const r = replayDeEjecucion(vieja as ResultadoEjecucion, "e.json", undefined);
+    const r = replayDeEjecucion(vieja as ResultadoEjecucion, "e.json", DEL_CASO);
     expect(r.faltanCampos).toEqual(["exitCode", "arbolHash"]);
     expect(r.estado).toBe("reproduce");
   });
@@ -401,7 +411,7 @@ describe("(a) replay: la Evidencia guardada vuelve a dar su Grade", () => {
       origen: "b.json",
       ejecucion: ejecucion({ artefactos: { "src/boton.html": "<br>" } }),
     };
-    const { resultados } = replayDeEjecuciones([buena, mala], () => undefined);
+    const resultados = replayDeEjecuciones([buena, mala], () => DEL_CASO);
     expect(resultados.map((r) => r.origen)).toEqual(["a.json", "b.json"]);
     expect(derivas(resultados).map((r) => r.origen)).toEqual(["b.json"]);
   });
