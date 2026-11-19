@@ -95,6 +95,7 @@ function version(
             gradeCalidad: veredicto === "PASA" ? "EXCELENTE" : "INACEPTABLE",
             hallazgosDeTrigger: 0,
             triggerConEvidencia: 0,
+            contradiccionesDe: [],
           },
         ],
         pasados: veredicto === "PASA" ? 1 : 0,

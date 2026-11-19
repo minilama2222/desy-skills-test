@@ -111,6 +111,21 @@ destacan, con la ruta de su Evidencia si la hay. Lo calcula `esHallazgoDeTrigger
 (`src/scorecard.ts`), junto al veredicto que descarta la Ejecución.
 _Avoid_: contarlo como PASA; leerlo como un fallo del SUT o del Check.
 
+**Contradicción declarada** (skill vs Check):
+Una sección de un Skill que recomienda **lo contrario** de lo que exige uno de los
+Checks de un Caso (p. ej. `desy-implement-layout-patterns` → «Grid responsivo del
+formulario» dice `gap-x-4` y `espaciado-del-sistema` exige `gap-x-base`). El Caso la
+**declara** en su `rubric.md`, bajo `## El skill contradice este Check`, con una
+línea `- <id-del-check>: <skill que contradice> → «<sección>» — <lo que dice>`; el
+texto lo copia el autor (declarar), no lo extrae el sistema (inferir). No es un
+Ancla: el ancla sigue nombrando al Skill que **manda**, y la contradicción al que
+**choca**. El informe por Caso y la cabecera del Scorecard la destacan; no mueve el
+veredicto ni decide si se cambia el Skill o el Check. `npm run verificar-casos`
+exige que la sección citada exista.
+_Avoid_: leerla como un suspenso del Caso o un fallo del SUT; confundirla con el
+Ancla de skill (son skills distintos cuando el que contradice no es el que manda);
+meterla en `Check.ancla`.
+
 **Caso indeterminado**:
 El veredicto agregado de un Caso cuando **ninguna** de sus N Ejecuciones alcanzó el skill bajo test. No es suspenso: no hay dato para juzgar el skill (el agente no arrancó ninguna vez). Es un tercer estado además de aprobado/suspendido, y el scorecard debe representarlo. Ver ADR-0007.
 _Avoid_: contarlo como suspenso del skill.

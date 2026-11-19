@@ -1,4 +1,4 @@
-import type { AnclaDeSkill } from "./caso.js";
+import type { AnclaDeSkill, ContradiccionDeSkill } from "./caso.js";
 
 /**
  * Guardarraíl del árbol de Casos: todos los Casos declarados en `casos/` deben
@@ -40,6 +40,13 @@ export interface CasoEnDisco {
    * y el informe dice «el Check no declara de qué sección depende».
    */
   anclas?: Map<string, AnclaDeSkill>;
+  /**
+   * Las contradicciones con el skill que declara la `rubric.md`, por id de Check
+   * (ticket 13). Opcionales: no declarar ninguna no es un rojo —la contradicción
+   * es deuda de juicio, no un hecho mecánico—; lo que sí se juzga es que las que se
+   * declaran apunten a un Check real y a una sección que exista.
+   */
+  contradicciones?: Map<string, ContradiccionDeSkill>;
   /**
    * Las secciones que existen en el árbol de skills medido, por `skill` → títulos
    * presentes en su `SKILL.md`. Lo aporta el adaptador; sin él no se puede decir
@@ -88,6 +95,7 @@ export function problemasDelArbolDeCasos(casos: CasoEnDisco[]): string[] {
     }
     for (const problema of problemasDeRubric(caso, vocabulario)) hallazgos.push(problema);
     for (const problema of problemasDeAnclaje(caso)) hallazgos.push(problema);
+    for (const problema of problemasDeContradiccion(caso)) hallazgos.push(problema);
   }
   if (esArbolCompleto(casos)) {
     for (const problema of problemasDeLaListaDePendientes(casos)) hallazgos.push(problema);
@@ -131,7 +139,6 @@ export const PENDIENTES_DE_ANCLAR: ReadonlyMap<string, string> = new Map([
   ["casos/choose-page-template/decision/404-portal-publico", "ticket 12"],
   ["casos/component-recognizer/decision/reconocimiento-login", "ticket 12"],
   ["casos/design-match/decision/afinado-paso-1", "ticket 12"],
-  ["casos/implement-layout-patterns/componente/fieldset-grid-acciones", "ticket 12"],
   ["casos/implement-pattern/componente/politicas-privacidad", "ticket 12"],
   ["casos/implement-pattern/pagina/patron-pagina-paso-1-nombre-nif", "ticket 12"],
   ["casos/preflight-check/decision/proyecto-no-existe", "ticket 12"],
@@ -197,6 +204,44 @@ function problemasDeChecksSinAncla(caso: CasoEnDisco): string[] {
     `${caso.ruta}: rubric.md no ancla ${sinAncla.length} de sus ${total} ` +
       `Check/s (${sinAncla.join(", ")})`,
   ];
+}
+
+/**
+ * Una contradicción declarada (ticket 13) apunta a algo real, como un ancla: el
+ * Check tiene que existir en el Caso, y la sección citada en el `SKILL.md` del
+ * skill que contradice. Citar una sección fantasma no es un hallazgo, es un error
+ * —el informe presentaría como contradicción una frase que nadie escribió—.
+ *
+ * El skill que contradice puede ser distinto del Caso y del ancla: es el que
+ * choca, no el que manda. Se contrasta contra **ese** skill.
+ */
+export function problemasDeContradiccion(caso: CasoEnDisco): string[] {
+  const problemas: string[] = [];
+  const delCaso = new Set(caso.idsDeChecks ?? []);
+
+  for (const [id, c] of caso.contradicciones ?? []) {
+    const cita = `«${c.skill} → «${c.seccion}»»`;
+    if (caso.idsDeChecks !== undefined && !delCaso.has(id)) {
+      problemas.push(
+        `${caso.ruta}: rubric.md declara que ${cita} contradice al Check "${id}", ` +
+          "que el Caso no tiene",
+      );
+    }
+    if (caso.seccionesPorSkill === undefined) continue;
+    const secciones = caso.seccionesPorSkill.get(c.skill);
+    if (secciones === undefined) {
+      problemas.push(
+        `${caso.ruta}: rubric.md declara una contradicción con el skill "${c.skill}", ` +
+          "que no está en el árbol de skills medido",
+      );
+    } else if (!secciones.has(c.seccion)) {
+      problemas.push(
+        `${caso.ruta}: rubric.md declara que ${cita} contradice al Check "${id}", ` +
+          "pero ese SKILL.md no tiene esa sección",
+      );
+    }
+  }
+  return problemas;
 }
 
 /**

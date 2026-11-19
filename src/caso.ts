@@ -228,6 +228,40 @@ export interface AnclaDeSkill {
 export const EPIGRAFE_ANCLAJE = "Anclaje en desy-skills";
 
 /**
+ * El epígrafe de `rubric.md` bajo el que el Caso **declara** que una sección de un
+ * skill dice lo contrario de lo que exige uno de sus Checks (ticket 13). Es el
+ * hallazgo que antes vivía en prosa libre («Tensión conocida con el skill») y que
+ * sólo leía quien ya trabajaba en ese Caso.
+ */
+export const EPIGRAFE_CONTRADICCIONES = "El skill contradice este Check";
+
+/**
+ * Una contradicción **declarada** entre un Check y una sección de un skill: el
+ * Check mide una cosa y el skill, en esa sección, recomienda la contraria.
+ *
+ * No es un ancla y no ocupa su sitio: el ancla nombra al skill que **manda** (la
+ * fuente de la regla que el Check mide), y esto nombra al skill que **choca**. En
+ * `fieldset-grid-acciones` son distintos —manda `desy-styles-reference`, choca
+ * `desy-implement-layout-patterns`— y el informe cita la sección del ancla como su
+ * fuente, mientras presenta la contradicción en la cabecera.
+ *
+ * El hallazgo es un hecho que se **presenta**, no un juicio: no mueve el veredicto
+ * ni decide si se cambia el skill o el Check (ver el glosario).
+ */
+export interface ContradiccionDeSkill {
+  /** El Skill cuya sección **contradice** lo que el Check exige. */
+  skill: string;
+  /** El título de su sección, sin los `#`. */
+  seccion: string;
+  /**
+   * Lo que dice esa sección que choca, copiado por el autor. No se extrae del
+   * `SKILL.md`: el sistema no sabe cuál de las menciones del skill es la que
+   * contradice, y extraerla sería inferir lo que la declaración declara.
+   */
+  texto: string;
+}
+
+/**
  * El título de un epígrafe, comparado sin la decoración de markdown: la rúbrica
  * del repo escribe `## Anclaje en \`desy-skills\`` con backticks, y el epígrafe
  * canónico no los lleva. Que un backtick cambie el sentido de un título sería
@@ -285,20 +319,83 @@ export function anclajesDeRubric(texto: string): Map<string, AnclaDeSkill> {
   return anclajes;
 }
 
-export interface CasoComponente {
-  tipo: "caso-componente";
-  skill: string;
-  id: string;
-  prompt: string;
-  checks: Check[];
+/**
+ * Una línea de contradicción en `rubric.md`:
+ * `- <id>: <skill> → «<sección>» — <lo que dice el skill>`
+ *
+ * La forma es la del ancla **hasta la sección** y luego sigue: el texto copiado
+ * viene tras la flecha y un apartado (`—`, `–`, `-`) o, en su defecto, cualquier
+ * texto. Por eso el ancla, que exige que la línea **termine** en el cierre de la
+ * sección, no la confunde con un ancla; y aquí, al revés, es el texto lo que
+ * distingue una contradicción de una ancla escondida. Qué significa la línea lo
+ * dice el epígrafe, no la forma: las dos son `- id: skill → «sección»`.
+ */
+const LINEA_CONTRADICCION =
+  /^\s*[-*]\s+`?([a-z][a-z0-9-]+)`?\s*:\s*`?([a-z][a-z0-9-]+)`?\s*→\s*[«"“](.+?)[»"”]\s*(?:[—–-]\s*)?(.+?)\s*$/;
+
+/**
+ * Lee las contradicciones skill-vs-Check que declara una `rubric.md` bajo el
+ * epígrafe `## El skill contradice este Check` (ticket 13). Sólo cuentan las
+ * líneas de **ese** epígrafe, igual que el ancla: la rúbrica tiene más prosa con
+ * flechas.
+ *
+ * Devuelve un `Map` id → contradicción, con la **primera** declaración de cada
+ * id, como `anclajesDeRubric`: dos contradicciones para el mismo Check son una
+ * contradicción de la rúbrica, y la que el autor escribió primero es la que vale.
+ * Una línea sin el texto copiado no se lee: le falta el «qué».
+ */
+export function contradiccionesDeRubric(
+  texto: string,
+): Map<string, ContradiccionDeSkill> {
+  const contradicciones = new Map<string, ContradiccionDeSkill>();
+  let dentro = false;
+  let nivelDelEpigrafe = 0;
+
+  for (const linea of texto.split(/\r?\n/)) {
+    const titulo = /^(#{1,6})\s+(.*?)\s*$/.exec(linea);
+    if (titulo) {
+      const nivel = titulo[1]!.length;
+      if (dentro && nivel <= nivelDelEpigrafe) dentro = false;
+      if (tituloPlano(titulo[2]!) === EPIGRAFE_CONTRADICCIONES) {
+        dentro = true;
+        nivelDelEpigrafe = nivel;
+      }
+      continue;
+    }
+    if (!dentro) continue;
+    const match = LINEA_CONTRADICCION.exec(linea);
+    if (!match) continue;
+    const [, id, skill, seccion, copiado] = match;
+    if (!seccion || !copiado) continue;
+    if (seccion.length === 0 || copiado.trim().length === 0) continue;
+    if (id && skill && !contradicciones.has(id)) {
+      contradicciones.set(id, { skill, seccion, texto: copiado.trim() });
+    }
+  }
+  return contradicciones;
 }
 
-export interface CasoPagina {
-  tipo: "caso-pagina";
+/**
+ * Lo que todo Caso declara, sea del tipo que sea. `contradicciones` es aparte de
+ * los `checks` a propósito (ticket 13): una contradicción no es una propiedad del
+ * Check —no llena `Check.ancla` ni cambia lo que el informe cita como fuente—,
+ * es una declaración del Caso sobre el desacuerdo con su skill.
+ */
+interface CasoBase {
   skill: string;
   id: string;
   prompt: string;
   checks: Check[];
+  /** Las contradicciones declaradas en `rubric.md`, por id de Check. */
+  contradicciones?: Map<string, ContradiccionDeSkill>;
+}
+
+export interface CasoComponente extends CasoBase {
+  tipo: "caso-componente";
+}
+
+export interface CasoPagina extends CasoBase {
+  tipo: "caso-pagina";
   goldPath: string;
   /** Captura de Gold (Gold-imagen) como fixture: `input/gold.png`. */
   goldImagenPath: string;
@@ -310,12 +407,8 @@ export interface CasoPagina {
  * (su tabla/decisión), y los checks son de decisión (`declara_decision` /
  * `no_declara_decision`). No lleva Gold ni HTML.
  */
-export interface CasoDecision {
+export interface CasoDecision extends CasoBase {
   tipo: "caso-decision";
-  skill: string;
-  id: string;
-  prompt: string;
-  checks: Check[];
   /**
    * Mockup de entrada (input/mockup.png), si el Caso decide a partir de una
    * imagen (p. ej. `component-recognizer`). Se adjunta al prompt del SUT.

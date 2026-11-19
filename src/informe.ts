@@ -1,4 +1,4 @@
-import type { AnclaDeSkill } from "./caso.js";
+import type { AnclaDeSkill, ContradiccionDeSkill } from "./caso.js";
 import type { ResultadoEjecucion } from "./ejecutar.js";
 import type { DetalleCheck } from "./grader.js";
 import { esHallazgoDeTrigger } from "./scorecard.js";
@@ -52,6 +52,13 @@ export interface ContextoDelCaso {
   prompt?: string;
   /** Las anclas por id de Check, del `rubric.md` del Caso (o de la Ejecución). */
   anclas?: ReadonlyMap<string, AnclaDeSkill>;
+  /**
+   * Las contradicciones que el `rubric.md` del Caso declara entre un Check y una
+   * sección de un skill (ticket 13). No son anclas: no sustituyen a `anclas`, que
+   * sigue diciendo de qué sección depende la regla. Sin ellas no hay nada que
+   * presentar, y eso no es un rojo.
+   */
+  contradicciones?: ReadonlyMap<string, ContradiccionDeSkill>;
   /**
    * Resuelve el texto de una sección de un skill. El adaptador lo construye con
    * los skills medidos (el árbol de `--skills-local`, o el `vendor/`); el
@@ -412,6 +419,36 @@ function renderEjecucion(
 }
 
 /**
+ * El bloque de cabecera de las contradicciones declaradas (ticket 13): por cada
+ * Check que el `rubric.md` declara en desacuerdo con una sección de un skill, el
+ * Check, el skill que contradice, su sección y lo que dice.
+ *
+ * Va en la **cabecera** y no enterrado bajo el Check fallido: es un hecho sobre el
+ * skill que no depende de que la corrida haya medido bien, y quien lee sólo la
+ * cabecera tiene que verlo. Presenta; no decide si se cambia el skill o el Check.
+ */
+function bloqueDeContradicciones(
+  contradicciones: ReadonlyMap<string, ContradiccionDeSkill>,
+): string[] {
+  if (contradicciones.size === 0) return [];
+  const lineas: string[] = [
+    "> **El skill contradice este Check:** la rúbrica declara que una sección del skill",
+    "> recomienda lo contrario de lo que exige el Check. No es un suspenso ni un fallo del",
+    "> agente, y no cambia el veredicto: el Check sigue midiendo lo que mide, y la",
+    "> contradicción se presenta para que se decida si cambia el skill o el Check.",
+    "",
+  ];
+  for (const [id, contradiccion] of contradicciones) {
+    lineas.push(
+      `- \`${id}\` — el skill \`${contradiccion.skill}\` → «${contradiccion.seccion}» ` +
+        `dice: ${contradiccion.texto}`,
+    );
+  }
+  lineas.push("");
+  return lineas;
+}
+
+/**
  * El informe completo de un Caso: cabecera (prompt, artefactos, Flujo, exit code
  * y por cada Check ✓/✗ con la línea que falla) y un bloque por Ejecución.
  *
@@ -429,6 +466,10 @@ export function renderInformeCaso(
   const skill = primera?.skill ?? "(skill desconocido)";
   const caso = primera?.caso ?? contexto.caso;
   lineas.push(`# Informe — ${skill}/${caso}`, "");
+
+  // La contradicción declarada con el skill es de la rúbrica, no de la corrida: va
+  // justo bajo el H1, antes de todo lo que la corrida mida (ticket 13).
+  lineas.push(...bloqueDeContradicciones(contexto.contradicciones ?? new Map()));
 
   // El hallazgo de trigger va **lo alto del informe**, antes que nada: es la
   // única cosa que el veredicto descarta a propósito y la que el mantenedor no
@@ -486,7 +527,9 @@ export function renderInformeCaso(
     "",
     "Por cada Check, la aserción que falla, la línea que la tumba y la sección del",
     "skill de la que el Caso dice depender. Este informe **presenta; no adivina**:",
-    "si el rojo es del skill o del check lo decide quien lo lee.",
+    "si el rojo es del skill o del check lo decide quien lo lee. Su `rubric.md`",
+    "declara toda contradicción conocida entre un Check y una sección del skill;",
+    "esas salen en la cabecera, y el informe no decide cuál de los dos cambia.",
   );
 
   ejecuciones.forEach((ejecucion, i) => {

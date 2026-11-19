@@ -322,6 +322,61 @@ describe("anclas de skill del Caso (ticket 06)", () => {
   });
 });
 
+describe("contradicciones declaradas del Caso (ticket 13)", () => {
+  const SECCION = { skill: "desy-styles-reference", seccion: "Espaciado (escala de tokens del proyecto)" };
+  const conContradicciones = (
+    contradicciones: [string, { skill: string; seccion: string; texto: string }][],
+    over: Partial<CasoParaValidar> = {},
+  ): CasoParaValidar =>
+    casoOk({
+      idsDeChecks: ["espaciado-del-sistema"],
+      anclas: new Map([["espaciado-del-sistema", SECCION]]),
+      contradicciones: new Map(contradicciones),
+      seccionesPorSkill: new Map([
+        ["desy-styles-reference", new Set(["Espaciado (escala de tokens del proyecto)"])],
+        ["desy-implement-layout-patterns", new Set(["Grid responsivo del formulario"])],
+      ]),
+      ...over,
+    });
+
+  const REAL = {
+    skill: "desy-implement-layout-patterns",
+    seccion: "Grid responsivo del formulario",
+    texto: "el skill dice «`gap-x-4`»",
+  };
+
+  it("no señala nada si la contradicción nombra un Check del Caso y una sección que existe", () => {
+    expect(
+      problemasDelArbolDeCasos([conContradicciones([["espaciado-del-sistema", REAL]])]),
+    ).toEqual([]);
+  });
+
+  it("señala una contradicción que cita una sección fantasma: es un error, no un hallazgo", () => {
+    const hallazgos = problemasDelArbolDeCasos([
+      conContradicciones([
+        ["espaciado-del-sistema", { ...REAL, seccion: "Una sección que nadie escribió" }],
+      ]),
+    ]);
+
+    expect(hallazgos).toHaveLength(1);
+    expect(hallazgos[0]).toContain("Una sección que nadie escribió");
+    expect(hallazgos[0]).toMatch(/no tiene esa sección/);
+  });
+
+  it("señala una contradicción sobre un Check que el Caso no tiene", () => {
+    const hallazgos = problemasDelArbolDeCasos([
+      conContradicciones([["espaciado-primario", REAL]]),    ]);
+
+    expect(hallazgos).toHaveLength(1);
+    expect(hallazgos[0]).toContain("espaciado-primario");
+    expect(hallazgos[0]).toMatch(/el Caso no tiene/);
+  });
+
+  it("sin contradicciones declaradas no se señala nada: no es un gate", () => {
+    expect(problemasDelArbolDeCasos([conContradicciones([])])).toEqual([]);
+  });
+});
+
 describe("problemasDeLaListaDePendientes: la deuda declarada no miente", () => {
   /** Los 13 pendientes, para que no salgan como fantasmas los que no mido. */
   const todosLosPendientes = (over: Partial<CasoParaValidar> = {}): CasoParaValidar[] =>

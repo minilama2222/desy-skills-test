@@ -8,7 +8,12 @@ import type {
   CasoPagina,
   Check,
 } from "./caso.js";
-import { anclajesDeRubric, parseChecks, tipoDeCarpeta } from "./caso.js";
+import {
+  anclajesDeRubric,
+  contradiccionesDeRubric,
+  parseChecks,
+  tipoDeCarpeta,
+} from "./caso.js";
 import { REPO_ROOT } from "./repo.js";
 
 export type CasoEnDisco = Caso;
@@ -73,6 +78,11 @@ export function cargarCaso(dir: string): Caso {
   }
   const rubric = leer(join(dir, RUBRIC), "la rúbrica del Caso en rubric.md");
   const checks = anclarChecks(cargarChecks(dir), anclajesDeRubric(rubric));
+  // La contradicción declarada viaja en el Caso, **no** en el Check (ticket 13):
+  // el ancla sigue siendo la fuente de la regla y esto es el desacuerdo con ella.
+  const contradicciones = contradiccionesDeRubric(rubric);
+  const declaradas =
+    contradicciones.size === 0 ? {} : { contradicciones };
 
   if (tipo === "caso-pagina") {
     const goldPath = join(dir, GOLD);
@@ -85,6 +95,7 @@ export function cargarCaso(dir: string): Caso {
       id,
       prompt,
       checks,
+      ...declaradas,
       goldPath,
       goldImagenPath: join(dir, GOLD_IMAGEN),
     };
@@ -99,12 +110,13 @@ export function cargarCaso(dir: string): Caso {
       id,
       prompt,
       checks,
+      ...declaradas,
       ...(existsSync(mockupImagenPath) ? { mockupImagenPath } : {}),
     };
     return caso;
   }
 
-  const caso: CasoComponente = { tipo, skill, id, prompt, checks };
+  const caso: CasoComponente = { tipo, skill, id, prompt, checks, ...declaradas };
   return caso;
 }
 

@@ -452,6 +452,55 @@ describe("renderScorecard: los INDETERMINADO se leen en la cabecera", () => {
   });
 });
 
+describe("Scorecard: el skill contradice este Check (ticket 13)", () => {
+  const CONTRADICCION = {
+    skill: "desy-implement-layout-patterns",
+    seccion: "Grid responsivo del formulario",
+    texto: "el skill dice «`gap-x-4`»; el Check exige `gap-x-base`",
+  };
+
+  const scorecardCon = (declarar: boolean) =>
+    agregarScorecard(
+      [ejecucion()],
+      pin,
+      undefined,
+      new Map([
+        [
+          "implement-component/boton-primario",
+          new Map(declarar ? [["espaciado-del-sistema", CONTRADICCION]] : []),
+        ],
+      ]),
+    );
+
+  it("destaca la contradicción en la cabecera, antes de cualquier tabla", () => {
+    const texto = renderScorecard(scorecardCon(true));
+
+    const hallazgo = texto.indexOf("El skill contradice este Check");
+    expect(hallazgo).toBeGreaterThan(-1);
+    expect(hallazgo).toBeLessThan(texto.indexOf("## implement-component"));
+    expect(hallazgo).toBeLessThan(texto.indexOf("| Caso |"));
+  });
+
+  it("nombra el Check, su Caso, el skill que contradice y lo que dice", () => {
+    const texto = renderScorecard(scorecardCon(true));
+
+    expect(texto).toContain("`espaciado-del-sistema`");
+    expect(texto).toContain("`implement-component/boton-primario`");
+    expect(texto).toContain("`desy-implement-layout-patterns`");
+    expect(texto).toContain("«Grid responsivo del formulario»");
+    expect(texto).toContain("gap-x-4");
+  });
+
+  it("sin contradicción declarada no aparece, y con ella sí (control positivo)", () => {
+    // El agregador sólo conserva la declaración si es del mismo Caso —aquí lo es—,
+    // así que lo único que cambia en el control es la línea de la rúbrica.
+    expect(renderScorecard(scorecardCon(true))).toContain("El skill contradice este Check");
+    expect(renderScorecard(scorecardCon(false))).not.toContain(
+      "El skill contradice este Check",
+    );
+  });
+});
+
 describe("renderScorecard: revisar el resultado sin leer transcripciones", () => {
   it("declara el Pin testeado en la cabecera", () => {
     const texto = renderScorecard(agregarScorecard([ejecucion()], pin));

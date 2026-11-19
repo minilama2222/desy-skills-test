@@ -249,6 +249,61 @@ describe("cargarCaso", () => {
     expect(caso.checks[1]!.ancla).toBeUndefined();
   });
 
+  it("lee la contradicción de la rúbrica sin convertirla en ancla ni tocar Check.ancla (ticket 13)", () => {
+    root = mkdtempSync(join(tmpdir(), "casos-"));
+    const checks = {
+      checks: [
+        {
+          id: "espaciado-del-sistema",
+          severity: "quality",
+          weight: 2,
+          assert: { kind: "espaciado_del_sistema" },
+        },
+      ],
+    };
+    const ancla = "- espaciado-del-sistema: desy-styles-reference → «Espaciado (escala de tokens del proyecto)»";
+    const contradiccion =
+      "- espaciado-del-sistema: desy-implement-layout-patterns → «Grid responsivo del formulario» — " +
+      "el skill dice «`gap-x-4`»; el Check exige `gap-x-base`";
+    const rubric = (declarada: boolean): string =>
+      [
+        "# Rúbrica",
+        "",
+        "## Anclaje en `desy-skills`",
+        "",
+        ancla,
+        "",
+        "## El skill contradice este Check",
+        "",
+        ...(declarada ? [contradiccion] : ["_Ninguna declarada por ahora._"]),
+      ].join("\n");
+
+    // Control positivo: con la línea, la contradicción se lee.
+    const declarado = cargarCaso(crearCaso(root, "implement-layout-patterns", "componente", "con", { checks, rubric: rubric(true) }));
+    expect(declarado.contradicciones).toEqual(
+      new Map([
+        [
+          "espaciado-del-sistema",
+          {
+            skill: "desy-implement-layout-patterns",
+            seccion: "Grid responsivo del formulario",
+            texto: "el skill dice «`gap-x-4`»; el Check exige `gap-x-base`",
+          },
+        ],
+      ]),
+    );
+    // **No es un ancla**: el Check sigue citando al skill que manda como fuente.
+    expect(declarado.checks[0]!.ancla).toEqual({
+      skill: "desy-styles-reference",
+      seccion: "Espaciado (escala de tokens del proyecto)",
+    });
+
+    // Y sin la línea no hay nada que presentar: la contradicción es opcional.
+    const sinDeclarar = cargarCaso(crearCaso(root, "implement-layout-patterns", "componente", "sin", { checks, rubric: rubric(false) }));
+    expect(sinDeclarar.contradicciones).toBeUndefined();
+    expect(sinDeclarar.checks[0]!.ancla).toEqual(declarado.checks[0]!.ancla);
+  });
+
   it("rechaza una carpeta de tipo desconocido con un error claro", () => {
     root = mkdtempSync(join(tmpdir(), "casos-"));
     mkdirSync(join(root, "implement-component", "otro", "x", "input"), { recursive: true });

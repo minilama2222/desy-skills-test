@@ -43,6 +43,7 @@ const caso = (over: Partial<CasoScorecard> = {}): CasoScorecard => ({
   gradeCalidad: "EXCELENTE",
   hallazgosDeTrigger: 0,
   triggerConEvidencia: 0,
+  contradiccionesDe: [],
   ...over,
 });
 

@@ -1,4 +1,5 @@
 import { cuentaComoEntrega, type ResultadoEjecucion } from "./ejecutar.js";
+import type { ContradiccionDeSkill } from "./caso.js";
 import type { Grade } from "./grader.js";
 import type { Pin } from "./pin.js";
 import { LOCAL, esPinLocal } from "./pin.js";
@@ -79,6 +80,15 @@ export interface CasoScorecard {
    * el hallazgo remite a la Evidencia, no la reemplaza.
    */
   triggerConEvidencia: number;
+  /**
+   * Las contradicciones entre un Check y su skill que el Caso **declara** en su
+   * `rubric.md` (ticket 13): el Check mide una cosa y la sección del skill
+   * recomienda la contraria. No es un veredicto ni un fallo del SUT; se destaca en
+   * la cabecera para que quien lea sólo el Scorecard lo vea. Cero, nunca ausente,
+   * como el resto de la forma del JSON, aunque un `npm run report` de un árbol sin
+   * `casos/` no pueda saberlas y deje la lista vacía.
+   */
+  contradiccionesDe: { id: string; skill: string; seccion: string; texto: string }[];
 }
 
 export interface SkillScorecard {
@@ -239,6 +249,7 @@ function mejorEjecucion(ejecuciones: ResultadoEjecucion[]): ResultadoEjecucion |
 function agregarCaso(
   caso: string,
   ejecuciones: ResultadoEjecucion[],
+  contradicciones?: ReadonlyMap<string, ContradiccionDeSkill>,
 ): CasoScorecard {
   const conDato = conDatoDe(ejecuciones);
   const entregadas = entregasQueDeciden(ejecuciones);
@@ -267,6 +278,7 @@ function agregarCaso(
     gradeCalidad: mejor?.grade ?? "INACEPTABLE",
     hallazgosDeTrigger: triggers.length,
     triggerConEvidencia: triggers.filter((e) => e.evidencia !== undefined).length,
+    contradiccionesDe: [...(contradicciones ?? [])].map(([id, c]) => ({ id, ...c })),
   };
 }
 
@@ -289,17 +301,26 @@ function agruparPor<T>(items: T[], clave: (item: T) => string): Map<string, T[]>
  * La forma es estable: las claves se emiten siempre, aunque el Caso no tenga
  * Ejecuciones de esa clase. Un reporte de CI no puede tener campos opcionales que
  * aparezcan o desaparezcan según los datos.
+ *
+ * `contradicciones` dice qué Casos declaran una contradicción con su skill
+ * (ticket 13), por clave `<skill>/<caso>`: son de la **rúbrica**, no de las
+ * Ejecuciones, y el agregador no las busca —quien lo llama las leyó de `casos/`—.
+ * La entrada de un Caso que no está entre las Ejecuciones se ignora: un Caso que
+ * no se midió no tiene Scorecard en el que destacar nada.
  */
 export function agregarScorecard(
   ejecuciones: ResultadoEjecucion[],
   pin: Pin,
   arbolHash?: string,
+  contradicciones?: ReadonlyMap<string, ReadonlyMap<string, ContradiccionDeSkill>>,
 ): Scorecard {
   const porSkill = agruparPor(ejecuciones, (e) => e.skill);
 
   const skills: SkillScorecard[] = [...porSkill].map(([skill, delSkill]) => {
     const porCaso = agruparPor(delSkill, (e) => e.caso);
-    const casos = [...porCaso].map(([caso, dels]) => agregarCaso(caso, dels));
+    const casos = [...porCaso].map(([caso, dels]) =>
+      agregarCaso(caso, dels, contradicciones?.get(`${skill}/${caso}`)),
+    );
     return {
       skill,
       casos,
@@ -379,6 +400,32 @@ export function renderScorecard(reporte: Scorecard): string {
       lineas.push(
         `- \`${hallazgo.skill}/${hallazgo.caso}\` — ${caso.hallazgosDeTrigger} ` +
           `Ejecución/es (${evidencia}); veredicto del Caso: **${caso.veredicto}**`,
+      );
+    }
+  }
+
+  // La contradicción declarada con el skill sigue al hallazgo de trigger, también
+  // en la cabecera: es información sobre el skill que el veredicto no puede dar
+  // (ticket 13), y quien lea sólo el Scorecard tiene que verla antes que las tablas.
+  const contradicciones = reporte.skills.flatMap((skill) =>
+    skill.casos.flatMap((caso) =>
+      caso.contradiccionesDe.map((c) => ({ caso: `${skill.skill}/${caso.caso}`, ...c })),
+    ),
+  );
+  if (contradicciones.length > 0) {
+    lineas.push(
+      "",
+      "## ⚠ El skill contradice este Check",
+      "",
+      "La rúbrica de estos Casos declara que una sección del skill recomienda lo",
+      "contrario de lo que exige uno de sus Checks. No mueve el veredicto —el Check",
+      "sigue midiendo lo que mide— ni dice cuál de los dos cambia: se presenta para",
+      "que una persona decida, y su detalle está en el informe del Caso.",
+      "",
+    );
+    for (const c of contradicciones) {
+      lineas.push(
+        `- \`${c.caso}\` — \`${c.id}\`: \`${c.skill}\` → «${c.seccion}» dice: ${c.texto}`,
       );
     }
   }

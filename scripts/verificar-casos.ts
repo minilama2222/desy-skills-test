@@ -1,6 +1,6 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
-import { anclajesDeRubric } from "../src/caso.js";
+import { anclajesDeRubric, contradiccionesDeRubric } from "../src/caso.js";
 import { CASOS_DIR, cargarCaso } from "../src/caso-loader.js";
 import {
   deudaDeAnclaje,
@@ -93,15 +93,23 @@ function describirCaso(
 
 /**
  * El texto de la rúbrica (para contrastarla con los Checks: ver
- * `problemasDeRubric`) y sus anclas de skill (ticket 06). Si el fichero no
- * existe no se lee nada: la falta ya la señala `tieneRubric`.
+ * `problemasDeRubric`), sus anclas de skill (ticket 06) y sus contradicciones
+ * declaradas (ticket 13). Si el fichero no existe no se lee nada: la falta ya la
+ * señala `tieneRubric`.
  */
-function leerRubric(dir: string): Pick<CasoEnDisco, "textoRubric" | "anclas"> {
+function leerRubric(
+  dir: string,
+): Pick<CasoEnDisco, "textoRubric" | "anclas" | "contradicciones"> {
   const path = join(dir, "rubric.md");
   if (!existsSync(path)) return {};
   const texto = readFileSync(path, "utf8");
   const anclas = anclajesDeRubric(texto);
-  return { textoRubric: texto, ...(anclas.size === 0 ? {} : { anclas }) };
+  const contradicciones = contradiccionesDeRubric(texto);
+  return {
+    textoRubric: texto,
+    ...(anclas.size === 0 ? {} : { anclas }),
+    ...(contradicciones.size === 0 ? {} : { contradicciones }),
+  };
 }
 
 const arbol = describirArbol(seccionesDelArbol());

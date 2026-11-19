@@ -330,6 +330,117 @@ describe("hallazgo de trigger en el informe del Caso (ticket 07)", () => {
   });
 });
 
+describe("renderInformeCaso: el skill contradice este Check (ticket 13)", () => {
+  const CASO_FIELDSET = join(
+    CASOS_DIR,
+    "implement-layout-patterns",
+    "componente",
+    "fieldset-grid-acciones",
+  );
+
+  /** Una Ejecución graduada del Caso real `fieldset-grid-acciones`. */
+  function ejecucionFieldset(over: Partial<ResultadoEjecucion> = {}): ResultadoEjecucion {
+    const caso = cargarCaso(CASO_FIELDSET);
+    const artefacto = [
+      '<fieldset><legend class="sr-only">Datos</legend>',
+      '<div class="grid lg:grid-cols-4 gap-x-base">',
+      '<input id="n" type="text"><label for="n">Nombre</label>',
+      "</div></fieldset>",
+    ].join("\n");
+    const { grade, detalle } = grado(
+      { artefactos: { files: { "src/fieldset.njk": artefacto } }, transcript: { invocaciones: ["implement-layout-patterns"] } },
+      { tipo: caso.tipo, checks: caso.checks },
+    );
+    return {
+      skill: caso.skill,
+      caso: caso.id,
+      tipo: caso.tipo,
+      pin: "b523ca7df8594532f5fd47376894c16bc8f1b5df",
+      fecha: "2026-11-19",
+      grade,
+      detalle,
+      flujoObservado: ["implement-layout-patterns"],
+      artefactos: { "src/fieldset.njk": artefacto },
+      entrega: "con-artefacto",
+      flujoAlcanzoSkill: true,
+      exitCode: 0,
+      ultimoPasoDelFlujo: "implement-layout-patterns",
+      arbolHash: "hash-de-fixture",
+      salida: { stdout: "", stderr: "" },
+      ...over,
+    };
+  }
+
+  /** El contexto del Caso real, con o sin la contradicción que declara su rúbrica. */
+  function contextoFieldset(declarar: boolean): ContextoDelCaso {
+    const caso = cargarCaso(CASO_FIELDSET);
+    return {
+      caso: caso.id,
+      prompt: caso.prompt,
+      anclas: new Map(
+        caso.checks.flatMap((c) => (c.ancla === undefined ? [] : [[c.id, c.ancla] as const])),
+      ),
+      ...(declarar && caso.contradicciones !== undefined
+        ? { contradicciones: caso.contradicciones }
+        : {}),
+      // El lector **real** de `vendor/`: sin él, ninguna sección se leería y el
+      // control de «cita el ancla» pasaría por no haber nada que citar.
+      leerSeccion: lectorDeSecciones(VENDOR_SKILLS_DIR),
+    };
+  }
+
+  it("saca la contradicción a la cabecera, antes de la tabla de Ejecuciones", () => {
+    const texto = renderInformeCaso([ejecucionFieldset()], contextoFieldset(true));
+
+    const hallazgo = texto.indexOf("El skill contradice este Check");
+    expect(hallazgo).toBeGreaterThan(-1);
+    expect(hallazgo).toBeLessThan(texto.indexOf("| Ejecución |"));
+  });
+
+  it("nombra el Check, el skill que contradice, su sección y lo que dice", () => {
+    const texto = renderInformeCaso([ejecucionFieldset()], contextoFieldset(true));
+
+    expect(texto).toContain("`espaciado-del-sistema`");
+    expect(texto).toContain("`desy-implement-layout-patterns`");
+    expect(texto).toContain("«Grid responsivo del formulario»");
+    expect(texto).toContain("`gap-x-4`");
+  });
+
+  it("sin declararla en la rúbrica, la cabecera no la muestra (y el Caso real sí la declara)", () => {
+    // Control positivo: la **misma** rúbrica, con la línea puesta, sí la muestra.
+    // Un «no aparece» sin este control no probaría que la condición es la declaración,
+    // sino que el informe no sabe pintar el bloque.
+    expect(contextoFieldset(true).contradicciones).toBeDefined();
+    expect(renderInformeCaso([ejecucionFieldset()], contextoFieldset(true))).toContain(
+      "El skill contradice este Check",
+    );
+    expect(renderInformeCaso([ejecucionFieldset()], contextoFieldset(false))).not.toContain(
+      "El skill contradice este Check",
+    );
+  });
+
+  it("la contradicción no cambia lo que el informe cita como fuente de la regla", () => {
+    // El Caso tiene el ancla `espaciado-del-sistema → desy-styles-reference` y la
+    // contradicción `→ desy-implement-layout-patterns`. El mapa que el informe usa
+    // para citar la fuente es el de las anclas: la contradicción no se cuela en él.
+    const caso = cargarCaso(CASO_FIELDSET);
+    const contexto = contextoFieldset(true);
+
+    expect(contexto.anclas?.get("espaciado-del-sistema")).toEqual({
+      skill: "desy-styles-reference",
+      seccion: "Espaciado (escala de tokens del proyecto)",
+    });
+    // Y el Check cargado tampoco la lleva: `Check.ancla` es el ancla, no la contradicción.
+    expect(caso.checks.find((c) => c.id === "espaciado-del-sistema")?.ancla).toEqual(
+      contexto.anclas?.get("espaciado-del-sistema"),
+    );
+    // El informe con la contradicción declarada no presenta la sección del skill que
+    // contradice como si fuera la fuente de la regla de ningún Check.
+    const texto = renderInformeCaso([ejecucionFieldset()], contexto);
+    expect(texto).not.toContain("**Sección del skill:** `desy-implement-layout-patterns` → «Grid responsivo del formulario»");
+  });
+});
+
 describe("esHallazgoDeTrigger / lineasQueMencionan", () => {
   it("una entrega EXCELENTE sin invocar el skill se destaca", () => {
     const ejecucion = ejecucionReal(ARTEFACTO_BUENO, {

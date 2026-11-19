@@ -1,7 +1,7 @@
 import { bumpPin, currentRepo, realGit, PIN_PATH } from "./bump.js";
 import { ANCHO_CAPTURA, asegurarCaptura, capturarConAgentBrowser } from "./captura-gold.js";
 import { CASOS_DIR, cargarCaso, cargarCasos } from "./caso-loader.js";
-import type { AnclaDeSkill, Assert, Caso, Check, TipoCaso } from "./caso.js";
+import type { AnclaDeSkill, Assert, Caso, Check, ContradiccionDeSkill, TipoCaso } from "./caso.js";
 import { cuentaComoEntrega, ejecutarCaso, type ResultadoEjecucion } from "./ejecutar.js";
 import { grado } from "./grader.js";
 import { problemasDeArbolLocalSucio, problemasDeVendorSucio } from "./guardarrail-pin.js";
@@ -129,6 +129,40 @@ function arbolDeSkillsDe(ejecuciones: ResultadoEjecucion[]): string | undefined 
 }
 
 /**
+ * Las contradicciones que los Casos declaran en su `rubric.md`, por `<skill>/<caso>`
+ * (ticket 13). Salen de `casos/`, no de las Ejecuciones: son cosa de la rúbrica, y
+ * un Caso que no está en el árbol no tiene nada que declarar. El Scorecard sólo las
+ * destaca y el informe las lee; ninguno decide skill-vs-check con ellas.
+ */
+function contradiccionesPorCaso(
+  ejecuciones: ResultadoEjecucion[],
+): Map<string, Map<string, ContradiccionDeSkill>> {
+  const porCaso = new Map<string, Map<string, ContradiccionDeSkill>>();
+  for (const ejecucion of ejecuciones) {
+    const clave = `${ejecucion.skill}/${ejecucion.caso}`;
+    if (porCaso.has(clave)) continue;
+    const contradicciones = contradiccionesDeCaso(ejecucion.skill, ejecucion.caso);
+    if (contradicciones !== undefined) porCaso.set(clave, contradicciones);
+  }
+  return porCaso;
+}
+
+/** Las contradicciones declaradas de un Caso del árbol; nada si no carga o no hay. */
+function contradiccionesDeCaso(
+  skill: string,
+  caso: string,
+): Map<string, ContradiccionDeSkill> | undefined {
+  const carpeta = carpetaDeCaso(skill, caso);
+  if (carpeta === undefined) return undefined;
+  try {
+    return cargarCaso(carpeta).contradicciones;
+  } catch {
+    // Ya lo caza `verificar-casos`: el reporte no repite sus rojos.
+    return undefined;
+  }
+}
+
+/**
  * Lo que el informe necesita de cada Caso: su prompt, sus anclas y el lector de
  * secciones. Un Caso ausente del árbol no rompe el informe: se presenta con lo
  * que la Ejecución trae (`DetalleCheck.ancla`, `assert`) y el prompt se marca
@@ -146,6 +180,7 @@ function contextosPorCaso(
     const carpeta = carpetaDeCaso(ejecucion.skill, ejecucion.caso);
     let prompt: string | undefined;
     let anclas: Map<string, AnclaDeSkill> | undefined;
+    let contradicciones: Map<string, ContradiccionDeSkill> | undefined;
     if (carpeta !== undefined) {
       try {
         const caso = cargarCaso(carpeta);
@@ -155,6 +190,7 @@ function contextosPorCaso(
             check.ancla === undefined ? [] : [[check.id, check.ancla] as const],
           ),
         );
+        contradicciones = caso.contradicciones;
       } catch {
         // Un Caso que no carga ya lo caza `verificar-casos`; el informe no es el
         // sitio para repetirlo, así que se presenta lo que la Ejecución trae.
@@ -164,6 +200,7 @@ function contextosPorCaso(
       caso: ejecucion.caso,
       ...(prompt === undefined ? {} : { prompt }),
       ...(anclas === undefined || anclas.size === 0 ? {} : { anclas }),
+      ...(contradicciones === undefined ? {} : { contradicciones }),
       ...(leerSeccion === undefined ? {} : { leerSeccion }),
     });
   }
@@ -450,7 +487,12 @@ async function runSuite(args: string[]): Promise<number> {
     });
   }
 
-  const scorecard = agregarScorecard(ejecuciones, pin, hashComun(ejecuciones));
+  const scorecard = agregarScorecard(
+    ejecuciones,
+    pin,
+    hashComun(ejecuciones),
+    contradiccionesPorCaso(ejecuciones),
+  );
   const markdown = renderScorecard(scorecard) + "\n";
   escribirScorecard(JSON.stringify(scorecard, null, 2) + "\n", markdown, rutas);
   escribirInformesPorCaso(ejecuciones, rutas);
@@ -599,7 +641,12 @@ function runReport(args: string[]): void {
 
   const ejecuciones = conEvidenciaExistente(leerEjecuciones(rutas.ejecuciones));
   const pin = pinDeLasEjecuciones(ejecuciones);
-  const scorecard = agregarScorecard(ejecuciones, pin, hashComun(ejecuciones));
+  const scorecard = agregarScorecard(
+    ejecuciones,
+    pin,
+    hashComun(ejecuciones),
+    contradiccionesPorCaso(ejecuciones),
+  );
   const markdown = renderScorecard(scorecard) + "\n";
 
   escribirScorecard(JSON.stringify(scorecard, null, 2) + "\n", markdown, rutas);

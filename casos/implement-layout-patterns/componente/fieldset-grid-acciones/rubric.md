@@ -45,16 +45,16 @@ como una llamada a macro.
 
 ## Anclaje en `desy-skills`
 
-- Fieldset+legend sr-only y grids: `desy-implement-layout-patterns` →
-  «Fieldset+legend sr-only para grupos semánticos» y «Grid responsivo del
-  formulario» (`lg:grid-cols-N`, `gap-x-*`).
-- Acciones al final del form: `desy-implement-layout-patterns` → «Acciones de
-  página al final del form» (`<section>` + `<ul>` + `c-button--transparent`) y
-  «Spacing contextual» (`mt-base mb-base lg:mt-0 lg:mb-0`).
-- a11y: `desy-validate-accessibility` (checklist de grep).
-- Tokens: `desy-styles-reference` (escala de espaciado).
+- fieldset-con-legend: desy-implement-layout-patterns → «Fieldset+legend sr-only para grupos semánticos»
+- labels-visibles: desy-validate-accessibility → «Checklist sin servidor (sesiones autónomas)»
+- estructura-grid: desy-implement-layout-patterns → «Grid responsivo del formulario»
+- acciones-en-section: desy-implement-layout-patterns → «Acciones de página al final del form»
+- accion-transparente: desy-implement-layout-patterns → «Acciones de página al final del form»
+- espaciado-del-sistema: desy-styles-reference → «Espaciado (escala de tokens del proyecto)»
 
-## Tensión conocida con el skill (no ocultarla)
+## El skill contradice este Check
+
+- espaciado-del-sistema: desy-implement-layout-patterns → «Grid responsivo del formulario» — el skill dice «`gap-x-4`» (1rem horizontal); el Check exige la escala de tokens (`gap-x-base`)
 
 El bloque de código de `desy-implement-layout-patterns` usa `gap-x-4` en la rejilla
 («Grid responsivo del formulario»), pero `desy-styles-reference` es explícita: la
@@ -62,7 +62,8 @@ escala numérica de Tailwind **no** es la de DESY y `gap-x-4` se corrige a
 `gap-x-base` (1rem, su equivalente). El harness toma la referencia de tokens como
 autoridad, así que un SUT que copie `gap-x-4` literal pierde el Quality. Es una
 incoherencia del corpus de skills, y este Caso la mide en el sentido que fija
-`desy-styles-reference`.
+`desy-styles-reference`. El informe por Caso y el Scorecard la sacan a la cabecera
+en cada corrida; cambiar el skill o el Check lo decide una persona.
 
 ## Fuera de alcance de este Caso
 

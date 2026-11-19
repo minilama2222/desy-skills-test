@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  EPIGRAFE_CONTRADICCIONES,
   anclajesDeRubric,
+  contradiccionesDeRubric,
   parseChecks,
   tipoDeCarpeta,
   type Caso,
@@ -61,6 +63,76 @@ describe("anclajesDeRubric: la sección del skill que el Caso nombra (ticket 06)
     );
 
     expect(anclajes.size).toBe(0);
+  });
+});
+
+describe("contradiccionesDeRubric: el skill contra el que choca un Check (ticket 13)", () => {
+  const rubric = (epigrafe: string, lineas: string[]): string =>
+    ["# Rúbrica", "", epigrafe, "", ...lineas, "", "## Fuera de alcance", "- otra: x → «no cuenta»"].join("\n");
+
+  const LINEA =
+    "- espaciado-del-sistema: desy-implement-layout-patterns → «Grid responsivo del formulario» — " +
+    "el skill dice «`gap-x-4`»; el Check exige `gap-x-base`";
+
+  it("lee el Check, el skill que contradice, su sección y el texto copiado", () => {
+    const contradicciones = contradiccionesDeRubric(
+      rubric(`## ${EPIGRAFE_CONTRADICCIONES}`, [LINEA]),
+    );
+
+    expect([...contradicciones]).toEqual([
+      [
+        "espaciado-del-sistema",
+        {
+          skill: "desy-implement-layout-patterns",
+          seccion: "Grid responsivo del formulario",
+          texto: "el skill dice «`gap-x-4`»; el Check exige `gap-x-base`",
+        },
+      ],
+    ]);
+  });
+
+  it("sólo cuenta las líneas de su epígrafe, no una ancla ni otra prosa con flechas", () => {
+    const conAncla = contradiccionesDeRubric(
+      rubric("## Anclaje en desy-skills", [
+        `- espaciado-del-sistema: desy-styles-reference → «Espaciado (escala de tokens del proyecto)»`,
+      ]),
+    );
+    expect(conAncla.size).toBe(0);
+
+    // Y el epígrafe de contradicciones no se lee como ancla ni al revés: los dos
+    // comparten la forma `- id: skill → «sección»`, y el sentido lo dice el epígrafe.
+    const anclas = anclajesDeRubric(rubric(`## ${EPIGRAFE_CONTRADICCIONES}`, [LINEA]));
+    expect(anclas.size).toBe(0);
+  });
+
+  it("una línea sin el texto que contradice no es un hallazgo: falta el qué", () => {
+    const contradicciones = contradiccionesDeRubric(
+      rubric(`## ${EPIGRAFE_CONTRADICCIONES}`, [
+        "- espaciado-del-sistema: desy-implement-layout-patterns → «Grid responsivo del formulario»",
+      ]),
+    );
+
+    expect(contradicciones.size).toBe(0);
+  });
+
+  it("no confunde la línea de contradicción de `rubric.md` con un ancla", () => {
+    // Las dos formas empiezan igual (`- <id>: <skill> → «<sección>»`), y el test
+    // de «no se lee como ancla» va con la línea **completa**, la que el Caso real
+    // escribe: un control con una línea truncada no probaría nada.
+    const anclas = anclajesDeRubric(
+      rubric("## Anclaje en desy-skills", [
+        "- espaciado-del-sistema: desy-styles-reference → «Espaciado (escala de tokens del proyecto)»",
+        "- espaciado-del-sistema: desy-implement-layout-patterns → «Grid responsivo del formulario» — el skill dice «`gap-x-4`»; el Check exige `gap-x-base`",
+      ]),
+    );
+
+    // La contradicción vive en OTRO epígrafe; dentro del de anclas, una línea con
+    // texto tras la sección no es un ancla (el `→ «…»` tiene que cerrar la línea).
+    expect(anclas.size).toBe(1);
+    expect(anclas.get("espaciado-del-sistema")).toEqual({
+      skill: "desy-styles-reference",
+      seccion: "Espaciado (escala de tokens del proyecto)",
+    });
   });
 });
 

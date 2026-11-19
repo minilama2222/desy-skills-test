@@ -9,16 +9,42 @@ skill que ni es un suspenso del Caso ni un fallo del agente, y que hoy se pierde
 
 **Blocked by:** 06
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] La rúbrica admite una línea declarativa `- <id-del-check>: <skill> → «<sección>» — el skill dice «<lo que dice>»` bajo un epígrafe propio, y el loader la lee junto a las anclas
-- [ ] La línea **no** es un ancla: no se confunde con `anclajesDeRubric`, no llena `Check.ancla` y no cambia lo que el informe cita como fuente de la regla
-- [ ] La sección declarada tiene que existir en ese skill (`npm run verificar-casos`), igual que un ancla: citar una sección fantasma no es un hallazgo, es un error
-- [ ] El informe por Caso saca el hallazgo a su cabecera, **antes** de la tabla de Ejecuciones, con el Check que lo sufre, el skill, la sección y el texto que contradice
-- [ ] El Scorecard lo destaca junto al hallazgo de trigger, o en una sección propia de la cabecera: quien lea sólo el Scorecard también lo ve
-- [ ] Probar con `fieldset-grid-acciones`: declarado el `gap-x-4` frente a `espaciado-del-sistema`, la cabecera lo muestra; sin declarar, no aparece
-- [ ] Un test que «no aparece si no se declara» lleva su **control positivo** (CODING_STANDARDS): la misma rúbrica, con la línea, sí lo muestra
-- [ ] `npm test` y `npm run precommit` en verde
+- [x] La rúbrica admite una línea declarativa `- <id-del-check>: <skill> → «<sección>» — el skill dice «<lo que dice>»` bajo un epígrafe propio, y el loader la lee junto a las anclas
+- [x] La línea **no** es un ancla: no se confunde con `anclajesDeRubric`, no llena `Check.ancla` y no cambia lo que el informe cita como fuente de la regla
+- [x] La sección declarada tiene que existir en ese skill (`npm run verificar-casos`), igual que un ancla: citar una sección fantasma no es un hallazgo, es un error
+- [x] El informe por Caso saca el hallazgo a su cabecera, **antes** de la tabla de Ejecuciones, con el Check que lo sufre, el skill, la sección y el texto que contradice
+- [x] El Scorecard lo destaca junto al hallazgo de trigger, o en una sección propia de la cabecera: quien lea sólo el Scorecard también lo ve
+- [x] Probar con `fieldset-grid-acciones`: declarado el `gap-x-4` frente a `espaciado-del-sistema`, la cabecera lo muestra; sin declarar, no aparece
+- [x] Un test que «no aparece si no se declara» lleva su **control positivo** (CODING_STANDARDS): la misma rúbrica, con la línea, sí lo muestra
+- [x] `npm test` y `npm run precommit` en verde
+
+## Notas de implementación
+
+- **Lector propio, forma compartida.** `contradiccionesDeRubric` (`src/caso.ts`) lee
+  `## El skill contradice este Check` con la forma del ancla hasta la sección y un
+  texto tras la flecha; `anclajesDeRubric` exige que la línea **termine** en la
+  sección, así que las dos no se pisan (tests en ambos sentidos). La línea sin el
+  texto copiado no se lee: le falta el «qué».
+- **Las tres decisiones.** (1) Epígrafe `## El skill contradice este Check`, con
+  `EPIGRAFE_CONTRADICCIONES`. (2) El `skill` de la línea es el que **contradice**;
+  el ancla sigue nombrando al que manda. (3) El texto lo **copia** el autor: ni se
+  extrae ni se verifica contra el `SKILL.md` (el sistema no sabe cuál de las tres
+  menciones de `gap-x-4` es la que contradice).
+- **Viaja en el Caso, no en el Check.** `Caso.contradicciones` es un `Map` id →
+  `ContradiccionDeSkill`, hermano de `checks`; el loader lo lee y no toca
+  `Check.ancla`.
+- **Cabecera en los dos** (`src/informe.ts` y `src/scorecard.ts`): en el informe,
+  bajo el H1 y antes del prompt y de la tabla; en el Scorecard, tras el hallazgo de
+  trigger. El JSON gana `contradiccionesDe` por Caso (lista, cero nunca ausente).
+  `agregarScorecard` recibe un cuarto argumento —`<skill>/<caso>` → contradicciones
+  de la rúbrica— que el CLI rellena desde `casos/`: el agregador no lo busca.
+- **Guardarraíl sin gate.** `problemasDeContradiccion` sólo juzga lo declarado
+  (id en el Caso, skill y sección en el árbol medido); no declarar no es rojo.
+- **`fieldset-grid-acciones`** ya no dice «Tensión conocida…» en prosa: declara la
+  contradicción y, como su anclaje era prosa de apoyo, gana sus **seis** anclas por
+  Check y sale de `PENDIENTES_DE_ANCLAR` (deuda 51 → 50 Checks, 13 → 12 Casos).
 
 ## Por qué existe
 
