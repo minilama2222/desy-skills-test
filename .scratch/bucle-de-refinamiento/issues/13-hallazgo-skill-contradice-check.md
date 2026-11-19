@@ -46,6 +46,26 @@ skill que ni es un suspenso del Caso ni un fallo del agente, y que hoy se pierde
   contradicción y, como su anclaje era prosa de apoyo, gana sus **seis** anclas por
   Check y sale de `PENDIENTES_DE_ANCLAR` (deuda 51 → 50 Checks, 13 → 12 Casos).
 
+## Retro (19/11): lo que la revisión destapó
+
+- **El guion del texto era opcional, y eso fabricaba contradicciones.** La primera
+  forma (`→ «sección»` y, si había, un apartado) leía como contradicción cualquier
+  línea con la forma del ancla y texto detrás —un ancla mal pegada—, presentando un
+  hallazgo que nadie declaró. Ahora el `—` es obligatorio y hay un test que fija que
+  la línea sin él no se lee.
+- **El `skill` de la línea es el que contradice**, y la nota de implementación lo
+  decía; el revisor lo confirmó contra el código. Queda explícito aquí por si alguien
+  lee sólo el criterio.
+- **`contradiccionesDe` → `contradiccionesDeclaradas`** en el JSON del Scorecard: el
+  glosario nombra «Contradicción declarada», y un campo que pierde el «declarada»
+  sugiere un hecho inferido (§ «Domain language comes from the glossary»).
+- **El test negativo del informe no dobla el mapa a mano**: parsea la **misma**
+  rúbrica con y sin la línea (`contradiccionesDeRubric`), para que el «no aparece»
+  pruebe la condición y no un informe que no sabe pintar el bloque.
+- **Las seis anclas de `fieldset-grid-acciones`** son del ticket 12: se quedan aquí
+  porque sin ellas su `espaciado-del-sistema` no cita fuente, pero es trabajo
+  heredado, no de este ticket.
+
 ## Por qué existe
 
 Salió al revisar el anclaje de `implement-layout-patterns/componente/fieldset-grid-acciones`

@@ -115,6 +115,19 @@ describe("contradiccionesDeRubric: el skill contra el que choca un Check (ticket
     expect(contradicciones.size).toBe(0);
   });
 
+  it("sin el apartado que introduce el texto, no es una contradicción: es un ancla movida", () => {
+    // Una ancla que alguien pegó en el epígrafe equivocado, con texto detrás del
+    // cierre de la sección y sin el `—`: leerla como contradicción presentaría un
+    // hallazgo que nadie declaró.
+    const contradicciones = contradiccionesDeRubric(
+      rubric(`## ${EPIGRAFE_CONTRADICCIONES}`, [
+        "- espaciado-del-sistema: desy-implement-layout-patterns → «Grid responsivo del formulario» y esto no es el texto declarado",
+      ]),
+    );
+
+    expect(contradicciones.size).toBe(0);
+  });
+
   it("no confunde la línea de contradicción de `rubric.md` con un ancla", () => {
     // Las dos formas empiezan igual (`- <id>: <skill> → «<sección>»`), y el test
     // de «no se lee como ancla» va con la línea **completa**, la que el Caso real

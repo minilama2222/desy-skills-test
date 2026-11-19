@@ -5,6 +5,7 @@ import { CASOS_DIR, cargarCaso } from "../src/caso-loader.js";
 import { grado } from "../src/grader.js";
 import type { ResultadoEjecucion } from "../src/ejecutar.js";
 import type { AnclaDeSkill } from "../src/caso.js";
+import { contradiccionesDeRubric } from "../src/caso.js";
 import {
   esHallazgoDeTrigger,
   lineasQueMencionan,
@@ -330,6 +331,29 @@ describe("hallazgo de trigger en el informe del Caso (ticket 07)", () => {
   });
 });
 
+/**
+ * Las dos rúbricas del Caso real `fieldset-grid-acciones`: con la contradicción
+ * declarada y sin ella. Se escribe el texto aquí, no se lee `casos/`, porque el
+ * test afirma **el texto declarado** (el «gap-x-4»), y leerlo del disco convertiría
+ * un cambio de wording de la rúbrica en un rojo del informe.
+ */
+const RUBRIC_FIELDSET_CON = [
+  "## Anclaje en desy-skills",
+  "- espaciado-del-sistema: desy-styles-reference → «Espaciado (escala de tokens del proyecto)»",
+  "",
+  "## El skill contradice este Check",
+  "- espaciado-del-sistema: desy-implement-layout-patterns → «Grid responsivo del formulario» — el skill dice «`gap-x-4`»; el Check exige `gap-x-base`",
+].join("\n");
+
+const RUBRIC_FIELDSET_SIN = [
+  "## Anclaje en desy-skills",
+  "- espaciado-del-sistema: desy-styles-reference → «Espaciado (escala de tokens del proyecto)»",
+  "",
+  "## El skill contradice este Check",
+  "",
+  "_Ninguna declarada por ahora._",
+].join("\n");
+
 describe("renderInformeCaso: el skill contradice este Check (ticket 13)", () => {
   const CASO_FIELDSET = join(
     CASOS_DIR,
@@ -406,17 +430,23 @@ describe("renderInformeCaso: el skill contradice este Check (ticket 13)", () => 
     expect(texto).toContain("`gap-x-4`");
   });
 
-  it("sin declararla en la rúbrica, la cabecera no la muestra (y el Caso real sí la declara)", () => {
-    // Control positivo: la **misma** rúbrica, con la línea puesta, sí la muestra.
-    // Un «no aparece» sin este control no probaría que la condición es la declaración,
-    // sino que el informe no sabe pintar el bloque.
-    expect(contextoFieldset(true).contradicciones).toBeDefined();
-    expect(renderInformeCaso([ejecucionFieldset()], contextoFieldset(true))).toContain(
-      "El skill contradice este Check",
-    );
-    expect(renderInformeCaso([ejecucionFieldset()], contextoFieldset(false))).not.toContain(
-      "El skill contradice este Check",
-    );
+  it("sin declararla en la rúbrica, la cabecera no la muestra (y con la línea, sí)", () => {
+    // El escenario adverso entero: la **misma** rúbrica, con y sin la línea. El
+    // negativo no dobla el mapa a mano —eso escondería un informe que no sabe
+    // pintar el bloque— sino que quita la declaración del texto que lo alimenta,
+    // y el positivo prueba que con la línea sí aparece.
+    const conLinea = contradiccionesDeRubric(RUBRIC_FIELDSET_CON);
+    const sinLinea = contradiccionesDeRubric(RUBRIC_FIELDSET_SIN);
+    expect(conLinea.size).toBe(1);
+    expect(sinLinea.size).toBe(0);
+
+    const ejecuciones = [ejecucionFieldset()];
+    expect(
+      renderInformeCaso(ejecuciones, { ...contextoFieldset(true), contradicciones: conLinea }),
+    ).toContain("El skill contradice este Check");
+    expect(
+      renderInformeCaso(ejecuciones, { ...contextoFieldset(true), contradicciones: sinLinea }),
+    ).not.toContain("El skill contradice este Check");
   });
 
   it("la contradicción no cambia lo que el informe cita como fuente de la regla", () => {

@@ -324,14 +324,16 @@ export function anclajesDeRubric(texto: string): Map<string, AnclaDeSkill> {
  * `- <id>: <skill> → «<sección>» — <lo que dice el skill>`
  *
  * La forma es la del ancla **hasta la sección** y luego sigue: el texto copiado
- * viene tras la flecha y un apartado (`—`, `–`, `-`) o, en su defecto, cualquier
- * texto. Por eso el ancla, que exige que la línea **termine** en el cierre de la
- * sección, no la confunde con un ancla; y aquí, al revés, es el texto lo que
- * distingue una contradicción de una ancla escondida. Qué significa la línea lo
- * dice el epígrafe, no la forma: las dos son `- id: skill → «sección»`.
+ * viene tras la flecha, separado por un apartado (`—`, `–` o `-`). El apartado es
+ * **obligatorio**, y no por formalismo: sin él, la línea se confundiría con un
+ * ancla —o con un ancla malformada con texto detrás—, y una ancla que se escribe
+ * movida no puede aparecer como una contradicción que nadie declaró. El ancla, por
+ * su lado, exige que la línea **termine** en el cierre de la sección, así que
+ * tampoco confunde una contradicción con un ancla: las dos formas se reconocen por
+ * su epígrafe y por lo que sigue a la sección, nunca por la ida y vuelta.
  */
 const LINEA_CONTRADICCION =
-  /^\s*[-*]\s+`?([a-z][a-z0-9-]+)`?\s*:\s*`?([a-z][a-z0-9-]+)`?\s*→\s*[«"“](.+?)[»"”]\s*(?:[—–-]\s*)?(.+?)\s*$/;
+  /^\s*[-*]\s+`?([a-z][a-z0-9-]+)`?\s*:\s*`?([a-z][a-z0-9-]+)`?\s*→\s*[«"“](.+?)[»"”]\s*[—–-]\s*(.+?)\s*$/;
 
 /**
  * Lee las contradicciones skill-vs-Check que declara una `rubric.md` bajo el
@@ -366,8 +368,7 @@ export function contradiccionesDeRubric(
     const match = LINEA_CONTRADICCION.exec(linea);
     if (!match) continue;
     const [, id, skill, seccion, copiado] = match;
-    if (!seccion || !copiado) continue;
-    if (seccion.length === 0 || copiado.trim().length === 0) continue;
+    if (!seccion || !copiado || copiado.trim().length === 0) continue;
     if (id && skill && !contradicciones.has(id)) {
       contradicciones.set(id, { skill, seccion, texto: copiado.trim() });
     }

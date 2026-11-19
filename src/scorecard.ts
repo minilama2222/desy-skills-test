@@ -88,7 +88,7 @@ export interface CasoScorecard {
    * como el resto de la forma del JSON, aunque un `npm run report` de un árbol sin
    * `casos/` no pueda saberlas y deje la lista vacía.
    */
-  contradiccionesDe: { id: string; skill: string; seccion: string; texto: string }[];
+  contradiccionesDeclaradas: (ContradiccionDeSkill & { id: string })[];
 }
 
 export interface SkillScorecard {
@@ -278,7 +278,7 @@ function agregarCaso(
     gradeCalidad: mejor?.grade ?? "INACEPTABLE",
     hallazgosDeTrigger: triggers.length,
     triggerConEvidencia: triggers.filter((e) => e.evidencia !== undefined).length,
-    contradiccionesDe: [...(contradicciones ?? [])].map(([id, c]) => ({ id, ...c })),
+    contradiccionesDeclaradas: [...(contradicciones ?? [])].map(([id, c]) => ({ id, ...c })),
   };
 }
 
@@ -409,7 +409,7 @@ export function renderScorecard(reporte: Scorecard): string {
   // (ticket 13), y quien lea sólo el Scorecard tiene que verla antes que las tablas.
   const contradicciones = reporte.skills.flatMap((skill) =>
     skill.casos.flatMap((caso) =>
-      caso.contradiccionesDe.map((c) => ({ caso: `${skill.skill}/${caso.caso}`, ...c })),
+      caso.contradiccionesDeclaradas.map((c) => ({ caso: `${skill.skill}/${caso.caso}`, ...c })),
     ),
   );
   if (contradicciones.length > 0) {

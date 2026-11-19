@@ -81,8 +81,7 @@ export function cargarCaso(dir: string): Caso {
   // La contradicción declarada viaja en el Caso, **no** en el Check (ticket 13):
   // el ancla sigue siendo la fuente de la regla y esto es el desacuerdo con ella.
   const contradicciones = contradiccionesDeRubric(rubric);
-  const declaradas =
-    contradicciones.size === 0 ? {} : { contradicciones };
+  const declaradas = contradicciones.size === 0 ? {} : { contradicciones };
 
   if (tipo === "caso-pagina") {
     const goldPath = join(dir, GOLD);
