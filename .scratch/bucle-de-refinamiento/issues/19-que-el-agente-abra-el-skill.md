@@ -1,59 +1,63 @@
-# 19: Que el agente abra el skill (frontmatter de `desy-implement-component`)
+# 19: Que el agente abra el skill (probado: la presentación no basta)
 
-**What to build:** Que el SUT, ante el prompt del Caso `boton-primario`, **invoque**
-`desy-implement-component` en vez de resolverlo leyendo `node_modules/desy-html` a
-mano. Lo que se mide es su `description` (el frontmatter), no el cuerpo del skill.
+**What to build:** Que el SUT invoque `desy-implement-component` cuando el Caso
+`boton-primario` se lo pide, en vez de resolverlo leyendo `node_modules/desy-html`
+a mano.
 
 **Blocked by:** 18
 
 **Status:** ready-for-human
-**Status depende de:** que un humano apruebe el cambio de texto y, después, un PR
-en `desy-skills`. Lo que se puede escribir aquí es la Petición; el cambio vive allí.
+**Status depende de:** que un humano decida qué vía se prueba después. La primera
+(la presentación) está hecha y **medida: no basta**; PR abierto en `desy-skills#36`.
 
-- [ ] La Petición está en `peticiones/peticion-trigger-implement-component.md`,
-      aprobada por un humano antes de escribirla en disco
-- [ ] Medida con `--skills-local` y **PASA sostenido** (dos corridas consecutivas,
-      entregas contadas por separado)
-- [ ] Cerrar el ciclo: `suite` de regresión y `diff-versiones`
+- [x] La Petición está en
+      [`peticiones/peticion-trigger-implement-component.md`](../peticiones/peticion-trigger-implement-component.md)
+- [x] Se aplicó en la rama `skill/trigger-implement-component` de `desy-skills` y
+      se abrió [el PR #36](https://github.com/minilama2222/desy-skills/pull/36)
+- [x] Se midió con `--skills-local` sobre el worktree: **el skill sigue sin
+      dispararse** (2 Ejecuciones, 0 invocaciones)
+- [ ] Decidir la siguiente vía (ver «Lo que queda por probar»)
 
-## El hecho medido (fase 1 del bucle)
+## El hecho, con todo lo medido
 
-Dos Ejecuciones del Caso `implement-component/boton-primario`, del 18/11 y
-repetidas el 19/11: **cero invocaciones de skill en todas**, `flujoObservado: []`.
+`boton-primario`, agente headless, **8 Ejecuciones** en total:
 
-El agente hizo el trabajo bien —se lee en su prosa: «el macro `componentButton` solo
-acepta `classes` para la variante»—, pero llegó ahí abriendo
-`node_modules/desy-html/src/templates/components/button/` con `read`/`grep`. No
-abrió el skill ni una vez.
+| Configuración | Ejecuciones | Invocaciones del skill |
+|---|---|---|
+| `vendor/` sin tocar | 2 + 2 | 0 · 0 |
+| Worktree con la `description` y la regla cambiadas | 2 | 0 · 0 |
+| (total) | **8** | **0** |
 
-Es un **Hallazgo de trigger**: entrega correcta sin invocar el skill. El veredicto
-del Caso la descarta, con razón, porque no midió el skill; pero el hecho sí dice
-algo del skill, y se arregla en el frontmatter.
+El agente resuelve la tarea —en una de las corridas entregó a `EXCELENTE`— y en su
+prosa explica cómo: *«the macro exposes no variant/size param; the documented way is
+the CSS class»*. Lo sabe **de la librería**, no del skill.
 
-## Por qué va después del 18
+## La hipótesis que se descartó
 
-El 18 quita la trampa del macro comentado. Sin él, un frontmatter nuevo se mediría
-con un Check que tumba al agente por el ejemplo del starter: el PASA sostenido no
-distinguiría «el skill se disparó» de «el skill se disparó y el Check le volvió a
-morder».
+Se creía que el problema era la presentación: una `description` en inglés que no
+nombraba «botón», «macro» ni «genera», y una Regla fundamental que declaraba el
+skill inaplicable sin «un starter clonado», aunque hubiera librería.
 
-## Qué mirar antes de tocar nada
+Se cambiaron las dos cosas. **El disparo no cambió.** La presentación era
+probablemente parte del problema; no era el problema.
 
-- **La `description` actual** de `vendor/desy-skills/skills/desy-implement-component/SKILL.md`,
-  y la de sus vecinos que **sí** se disparan (los `desy-implement-*` de página).
-  El patrón se ve comparando, no adivinando.
-- **El prompt del Caso** (`casos/implement-component/componente/boton-primario/input/prompt.md`):
-  pide un botón «con el texto Enviar», sin nombrar el skill. La `description` tiene
-  que hacer que ese prompt case por sí solo; si se resuelve renombrando el Caso, se
-  está midiendo un prompt inventado.
-- **Si el disparo falla también en los otros Casos del skill.** Si el 19 arregla
-  `boton-primario` y el resto sigue sin dispararse, el problema no era el texto de
-  una `description`: era el mecanismo, y eso es otro ticket.
+## Lo que queda por probar, y su coste
+
+1. **Que el skill sea necesario, no cómodo.** El agente hace el botón sin él. Un
+   skill solo se abre si lo que pide no se puede resolver a pelo: una regla que el
+   agente no deduzca de la librería (el tamaño base sin clase de tamaño, el
+   `type="submit"` dentro de formulario, el token del sistema frente a Tailwind).
+   Es contenido, y es la vía más honesta. **Coste:** alto — hay que encontrar qué
+   regla y reescribir el cuerpo.
+2. **Aceptar que el trigger depende del runtime.** Medir si opencode eligió el
+   skill alguna vez en otro Caso; si tampoco, el mecanismo no está en juego en este
+   harness y el tema es de `opencode`, no del skill. **Coste:** bajo, y decide si
+   las demás vías tienen sentido.
+3. **Cambiar el prompt del Caso para que nombre el skill.** Mide el prompt, no el
+   skill. **No se hace.**
 
 ## Lo que no se hace
 
-- Cambiar el prompt del Caso para que nombre el skill: mediría el prompt.
-- Copiar el skill a `vendor/` a mano para probar: la validación se hace aquí, con
-  `--skills-local <ruta del worktree>`.
-- Meter en la Petición documentación de este harness: lo que cruza es el cambio de
-  skill, nada más.
+- Dar el PR por bueno como arreglo del trigger: **no lo es**. Se mergea, si se
+  mergea, por la mejora de texto.
+- Reabrir el 18: el macro comentado quedó arreglado y probado por otra vía.
