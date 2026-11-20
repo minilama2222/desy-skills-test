@@ -264,9 +264,28 @@ function citaDeLineas(
   const origen = ficheros.length === 0 ? "salida del SUT" : ficheros.join(", ");
   const salida: string[] = ["", `> ${origen}:`];
   for (const linea of lineas) {
-    salida.push(`> \`${String(linea.numero).padStart(4, " ")} | ${linea.texto}\``);
+    salida.push(
+      `> \`${String(linea.numero).padStart(4, " ")} | ${recortarLineaCitada(linea.texto)}\``,
+    );
   }
   return salida;
+}
+
+/**
+ * Tope de una línea citada (ticket 26). El artefacto de un Caso-decisión es el
+ * transcript entero, y una línea suya puede ser un volcado de 10 KB: en el
+ * informe del 20/11, `proyecto-no-existe` citaba una respuesta completa con la
+ * skill cargada dentro. Citarla entera hace el informe ilegible justo donde se
+ * lee para decidir, así que se corta — y se dice que se cortó, nunca en silencio.
+ */
+const MAX_CARACTERES_DE_LINEA_CITADA = 300;
+
+function recortarLineaCitada(texto: string): string {
+  if (texto.length <= MAX_CARACTERES_DE_LINEA_CITADA) return texto;
+  return (
+    `${texto.slice(0, MAX_CARACTERES_DE_LINEA_CITADA)}… ` +
+    `(recortada: ${texto.length} caracteres)`
+  );
 }
 
 /**

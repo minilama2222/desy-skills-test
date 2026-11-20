@@ -546,3 +546,31 @@ describe("anclas del Caso real: apuntan a secciones que existen", () => {
     }
   });
 });
+
+/**
+ * Ticket 26: el artefacto de un Caso-decisión es el transcript entero, y una línea
+ * suya puede ser un volcado de 10 KB. En el informe del 20/11, `proyecto-no-existe`
+ * citaba una respuesta completa con la skill cargada dentro: la cita era literal y
+ * el informe, ilegible justo donde se lee para decidir.
+ *
+ * La línea se corta y **se dice** que se cortó: una cita recortada en silencio
+ * sería peor que una larga.
+ */
+describe("la línea citada se recorta y lo confiesa (ticket 26)", () => {
+  it("una línea de 2.000 caracteres no llega entera al informe", () => {
+    // `sin-props-inventados` cita la línea de la llamada al macro. Con la llamada
+    // en una sola línea larga, la cita es un volcado: es el caso real del 20/11.
+    const artefacto = [
+      '{# boton-enviar.njk #}',
+      '{% from "components/button/_macro.button.njk" import componentButton %}',
+      `{{ componentButton({ "text": "Enviar", "classes": "c-button--primary", "inventada": "${"c-otra ".repeat(250)}" }) }}`,
+    ].join("\n");
+    const informe = renderInformeCaso([ejecucionReal(artefacto)], contextoReal());
+
+    expect(informe).toContain("(recortada: ");
+    // Ninguna línea del informe se acerca al volcado original.
+    for (const linea of informe.split("\n")) {
+      expect(linea.length).toBeLessThan(600);
+    }
+  });
+});

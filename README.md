@@ -257,7 +257,7 @@ Ese skill es el que conduce el bucle; esta sección es su mapa, no su copia.
 
 | # | Paso | La persona | El agente | Dónde queda |
 |---|---|---|---|---|
-| 0 | Registrar la versión base | Lanza `npm run suite` si no hay un scorecard reciente (es caro: es su decisión) | Lee el `arbolHash` del scorecard y **crea** el fichero de ciclo con `base:`, el formato de `FASES.md` (hoy no hay ninguno abierto: `ciclos/` aún no existe) | `.scratch/bucle-de-refinamiento/ciclos/<slug>.md` |
+| 0 | Registrar la versión base | Lanza `npm run suite` si no hay un scorecard reciente (es caro: es su decisión) | Lee el `arbolHash` del scorecard y **crea** el fichero de ciclo con `base:`, el formato de `FASES.md` (`ciclos/` se crea al abrir el primero) | `.scratch/bucle-de-refinamiento/ciclos/<slug>.md` |
 | 1 | Diagnosticar | **Gate:** recorta, añade o reordena la agenda | Ordena los Casos: cero entregas (INDETERMINADO, no es el skill) → entregas incorrectas (el informe da el Check, la línea y la sección) → entrega correcta sin invocar el skill (es el frontmatter). Recomienda skill o check | La agenda, en el fichero de ciclo |
 | 2 | Escribir la Petición | **Gate:** aprueba el texto, el alcance y el criterio | Redacta una Petición por cambio con [`_plantilla.md`](./.scratch/bucle-de-refinamiento/peticiones/_plantilla.md): evidencia con números, sección causante literal, restricciones | [`peticiones/`](./.scratch/bucle-de-refinamiento/peticiones/), estado `propuesta` |
 | 3 | Aplicar en `desy-skills` | Abre la rama y el PR en el otro repo (su `CONTRIBUTING.md`) | **Nada.** Da la ruta de la Petición y los skills sugeridos; si cambia de repo, ofrece el handoff | El PR, en `desy-skills` |

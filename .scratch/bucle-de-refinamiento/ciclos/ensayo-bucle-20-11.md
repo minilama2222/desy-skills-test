@@ -3,7 +3,7 @@
 **Estado:** abierto
 **Fase:** 1
 **Base:** cce1633b4ba5dd37e25873deacc1555d21d7c11f8ba4ec525a2cf654cab7d380
-**Skill en foco:** por decidir en el gate (el scorecard deja seis skills con rojo)
+**Skills en foco:** por decidir en el gate (el scorecard deja seis skills con rojo)
 **Casos:** reconocimiento-login, afinado-paso-1, proyecto-no-existe, no-scaffoldea-sin-permiso, checklist-sin-servidor, patron-pagina-paso-1-nombre-nif
 
 > Ensayo del propio bucle: este ciclo existe para probar que `refinar-skill` sirve,

@@ -7,32 +7,33 @@ separa en dos columnas.
 
 **Blocked by:** —
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] El comando de medir es `npm run run -- --skill <skill> --case <caso>`, en
+- [x] El comando de medir es `npm run run -- --skill <skill> --case <caso>`, en
       `SKILL.md`, `FASES.md` y `peticiones/_plantilla.md` (§5)
-- [ ] Fase 4 mide con `--skills-local <ruta>` y desaparece la receta de copiar a
+- [x] Fase 4 mide con `--skills-local <ruta>` y desaparece la receta de copiar a
       `vendor/` a mano
-- [ ] Fase 1 separa los dos ceros: **«Sin medir» > 0** es infraestructura
+- [x] Fase 1 separa los dos ceros: **«Sin medir» > 0** es infraestructura
       (ADR-0021) y no es el skill; **sin artefacto con «Sin medir» = 0** es el
       SUT corriendo sin entregar lo que el Caso pide, y eso sí se mira
-- [ ] Fase 1 dice qué hacer cuando el informe no puede nombrar la sección: es un
+- [x] Fase 1 dice qué hacer cuando el informe no puede nombrar la sección: es un
       hueco del `rubric.md` del Caso, no del skill, y se anota como tal
-- [ ] El skill nombra el techo de 20 min por Ejecución y la regla de no tocar el
+- [x] El skill nombra el techo de 20 min por Ejecución y la regla de no tocar el
       repo mientras corre una suite (ticket 17)
-- [ ] Guardarraíl barato: cada `npm run <script>` que citan los documentos del
-      bucle existe en `package.json` y en `scripts/`
-- [ ] Ensayo real de las fases 0 y 1 con el scorecard del 20/11, y la agenda sale
+- [x] Guardarraíl barato: cada `npm run <script>` que citan los documentos del
+      bucle existe en `package.json` (`test/bucle-comandos.test.ts`), y el comando
+      de medir no puede volver a la forma posicional
+- [x] Ensayo real de las fases 0 y 1 con el scorecard del 20/11, y la agenda sale
       con Caso, rojo y a quién culpa
-- [ ] Fase 1 tiene cajón para los dos rojos que **no** son del skill y hoy salen:
+- [x] Fase 1 tiene cajón para los dos rojos que **no** son del skill y hoy salen:
       «el SUT no pudo leer lo que el skill le manda leer» (ticket 27) y «el Check
       es un falso positivo» (ticket 28)
-- [ ] Cuando el rojo es un **Guard del Framework** (sin ancla por diseño, ticket
+- [x] Cuando el rojo es un **Guard del Framework** (sin ancla por diseño, ticket
       17), el bucle lo dice y no manda a reescribir un skill
-- [ ] La «línea del artefacto» va recortada: hoy puede ser un volcado de 10 KB que
+- [x] La «línea del artefacto» va recortada: hoy puede ser un volcado de 10 KB que
       no cabe en una agenda
-- [ ] Fase 0 dice cómo se nombra el ciclo, y que `ciclos/` se crea si no existe
-- [ ] El formato del ciclo resuelve si un ciclo es **de un skill** (como dice su
+- [x] Fase 0 dice cómo se nombra el ciclo, y que `ciclos/` se crea si no existe
+- [x] El formato del ciclo resuelve si un ciclo es **de un skill** (como dice su
       cabecera) o **de todo el scorecard** (como pide la agenda). Hoy hay seis
       skills con rojo y el estado sólo admite uno en foco
 
@@ -83,3 +84,23 @@ Este skill es el que decide qué se toca en `desy-skills`. Si manda un comando
 roto, la primera acción de la fase central no arranca; si propone ensuciar
 `vendor/`, la medida miente sobre el Pin; y si lee mal el cero, manda a refinar
 un skill que no falló o declara ruido lo que era un defecto.
+
+## Lo que el ensayo añadió (20/11/2026)
+
+Las fases 0 y 1 se recorrieron de verdad sobre el scorecard del 20/11, en el
+ciclo `ensayo-bucle-20-11`. Además de lo previsto, salieron tres cosas:
+
+- **Dos cajones que faltaban.** `reconocimiento-login` suspendía porque el sandbox
+  le negaba los `assets/` del propio skill (ticket 27), y `proyecto-no-existe`
+  porque el Check prohíbe *nombrar*, no *arrancar* (ticket 28). Fase 1 ahora
+  pregunta primero si el rojo se puede atribuir.
+- **Los Guards del Framework no se atribuyen.** Los 8 Checks sin ancla de
+  `patron-pagina` no son un hueco del `rubric.md`: el ticket 17 prohíbe anclarlos
+  desde un Caso. El skill lo dice para que nadie los convierta en petición.
+- **La cita era ilegible.** El informe podía citar una línea de 10 KB; ahora se
+  corta a 300 caracteres y lo confiesa (`src/informe.ts`).
+
+Una regla que se equivocó por el camino, y quedó corregida: llegué a contar «11
+de 15 Checks sin sección» con un parser que se cortaba en los volcados largos. El
+número real era 8, y todos por diseño. Por eso el ticket pide mirar *qué* es el
+Check antes de proponer nada.

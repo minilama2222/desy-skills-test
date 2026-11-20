@@ -43,8 +43,8 @@ esperado:   <lo que el check exige>
 
 ## 5. Cómo se valida
 
-- [ ] En `desy-skills-test`, con pin local apuntando a la rama del cambio:
-      `npm run run implement-component/boton-primario`
+- [ ] En `desy-skills-test`, sobre la rama del cambio:
+      `npm run run -- --skill implement-component --case boton-primario --skills-local <ruta de desy-skills>`
 - [ ] **PASA sostenido**: dos corridas consecutivas PASA, entregas contadas por separado.
 - [ ] Si no supera esto, el cambio no se mergea.
 
