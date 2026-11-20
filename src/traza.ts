@@ -131,6 +131,11 @@ export function trazaDeAssert(assert: Assert): TrazaCheck {
           `una frase que nombra «${assert.valor}» lo reclama en pasado o se ` +
           "compromete con él sin diferidor",
       };
+    case "no_reconoce_componente":
+      return {
+        exige: `La tabla de identificación no incluye \`${assert.componente}\`.`,
+        tumba: `alguna fila de la tabla nombra \`${assert.componente}\``,
+      };
     case "declara_fallo": {
       const veredicto =
         assert.veredicto === undefined ? "un marcador de fallo" : `el veredicto «${assert.veredicto}»`;

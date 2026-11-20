@@ -122,14 +122,17 @@ describe("Bloque A · component-recognizer/reconocimiento-login", () => {
     expect(resultado.grade).toBe("INACEPTABLE");
   });
 
-  it("mencionar `header-advanced` para descartarlo no hunde el Grade (sólo pierde el Quality)", () => {
+  it("mencionar `header-advanced` para descartarlo no pierde nada: el Check mira la tabla (ticket 30)", () => {
+    // Antes perdía el Quality, y eso bastaba para que una respuesta correcta no
+    // fuera EXCELENTE —y el Caso, SUSPENDE—. El Check ahora lee filas, no prosa:
+    // nombrar el componente para descartarlo es justo lo que se quiere.
     const conDescarte =
       SALIDA_OK + "\nNo es un `header-advanced` de 3 bandas porque es un login.";
     const resultado = gradeDe(SKILL, ID, conDescarte, ["component-recognizer"]);
-    expect(resultado.grade).not.toBe("INACEPTABLE");
     expect(
       resultado.detalle.find((d) => d.id === "no-inventa-header-advanced")?.passed,
-    ).toBe(false);
+    ).toBe(true);
+    expect(resultado.grade).toBe("EXCELENTE");
   });
 
   it("acertar los guards pero olvidar el footer baja de EXCELENTE (Quality)", () => {

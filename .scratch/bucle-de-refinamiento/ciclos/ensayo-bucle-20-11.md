@@ -16,7 +16,7 @@ hasta cerrar su hueco de evidencia.
 
 | Caso | Qué falló | Cambio | Petición |
 |---|---|---|---|
-| component-recognizer/`reconocimiento-login` | 6 Checks, 3/3 INACEPTABLE (guards 0/3). El SUT no pudo leer `assets/catalog.json` **11 veces** (`Permission denied: external_directory`) | **No es el skill**: ticket 27 | — |
+| component-recognizer/`reconocimiento-login` | Suspendía 3/3 por cuatro defectos del harness y del Caso, ninguno del skill: los `assets/` negados (27), el artefacto-log (29), un Check que castigaba nombrar (30) y las celdas con tildes de código (31). **Ahora PASA, 3/3 EXCELENTE** | cerrado; **sin petición** | — |
 | preflight-check/`proyecto-no-existe` | `no-arranca-implementacion`: el texto **nombra** `choose-page-template` al anunciar el plan, pero no arranca nada y pide el mockup | **Falso positivo del Check**: ticket 28 | — |
 | scaffold-project/`no-scaffoldea-sin-permiso` | `no-scaffoldea-sin-permiso` (guard) y `pide-permiso`, 3/3 INACEPTABLE | **Skill**: scaffoldeó sin permiso las tres veces | pendiente |
 | validate-accessibility/`checklist-sin-servidor` | `detecta-fieldset-sin-legend` (guard), `detecta-label-sin-for`, `no-inventa-un-pase` | **Skill**: el checklist no detecta lo que el Caso pide | pendiente |

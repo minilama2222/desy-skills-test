@@ -574,7 +574,10 @@ export async function runCaso(
       artefactos: {
         files:
           dir === null
-            ? { "salida.md": transcript }
+            ? // Un Caso-decisión se gradúa por lo que el SUT **dijo**: la prosa,
+              // no el log (ticket 29). El log crudo sigue en `salida.stdout`, que
+              // es de donde se lee el Flujo.
+              { "salida.md": mergeTranscript(prosaDelSut(stdout), salidaStderr) }
             : artefactosToFiles(sandbox.listArtefactos(dir)),
       },
       transcript: { invocaciones: parseInvocaciones(transcript) },
@@ -763,6 +766,35 @@ function parseInvocaciones(transcript: string): string[] {
   encontradas.push(...invocacionesDelStreamV2(transcript));
   encontradas.sort((a, b) => a.indice - b.indice);
   return encontradas.map((e) => e.nombre);
+}
+
+/**
+ * La prosa que el SUT emitió, **decodificada** del log (ticket 29).
+ *
+ * `opencode run --format json` escribe una línea por evento y mete el texto del
+ * modelo dentro de un campo, con los saltos escapados. Un artefacto así no tiene
+ * líneas: `reconoceComponente` busca filas de tabla y no encuentra ninguna, así
+ * que cuatro Checks de `reconocimiento-login` fallaban por el formato y no por el
+ * skill (medido: 0 de 6 con el log, 4 de 6 con la prosa).
+ *
+ * Si el `stdout` no es JSONL —un doble de test, una versión futura—, devuelve lo
+ * que llegó: el artefacto nunca se queda vacío por no saber decodificar.
+ */
+export function prosaDelSut(stdout: string): string {
+  const textos: string[] = [];
+  for (const linea of stdout.split("\n")) {
+    const limpia = linea.trim();
+    if (limpia.length === 0) continue;
+    let evento: unknown;
+    try {
+      evento = JSON.parse(limpia);
+    } catch {
+      continue;
+    }
+    const part = (evento as { part?: { type?: unknown; text?: unknown } }).part;
+    if (part?.type === "text" && typeof part.text === "string") textos.push(part.text);
+  }
+  return textos.length > 0 ? textos.join("\n") : stdout;
 }
 
 function mergeTranscript(stdout: string, stderr: string): string {

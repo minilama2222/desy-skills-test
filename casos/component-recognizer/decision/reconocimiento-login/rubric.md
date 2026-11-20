@@ -27,8 +27,11 @@ El hecho no-negociable de la **tarea de reconocimiento** es el **componente**:
   (decisión humana), no como error.
 - **reconoce-footer** (peso 1): el pie institucional con logos es `footer`.
 - **no-inventa-header-advanced** (peso 1): un login **no** es un portal de 3
-  bandas; declarar `header-advanced` como decisión es erróneo. Es un Quality, no
-  un Guard: el SUT puede *mencionar* `header-advanced` al descartarlo.
+  bandas; **ponerlo como fila** de la tabla de identificación es erróneo. Se mira
+  la tabla, no la prosa: el SUT puede *mencionar* `header-advanced` al
+  descartarlo, y de hecho lo hace («es `header-mini`, NO `header` ni
+  `header-advanced`»). Hasta el 20/11 el Check buscaba la palabra y tumbaba esa
+  respuesta correcta (ticket 30).
 
 ## Validación contra el catálogo
 

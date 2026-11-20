@@ -25,6 +25,7 @@ import {
   npmCommand,
   PERMISOS_DEL_SANDBOX,
   permisosDelSandbox,
+  prosaDelSut,
   escriturasFueraDelSandbox,
   realCommand,
   runCaso,
@@ -581,6 +582,42 @@ describe("runCaso", () => {
 
     expect(sandbox.listArtefactos).not.toHaveBeenCalled();
     expect(Object.values(resultado.artefactos.files).join("\n")).toContain("input-group");
+    expect(resultado.transcript.invocaciones).toEqual(["component-recognizer"]);
+  });
+
+  it("un stdout JSONL se decodifica: el artefacto tiene saltos de línea reales (ticket 29)", async () => {
+    // Lo que `opencode run --format json` escribe: una línea por evento, con el
+    // texto del modelo escapado dentro. Sin decodificar, la tabla de la respuesta
+    // no tiene ni una línea y los Checks de fila no pueden pasar.
+    const sandbox = fakeSandbox();
+    const evento = (part: object) => JSON.stringify({ type: "x", part });
+    const command: CommandRunner = {
+      run: () => ({
+        stdout: [
+          evento({ type: "step-start" }),
+          evento({ type: "text", text: "| Nº | Componente |\n| 1 | input-group |" }),
+        ].join("\n"),
+        stderr: '→ Skill "desy-component-recognizer"\n',
+        code: 0,
+      }),
+    };
+    const decision = {
+      tipo: "caso-decision" as const,
+      skill: "component-recognizer",
+      id: "login",
+      prompt: "¿Qué componentes tiene esta imagen?",
+      checks: [],
+    };
+
+    const resultado = await runCaso(decision, pin, {
+      sandbox: factoryOf(sandbox),
+      command,
+    });
+
+    const texto = Object.values(resultado.artefactos.files).join("\n");
+    expect(texto.split("\n")).toContain("| 1 | input-group |");
+    // El log crudo no se pierde: es de donde se lee el Flujo y la Evidencia.
+    expect(resultado.salida.stdout).toContain("\"type\":\"step-start\"");
     expect(resultado.transcript.invocaciones).toEqual(["component-recognizer"]);
   });
 
@@ -1187,5 +1224,40 @@ describe("permisosDelSandbox: los assets del skill, y nada más (ticket 27)", ()
       });
       expect(config.skills).toEqual([skillsDir]);
     });
+  });
+});
+
+/**
+ * Ticket 29: `salida.md` de un Caso-decisión era el log JSONL, con el texto del
+ * modelo escapado en una sola línea. Los Checks que miran filas de tabla no veían
+ * ninguna: `reconocimiento-login` daba 0 de 6 por el formato. El ADR-0011 dice que
+ * el Artefacto es «el texto que el SUT emitió», así que se decodifica.
+ */
+describe("prosaDelSut: el artefacto de un Caso-decisión es la prosa (ticket 29)", () => {
+  const evento = (part: object) => JSON.stringify({ type: "x", part });
+
+  it("decodifica los textos del JSONL y deja saltos de línea reales", () => {
+    const stdout = [
+      evento({ type: "step-start" }),
+      evento({ type: "text", text: "## Identificación\n\n| 1 | input-group |" }),
+      JSON.stringify({ type: "tool_use", part: { type: "tool", tool: "read" } }),
+      evento({ type: "text", text: "Fin." }),
+    ].join("\n");
+
+    const prosa = prosaDelSut(stdout);
+
+    expect(prosa).toContain("| 1 | input-group |");
+    // La fila de la tabla es una línea de verdad, no un trozo escapado.
+    expect(prosa.split("\n")).toContain("| 1 | input-group |");
+    expect(prosa).not.toContain("\\n");
+  });
+
+  it("si el stdout no es JSONL, devuelve lo que llegó (un doble no lo rompe)", () => {
+    expect(prosaDelSut("una respuesta en texto plano")).toBe("una respuesta en texto plano");
+  });
+
+  it("un stdout JSONL sin textos no se queda vacío: cae al crudo", () => {
+    const stdout = evento({ type: "step-start" });
+    expect(prosaDelSut(stdout)).toBe(stdout);
   });
 });

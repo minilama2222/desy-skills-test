@@ -89,3 +89,11 @@ antes de casar». **Era al revés**, y se midió con el binario: la ruta literal
 permite y la canonicalizada deniega. En macOS `/var` es un enlace a
 `/private/var`, y resolverlo rompía justo la regla que se quería añadir. Queda
 escrito en el ADR-0013 para que no se «arregle» en la dirección contraria.
+
+## Corrección (21/11/2026, 01:10)
+
+La conclusión de arriba —«ahora sí es del skill»— **era precipitada**. Con la
+prosa decodificada (**ticket 29**) se ve que 4 de los 6 Checks pasaban y sólo
+fallaban por el formato del artefacto; de los dos que quedan, uno es del Caso
+(ticket 30) y otro del skill (Petición). Este ticket sigue bien cerrado: los
+`assets/` se leen, que era su asunto.

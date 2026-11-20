@@ -134,6 +134,20 @@ export interface AssertNoDeclaraEjecucion {
 }
 
 /**
+ * Un hecho de **no-invención**: el SUT no identifica este componente en su tabla.
+ *
+ * Nace del falso positivo del 21/11 (ticket 30): `no_declara_decision` fallaba si
+ * la palabra aparecía, y una respuesta que descarta el componente —«es
+ * `header-mini`, **NO** `header-advanced`»— lo nombra para eso. Se mira la tabla,
+ * como en `reconoce_componente`, no la prosa.
+ */
+export interface AssertNoReconoceComponente {
+  kind: "no_reconoce_componente";
+  /** El componente que no puede aparecer como fila (`header-advanced`). */
+  componente: string;
+}
+
+/**
  * Un hecho de **no-arranque**: el SUT no presenta el siguiente paso como algo que
  * ya hace o ya hizo, sino como lo que hará **cuando** reciba lo que falta.
  *
@@ -208,6 +222,7 @@ export type Assert =
   | AssertNoDeclaraDecision
   | AssertNoDeclaraEjecucion
   | AssertNoArranca
+  | AssertNoReconoceComponente
   | AssertDeclaraFallo
   | AssertReconoceComponente;
 
@@ -549,6 +564,7 @@ const ASSERT_KINDS = new Set([
   "no_declara_decision",
   "no_declara_ejecucion",
   "no_arranca",
+  "no_reconoce_componente",
   "declara_fallo",
   "reconoce_componente",
 ]);
@@ -640,6 +656,11 @@ function parseAssert(raw: unknown, contexto: string): Assert {
       return { kind: "no_declara_ejecucion", accion: exigirString(raw, "accion", contexto) };
     case "no_arranca":
       return { kind: "no_arranca", valor: exigirString(raw, "valor", contexto) };
+    case "no_reconoce_componente":
+      return {
+        kind: "no_reconoce_componente",
+        componente: exigirString(raw, "componente", contexto),
+      };
     case "declara_fallo": {
       const hecho = exigirString(raw, "hecho", contexto);
       const veredicto = raw.veredicto;

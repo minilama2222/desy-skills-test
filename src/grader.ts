@@ -263,6 +263,12 @@ function evaluar(
       return !textoReclamaEjecucion(htmlText, assert.accion);
     case "no_arranca":
       return !textoArranca(htmlText, assert.valor);
+    case "no_reconoce_componente":
+      // Fila de tabla, no mención: una respuesta que descarta el componente lo
+      // nombra para eso (ticket 30).
+      return !filasDeTabla(htmlText).some((celdas) =>
+        celdas.some((celda) => celdaNombraComponente(celda, assert.componente)),
+      );
     case "declara_fallo":
       return lineaDeclaraFallo(htmlText, assert.hecho, assert.veredicto);
     case "reconoce_componente":
@@ -283,15 +289,7 @@ function reconoceComponente(
   variante: string | undefined,
 ): boolean {
   if (!componenteEnCatalogo(componente)) return false;
-  const filas = texto
-    .split("\n")
-    .filter((linea) => linea.trim().startsWith("|"))
-    .map((linea) =>
-      linea
-        .split("|")
-        .map((celda) => celda.trim())
-        .filter((celda) => celda.length > 0),
-    );
+  const filas = filasDeTabla(texto);
 
   const filaDelComponente = filas.filter((celdas) =>
     celdas.some((celda) => celdaNombraComponente(celda, componente)),
@@ -319,6 +317,36 @@ function esCeldaPlaceholder(celda: string): boolean {
 }
 
 /** ¿La celda nombra ese componente? (misma normalización que el resto del grader). */
+/** Las filas de las tablas markdown del artefacto, con sus celdas no vacías. */
+function filasDeTabla(texto: string): string[][] {
+  return texto
+    .split("\n")
+    .filter((linea) => linea.trim().startsWith("|"))
+    .map((linea) =>
+      linea
+        .split("|")
+        .map((celda) => limpiarCelda(celda))
+        .filter((celda) => celda.length > 0),
+    );
+}
+
+/**
+ * La celda sin la decoración markdown de los bordes (ticket 31): `\`header-mini\``,
+ * `**header-mini**` y `"header-mini"` son el mismo hecho que `header-mini`.
+ *
+ * La tabla es markdown, y envolver un identificador en tildes de código es cómo
+ * se escribe un identificador en markdown: en la corrida del 21/11, la única
+ * ejecución que los envolvía suspendía 5 Checks de 6 con los mismos nombres.
+ * Se limpia **la decoración de los bordes**, no se pasa a «contiene»: `header`
+ * sigue sin casar con `header-mini`.
+ */
+function limpiarCelda(celda: string): string {
+  return celda
+    .trim()
+    .replace(/^[`*_"'\s]+/, "")
+    .replace(/[`*_"'\s]+$/, "");
+}
+
 function celdaNombraComponente(celda: string, componente: string): boolean {
   return normalizarTexto(celda) === normalizarTexto(componente);
 }

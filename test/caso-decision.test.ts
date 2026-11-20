@@ -330,3 +330,63 @@ describe("Caso-decisión: assert `no_arranca` (no lo da por empezado)", () => {
     expect(pasa("¿Quieres que clone el starter oficial? Dime y sigo.")).toBe(true);
   });
 });
+
+/**
+ * Ticket 30: `no_declara_decision` fallaba con sólo nombrar el componente, y una
+ * respuesta correcta lo nombra para descartarlo («es `header-mini`, NO `header`
+ * ni `header-advanced`»). El Check ahora mira la tabla.
+ */
+describe("Caso-decisión: assert `no_reconoce_componente` (no lo pone en la tabla)", () => {
+  const checks = declarar("no-inventa", "quality", 1, {
+    kind: "no_reconoce_componente",
+    componente: "header-advanced",
+  });
+  const pasa = (salida: string): boolean =>
+    gradoCon("caso-decision", checks, salida).detalle.find((d) => d.id === "no-inventa")!.passed;
+
+  it("mencionarlo para descartarlo pasa", () => {
+    const salida = [
+      "| Nº | Componente | Variante |",
+      "|:--:|:--|:--|",
+      "| 2 | header-mini | por defecto |",
+      "",
+      "La franja es `header-mini`, NO `header` ni `header-advanced`.",
+    ].join("\n");
+    expect(pasa(salida)).toBe(true);
+  });
+
+  it("ponerlo como fila falla", () => {
+    const salida = [
+      "| Nº | Componente | Variante |",
+      "|:--:|:--|:--|",
+      "| 1 | header-advanced | por defecto |",
+    ].join("\n");
+    expect(pasa(salida)).toBe(false);
+  });
+});
+
+/**
+ * Ticket 31: la tabla es markdown, y envolver un identificador en tildes de
+ * código es cómo se escribe un identificador en markdown. La única ejecución del
+ * Caso que lo hacía suspendía 5 Checks de 6 con los mismos nombres.
+ */
+describe("Caso-decisión: la decoración markdown de una celda no cuenta (ticket 31)", () => {
+  const checks = declarar("reconoce", "guard", 0, {
+    kind: "reconoce_componente",
+    componente: "header-mini",
+    variante: "por defecto",
+  });
+  const pasa = (salida: string): boolean =>
+    gradoCon("caso-decision", checks, salida).detalle.find((d) => d.id === "reconoce")!.passed;
+  const tabla = (nombre: string, variante: string) =>
+    ["| Nº | Componente | Variante |", "|:--:|:--|:--|", `| 1 | ${nombre} | ${variante} |`].join("\n");
+
+  it("`header-mini` con tildes de código cuenta como header-mini", () => {
+    expect(pasa(tabla("`header-mini`", "`por defecto`"))).toBe(true);
+    expect(pasa(tabla("**header-mini**", '"por defecto"'))).toBe(true);
+  });
+
+  it("se limpia la decoración, no se vuelve un «contiene»", () => {
+    expect(pasa(tabla("`header`", "por defecto"))).toBe(false);
+  });
+});
