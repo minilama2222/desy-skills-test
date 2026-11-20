@@ -136,3 +136,36 @@ describe("esProsa", () => {
     expect(esProsa('{ "id": "x" }', "prosa")).toBe(false);
   });
 });
+
+/**
+ * Ticket 24: el patrón cortaba la palabra en la vocal acentuada y denunciaba
+ * castellano correcto. Salió escribiendo el ADR-0006: «No funcionó, y no por
+ * falta de instrucciones» se marcó como `funcion` sin tilde.
+ */
+describe("formas flexionadas con tilde: no son rojos falsos (ticket 24)", () => {
+  it("«funcionó», «funcionar» y «funcionando» son correctas", () => {
+    const hallazgos = problemasDeAcentos([
+      prosa([
+        "No funcionó, y no por falta de instrucciones.",
+        "La regla tiene que funcionar igual en los dos lados.",
+        "El vigilante sigue funcionando mientras corre la suite.",
+      ]),
+    ]);
+
+    expect(hallazgos).toEqual([]);
+  });
+
+  it("«funcion» sola sí se caza: ahí falta la tilde", () => {
+    const hallazgos = problemasDeAcentos([prosa(["La funcion del runner es medir."])]);
+
+    expect(hallazgos).toHaveLength(1);
+    expect(hallazgos[0]).toContain('"funcion" sin tilde');
+  });
+
+  it("los demás del listado conservan el límite: «arbolado» no, «arbol» sí", () => {
+    expect(problemasDeAcentos([prosa(["El arbolado del parque."])])).toEqual([]);
+    expect(problemasDeAcentos([prosa(["El arbol del repo."])])).toHaveLength(1);
+    // Y el plural sigue sin marcarse, como antes.
+    expect(problemasDeAcentos([prosa(["Las ejecuciones del runner."])])).toEqual([]);
+  });
+});

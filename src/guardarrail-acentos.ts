@@ -90,13 +90,13 @@ export const FORMAS_SIN_TILDE: ReadonlyArray<readonly [incorrecta: string, corre
  * canonico` y `404-portal-publico` son identificadores y slugs del repo; la palabra
  * sólo es castellano cuando no está pegada a un guion.
  *
- * No se usa `\b` a la derecha: si la forma llevara una vocal acentuada, `\b` no
- * casaría después de ella (`\w` es `[A-Za-z0-9_]`, ver CODING_STANDARDS). Aquí las
- * claves son ASCII, pero la regla es la misma para no volver a pisarla: se ancla
- * con lookarounds.
+ * No se usa `\b`: `\w` es `[A-Za-z0-9_]`, así que un límite de palabra cortaría
+ * entre «funcion» y «ó» y denunciaría como sin tilde una forma que sí la lleva
+ * (ticket 24). Los dos lados se anclan con clases **Unicode**: una letra acentuada
+ * o una marca de combinación son parte de la palabra, no su final.
  */
 function patronDe(palabra: string): RegExp {
-  return new RegExp(`(?<![A-Za-z0-9_-])${palabra}(?![A-Za-z0-9_-])`, "iu");
+  return new RegExp(`(?<![\\p{L}\\p{M}\\p{N}_-])${palabra}(?![\\p{L}\\p{M}\\p{N}_-])`, "iu");
 }
 
 /**
