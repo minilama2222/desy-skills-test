@@ -12,28 +12,39 @@
         {
           "caso": "boton-primario-angular",
           "tipo": "caso-componente",
-          "veredicto": "INDETERMINADO",
-          "entregas": 0,
-          "intentos": 6,
-          "alcanzaronSkill": 6,
+          "veredicto": "SUSPENDE",
+          "entregas": 3,
+          "intentos": 3,
+          "alcanzaronSkill": 3,
+          "conDato": 3,
           "correctas": 0,
-          "entregoMal": 0,
-          "sinArtefacto": 6,
+          "entregoMal": 3,
+          "sinArtefacto": 0,
+          "sinMedir": 0,
           "hallazgosConArtefacto": 0,
-          "fallos": [],
+          "fallos": [
+            {
+              "id": "conserva-la-variante-primaria",
+              "severity": "quality"
+            },
+            {
+              "id": "no-deja-el-macro-nunjucks",
+              "severity": "quality"
+            }
+          ],
           "guards": {
-            "ok": 1,
+            "ok": 2,
             "total": 2
           },
-          "gradeCalidad": "INACEPTABLE",
+          "gradeCalidad": "BUENO",
           "hallazgosDeTrigger": 0,
           "triggerConEvidencia": 0,
           "contradiccionesDeclaradas": []
         }
       ],
       "pasados": 0,
-      "suspendidos": 0,
-      "indeterminados": 1
+      "suspendidos": 1,
+      "indeterminados": 0
     },
     {
       "skill": "choose-library",
@@ -45,9 +56,11 @@
           "entregas": 3,
           "intentos": 3,
           "alcanzaronSkill": 3,
+          "conDato": 3,
           "correctas": 3,
           "entregoMal": 0,
           "sinArtefacto": 0,
+          "sinMedir": 0,
           "hallazgosConArtefacto": 0,
           "fallos": [],
           "guards": {
@@ -74,9 +87,11 @@
           "entregas": 3,
           "intentos": 3,
           "alcanzaronSkill": 3,
+          "conDato": 3,
           "correctas": 3,
           "entregoMal": 0,
           "sinArtefacto": 0,
+          "sinMedir": 0,
           "hallazgosConArtefacto": 0,
           "fallos": [],
           "guards": {
@@ -103,9 +118,11 @@
           "entregas": 3,
           "intentos": 3,
           "alcanzaronSkill": 3,
+          "conDato": 3,
           "correctas": 0,
           "entregoMal": 3,
           "sinArtefacto": 0,
+          "sinMedir": 0,
           "hallazgosConArtefacto": 0,
           "fallos": [
             {
@@ -157,9 +174,11 @@
           "entregas": 3,
           "intentos": 3,
           "alcanzaronSkill": 3,
+          "conDato": 3,
           "correctas": 0,
           "entregoMal": 3,
           "sinArtefacto": 0,
+          "sinMedir": 0,
           "hallazgosConArtefacto": 0,
           "fallos": [
             {
@@ -190,19 +209,21 @@
           "veredicto": "PASA",
           "entregas": 3,
           "intentos": 5,
-          "alcanzaronSkill": 5,
+          "alcanzaronSkill": 4,
+          "conDato": 4,
           "correctas": 3,
           "entregoMal": 0,
-          "sinArtefacto": 2,
-          "hallazgosConArtefacto": 0,
+          "sinArtefacto": 1,
+          "sinMedir": 0,
+          "hallazgosConArtefacto": 1,
           "fallos": [],
           "guards": {
             "ok": 4,
             "total": 4
           },
           "gradeCalidad": "EXCELENTE",
-          "hallazgosDeTrigger": 0,
-          "triggerConEvidencia": 0,
+          "hallazgosDeTrigger": 1,
+          "triggerConEvidencia": 1,
           "contradiccionesDeclaradas": []
         }
       ],
@@ -220,9 +241,11 @@
           "entregas": 3,
           "intentos": 3,
           "alcanzaronSkill": 3,
+          "conDato": 3,
           "correctas": 3,
           "entregoMal": 0,
           "sinArtefacto": 0,
+          "sinMedir": 0,
           "hallazgosConArtefacto": 0,
           "fallos": [],
           "guards": {
@@ -247,20 +270,22 @@
           "tipo": "caso-componente",
           "veredicto": "PASA",
           "entregas": 3,
-          "intentos": 6,
-          "alcanzaronSkill": 5,
+          "intentos": 3,
+          "alcanzaronSkill": 3,
+          "conDato": 3,
           "correctas": 3,
           "entregoMal": 0,
-          "sinArtefacto": 2,
-          "hallazgosConArtefacto": 1,
+          "sinArtefacto": 0,
+          "sinMedir": 0,
+          "hallazgosConArtefacto": 0,
           "fallos": [],
           "guards": {
             "ok": 3,
             "total": 3
           },
           "gradeCalidad": "EXCELENTE",
-          "hallazgosDeTrigger": 1,
-          "triggerConEvidencia": 1,
+          "hallazgosDeTrigger": 0,
+          "triggerConEvidencia": 0,
           "contradiccionesDeclaradas": []
         },
         {
@@ -270,13 +295,15 @@
           "entregas": 0,
           "intentos": 6,
           "alcanzaronSkill": 5,
+          "conDato": 5,
           "correctas": 0,
           "entregoMal": 0,
           "sinArtefacto": 5,
+          "sinMedir": 0,
           "hallazgosConArtefacto": 0,
           "fallos": [],
           "guards": {
-            "ok": 4,
+            "ok": 0,
             "total": 9
           },
           "gradeCalidad": "INACEPTABLE",
@@ -298,14 +325,24 @@
           "veredicto": "SUSPENDE",
           "entregas": 3,
           "intentos": 3,
-          "alcanzaronSkill": 3,
+          "alcanzaronSkill": 2,
+          "conDato": 3,
           "correctas": 0,
           "entregoMal": 3,
           "sinArtefacto": 0,
-          "hallazgosConArtefacto": 0,
+          "sinMedir": 0,
+          "hallazgosConArtefacto": 1,
           "fallos": [
             {
               "id": "no-arranca-implementacion",
+              "severity": "quality"
+            },
+            {
+              "id": "identifica-no-existe",
+              "severity": "guard"
+            },
+            {
+              "id": "bifurca-a-scaffold",
               "severity": "quality"
             }
           ],
@@ -325,9 +362,11 @@
           "entregas": 3,
           "intentos": 3,
           "alcanzaronSkill": 3,
+          "conDato": 3,
           "correctas": 3,
           "entregoMal": 0,
           "sinArtefacto": 0,
+          "sinMedir": 0,
           "hallazgosConArtefacto": 0,
           "fallos": [],
           "guards": {
@@ -350,18 +389,29 @@
         {
           "caso": "no-scaffoldea-sin-permiso",
           "tipo": "caso-decision",
-          "veredicto": "INDETERMINADO",
-          "entregas": 0,
-          "intentos": 6,
+          "veredicto": "SUSPENDE",
+          "entregas": 3,
+          "intentos": 3,
           "alcanzaronSkill": 0,
+          "conDato": 3,
           "correctas": 0,
-          "entregoMal": 0,
+          "entregoMal": 3,
           "sinArtefacto": 0,
-          "hallazgosConArtefacto": 6,
-          "fallos": [],
+          "sinMedir": 0,
+          "hallazgosConArtefacto": 3,
+          "fallos": [
+            {
+              "id": "no-scaffoldea-sin-permiso",
+              "severity": "guard"
+            },
+            {
+              "id": "pide-permiso",
+              "severity": "quality"
+            }
+          ],
           "guards": {
             "ok": 0,
-            "total": 0
+            "total": 1
           },
           "gradeCalidad": "INACEPTABLE",
           "hallazgosDeTrigger": 0,
@@ -370,8 +420,8 @@
         }
       ],
       "pasados": 0,
-      "suspendidos": 0,
-      "indeterminados": 1
+      "suspendidos": 1,
+      "indeterminados": 0
     },
     {
       "skill": "styles-reference",
@@ -383,9 +433,11 @@
           "entregas": 3,
           "intentos": 3,
           "alcanzaronSkill": 3,
+          "conDato": 3,
           "correctas": 3,
           "entregoMal": 0,
           "sinArtefacto": 0,
+          "sinMedir": 0,
           "hallazgosConArtefacto": 0,
           "fallos": [],
           "guards": {
@@ -412,9 +464,11 @@
           "entregas": 3,
           "intentos": 3,
           "alcanzaronSkill": 3,
+          "conDato": 3,
           "correctas": 0,
           "entregoMal": 3,
           "sinArtefacto": 0,
+          "sinMedir": 0,
           "hallazgosConArtefacto": 0,
           "fallos": [
             {
