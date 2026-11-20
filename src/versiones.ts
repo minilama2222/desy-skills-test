@@ -16,6 +16,61 @@ export interface ScorecardDeVersion {
   arbolHash: string;
   pin: Scorecard["pin"];
   skills: Scorecard["skills"];
+  /**
+   * Las corridas que han medido esta versión, la última al final (ticket 23).
+   *
+   * Sin esto, medir dos veces el mismo árbol reescribía el fichero y borraba la
+   * medida anterior: no había de dónde leer el criterio de **dos corridas
+   * consecutivas** del ADR-0014. `skills` sigue siendo la última corrida, para
+   * que `diff-versiones` y todo lo que lee una versión no cambien.
+   *
+   * Opcional a propósito: un fichero escrito antes de esta regla no lo trae.
+   */
+  corridas?: CorridaDeVersion[];
+}
+
+/** Lo que se guarda de una corrida: cuándo fue y cómo salió cada Caso. */
+export interface CorridaDeVersion {
+  /** ISO-8601. En un legado sin historial se usa la fecha del Pin, que es lo único que hay. */
+  fecha: string;
+  /** `skill/caso` → veredicto. */
+  veredictos: Record<string, string>;
+}
+
+/** Cuántas corridas se conservan por versión: la historia útil sin crecer sin fin. */
+export const CORRIDAS_QUE_SE_GUARDAN = 10;
+
+/** Los veredictos de una versión, indexados como los lee `pasaSostenido`. */
+function veredictosDe(version: ScorecardDeVersion): Record<string, string> {
+  const veredictos: Record<string, string> = {};
+  for (const skill of version.skills) {
+    for (const caso of skill.casos) {
+      veredictos[`${skill.skill}/${caso.caso}`] = caso.veredicto;
+    }
+  }
+  return veredictos;
+}
+
+/**
+ * Añade una corrida al historial de una versión (ticket 23), sin destruir las
+ * anteriores y sin pasar del tope.
+ *
+ * Si la versión anterior es un **legado** sin historial, se abre con ella misma:
+ * su medida existió y perderla ahora sería repetir el fallo que este ticket
+ * arregla. La fecha de esa entrada es la del Pin, la única que el fichero guarda.
+ */
+export function agregarCorrida(
+  anterior: ScorecardDeVersion | undefined,
+  nueva: ScorecardDeVersion,
+  fecha: string,
+  tope: number = CORRIDAS_QUE_SE_GUARDAN,
+): ScorecardDeVersion {
+  const previas: CorridaDeVersion[] =
+    anterior === undefined
+      ? []
+      : (anterior.corridas ?? [{ fecha: anterior.pin.fecha, veredictos: veredictosDe(anterior) }]);
+  const corridas = [...previas, { fecha, veredictos: veredictosDe(nueva) }].slice(-tope);
+  return { ...nueva, corridas };
 }
 
 /**
@@ -60,6 +115,9 @@ export function validarVersion(raw: unknown): ScorecardDeVersion {
   }
   if (!Array.isArray(version.skills)) {
     throw new Error('scorecard de versión inválido: falta el campo "skills"');
+  }
+  if (version.corridas !== undefined && !Array.isArray(version.corridas)) {
+    throw new Error('scorecard de versión inválido: "corridas" tiene que ser una lista');
   }
   return version as ScorecardDeVersion;
 }

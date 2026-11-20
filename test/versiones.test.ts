@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { CasoScorecard, Scorecard, SkillScorecard } from "../src/scorecard.js";
 import {
+  agregarCorrida,
   diffDeVersiones,
   renderDiff,
   scorecardDeVersion,
@@ -226,5 +227,60 @@ describe("renderDiff", () => {
     const texto = renderDiff(diffDeVersiones(version(HASH_A), b));
 
     expect(texto).toContain("| implement-component/boton-secundario | — | PASA · 3/0/0 | sí |");
+  });
+});
+
+/**
+ * Ticket 23: dos corridas del mismo árbol de skills compartían fichero y la
+ * segunda borraba la primera. El 20/11 se lanzó la suite dos veces sin tocar
+ * `vendor/` y de la primera no quedó medida: sólo el historial del shell sabía
+ * que había existido.
+ */
+describe("agregarCorrida: la versión guarda su historia (ticket 23)", () => {
+  const corrida = (veredicto: CasoScorecard["veredicto"]) =>
+    version(HASH_A, [skill({ casos: [caso({ veredicto })], pasados: veredicto === "PASA" ? 1 : 0 })]);
+
+  it("la primera corrida abre el historial con una entrada", () => {
+    const conHistorial = agregarCorrida(undefined, corrida("PASA"), "2026-11-20T05:34:00.000Z");
+
+    expect(conHistorial.corridas).toEqual([
+      { fecha: "2026-11-20T05:34:00.000Z", veredictos: { "implement-component/boton-primario": "PASA" } },
+    ]);
+    // `skills` sigue siendo la última corrida: el diff no cambia.
+    expect(conHistorial.skills).toEqual(corrida("PASA").skills);
+  });
+
+  it("la segunda corrida no borra la primera", () => {
+    const primera = agregarCorrida(undefined, corrida("SUSPENDE"), "2026-11-19T23:54:00.000Z");
+    const segunda = agregarCorrida(primera, corrida("PASA"), "2026-11-20T05:34:00.000Z");
+
+    expect(segunda.corridas?.map((c) => c.veredictos["implement-component/boton-primario"])).toEqual([
+      "SUSPENDE",
+      "PASA",
+    ]);
+    expect(segunda.skills[0]!.casos[0]!.veredicto).toBe("PASA");
+  });
+
+  it("un legado sin historial se abre con su propia medida, no se pierde", () => {
+    const legado = version(HASH_A, [skill({ casos: [caso({ veredicto: "SUSPENDE" })] })]);
+    const conHistorial = agregarCorrida(legado, corrida("PASA"), "2026-11-20T05:34:00.000Z");
+
+    expect(conHistorial.corridas).toHaveLength(2);
+    // La fecha del legado es la del Pin: es lo único que el fichero guarda.
+    expect(conHistorial.corridas?.[0]?.fecha).toBe(PIN.fecha);
+  });
+
+  it("el historial tiene tope: no crece sin fin", () => {
+    let actual: ScorecardDeVersion | undefined;
+    for (let i = 0; i < 12; i++) {
+      actual = agregarCorrida(actual, corrida("PASA"), `2026-11-20T${String(i).padStart(2, "0")}:00:00.000Z`, 3);
+    }
+    expect(actual?.corridas).toHaveLength(3);
+    expect(actual?.corridas?.at(-1)?.fecha).toBe("2026-11-20T11:00:00.000Z");
+  });
+
+  it("un fichero con historial se valida, y uno con `corridas` que no es lista no", () => {
+    expect(() => validarVersion({ ...version(HASH_A), corridas: [] })).not.toThrow();
+    expect(() => validarVersion({ ...version(HASH_A), corridas: "no" })).toThrow(/corridas/);
   });
 });

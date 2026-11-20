@@ -41,8 +41,8 @@ import {
   seleccionarCasos,
   type Seleccion,
 } from "./suite.js";
-import { scorecardDeVersion, serializarVersion } from "./versiones.js";
-import { existsSync, readdirSync, writeFileSync } from "node:fs";
+import { agregarCorrida, scorecardDeVersion, serializarVersion, validarVersion } from "./versiones.js";
+import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 function usage(): never {
@@ -417,10 +417,12 @@ async function runCasos(args: string[]): Promise<number> {
  * corrida no declara `arbolHash` —un árbol de Ejecuciones anterior al ticket 04—
  * porque entonces no hay versión que nombrar (`scorecardDeVersion` lo rechaza).
  *
- * Una suite sobre un contenido ya medido **pisa** el fichero de ese hash: es la
- * misma versión, y las cuentas nuevas son las que valen. No se versiona en el
- * directorio de la suite, sino en uno fijo del repo: el diff busca por hash, no
- * por la ruta de la corrida.
+ * Una suite sobre un contenido ya medido **no borra** la medida anterior: es la
+ * misma versión, así que las cuentas nuevas sustituyen a las viejas en `skills`
+ * pero la corrida vieja queda en `corridas` (ticket 23). Sin ese historial, dos
+ * corridas seguidas del mismo árbol dejaban una sola y el criterio de refinado
+ * del ADR-0014 no tenía de dónde leer. No se versiona en el directorio de la
+ * suite, sino en uno fijo del repo: el diff busca por hash, no por la ruta.
  */
 function escribirVersionDeLaCorrida(scorecard: Scorecard): string | undefined {
   if (scorecard.arbolHash === undefined) {
@@ -430,7 +432,16 @@ function escribirVersionDeLaCorrida(scorecard: Scorecard): string | undefined {
     return undefined;
   }
   const version = scorecardDeVersion(scorecard);
-  const path = escribirVersion(VERSIONES_DIR, version.arbolHash, serializarVersion(version));
+  const rutaVersion = join(VERSIONES_DIR, `${version.arbolHash}.json`);
+  const anterior = existsSync(rutaVersion)
+    ? validarVersion(JSON.parse(readFileSync(rutaVersion, "utf8")) as unknown)
+    : undefined;
+  const conHistorial = agregarCorrida(anterior, version, new Date().toISOString());
+  const path = escribirVersion(
+    VERSIONES_DIR,
+    conHistorial.arbolHash,
+    serializarVersion(conHistorial),
+  );
   console.error(`Versión: ${rutaRelativa(path)}`);
   return path;
 }
