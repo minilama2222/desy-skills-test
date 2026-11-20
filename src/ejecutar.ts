@@ -84,8 +84,13 @@ export function entregaDeArtefactos(artefactos: Record<string, string>): Entrega
  * - `tiempo`: saltó el techo de pared del runner (`TIMEOUT_SUT_MS`).
  * - `red`: el SUT terminó, pero la salida dice que no hubo conversación con el
  *   proveedor (`ENOTFOUND`, `provider.transport`, `ECONNRESET`…).
+ * - `entorno`: el harness no pudo compilar la página (`npm` ausente o build fuera
+ *   de techo, ticket 22). El SUT no tiene shell, así que aquí no hay juicio suyo.
  */
-export type MotivoDeInfraestructura = "tiempo" | "red";
+export type MotivoDeInfraestructura = "entorno" | "tiempo" | "red";
+
+/** La frase con que `npmCommand` nombra un build que no pudo ni empezar. */
+const MARCA_DE_ENTORNO = "no pudo compilar (ticket 22)";
 
 /** La frase con que `runner.ts` nombra un corte por techo de pared. */
 const MARCA_DE_TIEMPO = "techo de pared, ticket 21";
@@ -104,6 +109,7 @@ export function motivoDeInfraestructura(
   evidencia: Pick<Evidencia, "salida">,
 ): MotivoDeInfraestructura | undefined {
   const texto = `${evidencia.salida.stdout}\n${evidencia.salida.stderr}`;
+  if (texto.includes(MARCA_DE_ENTORNO)) return "entorno";
   if (texto.includes(MARCA_DE_TIEMPO)) return "tiempo";
   if (MARCAS_DE_RED.test(texto)) return "red";
   return undefined;

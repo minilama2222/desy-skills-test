@@ -9,7 +9,7 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { CasoComponente, Check } from "../src/caso.js";
+import type { Caso, CasoComponente, Check } from "../src/caso.js";
 import { grado } from "../src/grader.js";
 import type { Pin } from "../src/pin.js";
 import { pinLocal } from "../src/pin.js";
@@ -948,6 +948,102 @@ describe("el SUT que deja de responder no cuelga la suite (ticket 21)", () => {
       expect(r.stdout).toContain("empiezo");
     } finally {
       rmSync(falso, { recursive: true, force: true });
+    }
+  });
+});
+
+/**
+ * Ticket 22, la decisión del mantenedor: el Caso-página se puntúa sobre `dist/`
+ * (ADR-0006) y el SUT **no tiene shell** para compilar (sus permisos son
+ * read/edit/glob/grep/list/skill; medido en la suite del 20/11: 0 usos de bash
+ * en 47 Ejecuciones, y el propio SUT escribió «no shell tool is available»).
+ *
+ * Compila el harness, siempre, y no como reacción a un fallo del SUT: no hay
+ * señal fiable de «lo intentó». Un build roto del fuente no lleva marca (es del
+ * SUT); que falte `npm` o se pase del techo sí (es del entorno).
+ */
+describe("el harness compila el Caso-página (ticket 22)", () => {
+  const montar = async (tipo: "caso-pagina" | "caso-componente") => {
+    const raiz = mkdtempSync(join(tmpdir(), "caso-compila-"));
+    const trabajo = join(raiz, "work");
+    mkdirSync(trabajo, { recursive: true });
+    const gold = join(raiz, "gold.png");
+    writeFileSync(gold, "png", "utf8");
+    const llamadas: { args: string[]; cwd: string }[] = [];
+    const dirs: string[] = [];
+    const caso: Caso =
+      tipo === "caso-pagina"
+        ? {
+            tipo,
+            skill: "implement-pattern",
+            id: "patron-pagina",
+            prompt: "Maqueta la página",
+            checks: [],
+            goldPath: join(raiz, "gold.html"),
+            goldImagenPath: gold,
+          }
+        : {
+            tipo,
+            skill: "implement-component",
+            id: "boton-primario",
+            prompt: "Genera un botón",
+            checks: [],
+          };
+    const evidencia = await runCaso(
+      caso,
+      pin,
+      {
+        sandbox: {
+          create: () => ({
+            workDir: trabajo,
+            home: trabajo,
+            configDir: trabajo,
+            skillsDir: trabajo,
+            copySkills: () => {},
+            configurar: () => {},
+            listArtefactos: (dir: string) => {
+              dirs.push(dir);
+              return dir === "dist"
+                ? [{ path: "dist/pagina.html", contenido: "<h1>Página</h1>" }]
+                : [];
+            },
+            cleanup: () => {},
+          }),
+        },
+        command: { run: () => ({ stdout: "", stderr: "", code: 0 }) },
+        build: {
+          run: (args, opts) => {
+            llamadas.push({ args, cwd: opts.cwd });
+            return { stdout: "", stderr: "vite: plantilla rota", code: 1 };
+          },
+        },
+      },
+    );
+    return { raiz, trabajo, llamadas, dirs, evidencia };
+  };
+
+  it("compila antes de recoger y gradúa el dist/, no el fuente", async () => {
+    const { raiz, trabajo, llamadas, dirs, evidencia } = await montar("caso-pagina");
+    try {
+      expect(llamadas).toEqual([{ args: ["run", "build"], cwd: trabajo }]);
+      expect(dirs).toEqual(["dist"]);
+      expect(evidencia.artefactos.files).toEqual({
+        "dist/pagina.html": "<h1>Página</h1>",
+      });
+      // La salida del build queda en la Evidencia, que es donde se lee el porqué.
+      expect(evidencia.salida.stderr).toContain("vite: plantilla rota");
+    } finally {
+      rmSync(raiz, { recursive: true, force: true });
+    }
+  });
+
+  it("un Caso-componente no compila: su artefacto es el fuente", async () => {
+    const { raiz, llamadas, dirs } = await montar("caso-componente");
+    try {
+      expect(llamadas).toEqual([]);
+      expect(dirs).toEqual(["src"]);
+    } finally {
+      rmSync(raiz, { recursive: true, force: true });
     }
   });
 });

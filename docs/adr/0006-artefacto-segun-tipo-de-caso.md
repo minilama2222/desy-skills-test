@@ -17,3 +17,29 @@ El Caso-página, en cambio, mide la **página renderizada** (h1 único, skip-lin
 - El `listArtefactos` del sandbox pasa a exigir el directorio: no hay un "directorio por defecto" honesto, porque depende del Caso. Lo elige el runner, no el sandbox.
 - Un `dist/` sin `src/` correspondiente ya no puede colarse como artefacto de un Caso-componente (era el caso de la caché contaminada: ver ADR-0005).
 - Queda pendiente (fuera de esta decisión) distinguir «no hay artefacto» de «artefacto incorrecto»: hoy ambos son INACEPTABLE y no se pueden separar en el reporte.
+
+## Quién compila el Caso-página (ticket 22, 20/11/2026)
+
+El SUT escribe el **fuente** en `src/`; **el harness compila** con `npm run build`
+dentro del sandbox y recoge el `dist/`. No se le pide al SUT que compile.
+
+La primera versión de este ticket pidió la compilación al SUT, en el prompt. No
+salió bien, y no por falta de instrucciones: **el SUT no tiene herramienta de
+shell**. Sus
+permisos son `read`, `edit`, `glob`, `grep`, `list` y `skill` (ADR-0013), y todo lo
+demás se deniega. Medido en la suite del 20/11: en **47 Ejecuciones, cero usos de
+`bash`**, y el propio agente escribió «no shell tool is available in this session,
+so I cannot run `npm run build`». Peor que inútil: gastaba pasos y en dos corridas
+llegó a decir «compilo» sin compilar nada.
+
+Compila el harness **siempre**, no como reacción a un fallo del SUT: no hay señal
+fiable de «lo intentó», y condicionar el paso a que el agente lo confiese mete la
+parte menos fiable del sistema en la receta.
+
+- El build tiene su propio techo (`TIMEOUT_BUILD_MS`, 5 min) y su propio motivo de
+  infraestructura (`entorno`): que falte `npm` o que se pase del techo no es un
+  juicio sobre el skill.
+- Un build que falla **compilando el fuente** no lleva esa marca: el artefacto no
+  compila, y eso sí es del SUT.
+- El prompt no menciona el harness ni la compilación: es el encargo de un usuario,
+  no la ficha de un examen. Saber que se le mide invita a escribir para el examen.

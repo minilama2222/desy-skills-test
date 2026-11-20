@@ -9,6 +9,5 @@ Angular 19.
 ```
 
 Escribe el **template Angular** (`desy-button` con sus bindings) en
-`src/boton-primario-angular.html`. La medida se hace sobre ese fichero: lo que
-quede sólo en el chat no cuenta. No inventes equivalencias: usa el patrón
+`src/boton-primario-angular.html`. No inventes equivalencias: usa el patrón
 general de macro → selector + `[binding]`.

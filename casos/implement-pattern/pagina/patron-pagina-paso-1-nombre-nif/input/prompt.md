@@ -15,6 +15,4 @@ tipografía y márgenes y llévalos a los tokens del sistema; no inventes valore
 Al terminar, valida la accesibilidad (un solo `h1`, `fieldset` con `legend`,
 `label` por cada control, skip-link) sobre el HTML generado.
 
-Compila el proyecto con `npm run build` (la caché del starter ya trae
-`node_modules`) para que la página quede en `dist/`. La medida se hace sobre el
-HTML compilado de `dist/`, no sobre el fuente de `src/`.
+Escribe la página en un fichero `.html` nuevo dentro de `src/`.

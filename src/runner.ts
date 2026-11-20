@@ -475,6 +475,12 @@ export function dirArtefactoDeCaso(tipo: Caso["tipo"]): string | null {
 export interface RunDeps {
   sandbox: SandboxFactory;
   command: CommandRunner;
+  /**
+   * Compila el Caso-página después del SUT (ticket 22). Inyectable porque un test
+   * no puede lanzar `npm` de verdad (`docs/agents/testing.md`); si no se pasa, el
+   * camino real es `npmCommand`.
+   */
+  build?: CommandRunner;
 }
 
 export async function runCaso(
@@ -502,6 +508,7 @@ export async function runCaso(
       promptParaSut(prompt, imagen?.tipo, imagen?.nombre),
       imagen?.path,
     );
+    const env = entornoDelSandbox({ ...sandbox, authOrigen: sandbox.authOrigen });
     const { stdout, stderr, code } = deps.command.run(args, {
       cwd: sandbox.workDir,
       // `XDG_CONFIG_HOME` es la ruta de config de `opencode.jsonc`; `OPENCODE_HOME`
@@ -509,10 +516,24 @@ export async function runCaso(
       // quede ninguna parte del HOME fuera del sandbox. `authOrigen` va aparte
       // porque de ahí salen las claves de proveedor: el `auth.json` del sandbox
       // es una copia y solo existe después de `configurar()` (ticket 15).
-      env: entornoDelSandbox({ ...sandbox, authOrigen: sandbox.authOrigen }),
+      env,
     });
-    const transcript = mergeTranscript(stdout, stderr);
     const dir = dirArtefactoDeCaso(caso.tipo);
+    // Caso-página: el artefacto es el HTML compilado (ADR-0006) y el SUT no tiene
+    // shell para compilarlo, así que compila el harness, siempre (ticket 22). Su
+    // salida no se mezcla con el transcript del SUT: sólo se añade el canal de
+    // error, que es donde un build roto dice qué fichero y qué línea.
+    const stderrCompilacion =
+      dir === "dist"
+        ? (deps.build ?? npmCommand).run(["run", "build"], {
+            cwd: sandbox.workDir,
+            env,
+          }).stderr
+        : "";
+    const salidaStderr = [stderr, stderrCompilacion]
+      .filter((parte) => parte.length > 0)
+      .join("\n");
+    const transcript = mergeTranscript(stdout, salidaStderr);
     return {
       artefactos: {
         files:
@@ -522,7 +543,7 @@ export async function runCaso(
       },
       transcript: { invocaciones: parseInvocaciones(transcript) },
       exitCode: code,
-      salida: { stdout, stderr },
+      salida: { stdout, stderr: salidaStderr },
       arbolHash: hashDelArbolDelSandbox(sandbox.skillsDir),
     };
   } finally {
@@ -799,6 +820,61 @@ export function entornoDelSut(
  * cuesta una Ejecución entera.
  */
 export const TIMEOUT_SUT_MS = 20 * 60 * 1000;
+
+/**
+ * Techo del build del Caso-página (ticket 22): **5 minutos**.
+ *
+ * Un `vite build` del starter son segundos, no minutos; cinco da margen a una
+ * máquina cargada sin convertir un build atascado en otra espera eterna. Se mueve
+ * con `DESY_BUILD_TIMEOUT_MS`, como el techo del SUT.
+ */
+export const TIMEOUT_BUILD_MS = 5 * 60 * 1000;
+
+/**
+ * Compila el starter dentro del sandbox (ticket 22).
+ *
+ * El Caso-página se puntúa sobre el HTML compilado de `dist/` (ADR-0006), y el SUT
+ * **no tiene shell**: sus permisos son `read`/`edit`/`glob`/`grep`/`list`/`skill`,
+ * así que no puede compilar por mucho que se lo pida el prompt. Medido en la
+ * suite del 20/11: en 47 Ejecuciones, cero usos de `bash`; el SUT llegó a escribir
+ * «no shell tool is available in this session, so I cannot run `npm run build`».
+ *
+ * Por eso compila el harness, **siempre** y no como reacción a un fallo del SUT:
+ * no hay señal fiable de «lo intentó», y esperar a que el agente lo confiese mete
+ * la parte menos fiable del sistema en la receta.
+ *
+ * Si no hay `npm` o el build pasa del techo, el mensaje lleva una marca que
+ * `motivoDeInfraestructura` reconoce como falta de entorno: eso no es un juicio
+ * sobre el skill. Un build que falla **compilando el fuente** no lleva marca: el
+ * artefacto no compila, y eso sí es del SUT.
+ */
+export const npmCommand: CommandRunner = {
+  run(args, opts) {
+    const pedido = Number(opts.env.DESY_BUILD_TIMEOUT_MS ?? TIMEOUT_BUILD_MS);
+    const limite = Number.isFinite(pedido) && pedido > 0 ? pedido : TIMEOUT_BUILD_MS;
+    const resultado = spawnSync("npm", args, {
+      cwd: opts.cwd,
+      env: opts.env,
+      encoding: "utf8",
+      maxBuffer: 64 * 1024 * 1024,
+      timeout: limite,
+    });
+    const codigoError = (resultado.error as NodeJS.ErrnoException | undefined)?.code;
+    const aviso =
+      codigoError === "ENOENT"
+        ? "El harness no pudo compilar (ticket 22): no hay `npm` en el entorno del sandbox."
+        : codigoError === "ETIMEDOUT"
+          ? `El harness no pudo compilar (ticket 22): el build superó ${limite} ms.`
+          : "";
+    return {
+      stdout: resultado.stdout ?? "",
+      stderr: [aviso, resultado.stderr ?? (resultado.error ? String(resultado.error) : "")]
+        .filter((parte) => parte.length > 0)
+        .join("\n"),
+      code: resultado.status ?? 1,
+    };
+  },
+};
 
 /**
  * Lanza el SUT y lo espera **bloqueando sólo este hilo**: `spawnSync` con los dos

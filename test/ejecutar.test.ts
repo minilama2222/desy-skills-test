@@ -349,6 +349,20 @@ describe("motivoDeInfraestructura (ticket 21)", () => {
     ).toBe("red");
   });
 
+  it("un build que no pudo ni empezar es entorno, no skill (ticket 22)", () => {
+    expect(
+      motivoDeInfraestructura(
+        con("", "El harness no pudo compilar (ticket 22): no hay `npm` en el entorno del sandbox."),
+      ),
+    ).toBe("entorno");
+  });
+
+  it("un build que falla compilando el fuente NO es infraestructura: es del SUT", () => {
+    expect(
+      motivoDeInfraestructura(con("", "vite: error en src/pagina.html, línea 3")),
+    ).toBeUndefined();
+  });
+
   it("un crash del SUT no se disfraza de infraestructura", () => {
     expect(motivoDeInfraestructura(con("TypeError: x is not a function\n", ""))).toBeUndefined();
   });

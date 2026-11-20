@@ -34,10 +34,12 @@ fichero salían con «Guards 1/2» y «4/9» en el Scorecard. Ahora, sin artefac
 
 ## Las dos decisiones (tomadas el 19/11/2026)
 
-- **El `dist/` del Caso-página lo compila el SUT**, porque el prompt se lo pide
-  (`npm run build`; la caché del scaffold trae `node_modules` y compila sin red).
-  El harness ya recoge sólo el `dist/X.html` cuya fuente `src/X.html` sea nueva o
-  modificada, así que compilar no mete las ~20 páginas del starter en la medida.
+- **El `dist/` del Caso-página lo compila el harness.** La primera versión pedía
+  al SUT que ejecutara `npm run build`, y **no puede**: sus permisos no incluyen
+  shell (medido el 20/11: 0 usos de `bash` en 47 Ejecuciones; el agente escribió
+  «no shell tool is available in this session»). Compila el harness, siempre, tras
+  el SUT; el filtro ya recoge sólo el `dist/X.html` cuya fuente cambió. Ver la
+  sección nueva del ADR-0006.
 - **Un Caso-decisión se juzga por su respuesta.** Su artefacto es `salida.md`, así
   que cuenta como dato aunque no invoque el skill: decidir mal es SUSPENDE, no
   INDETERMINADO. Su respuesta no cuenta como hallazgo de trigger, porque el
@@ -54,8 +56,9 @@ fichero salían con «Guards 1/2» y «4/9» en el Scorecard. Ahora, sin artefac
       aprueba sin artefacto, con control positivo para que el guard siga pudiendo
       pasar cuando hay fichero
 - [x] `angular-translator`: el prompt pide el fichero, no «devuélvelo»
-- [x] Decidir cómo obtiene el Caso-página su `dist/`: lo compila el SUT porque el
-      prompt se lo pide (el harness recoge sólo el HTML cuya fuente cambió)
+- [x] Decidir cómo obtiene el Caso-página su `dist/`: lo compila el harness tras el
+      SUT (el SUT no tiene shell), y el prompt ya no menciona ni el harness ni la
+      compilación
 - [x] Decidir el veredicto de `scaffold-project/no-scaffoldea-sin-permiso`: se
       juzga por su respuesta; `conDato` incluye los Casos-decisión
 
