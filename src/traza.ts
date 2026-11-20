@@ -124,6 +124,13 @@ export function trazaDeAssert(assert: Assert): TrazaCheck {
         exige: `El artefacto no reclama haber ejecutado «${assert.accion}».`,
         tumba: `alguna línea reclama en pasado haber ejecutado «${assert.accion}»`,
       };
+    case "no_arranca":
+      return {
+        exige: `La decisión no da «${assert.valor}» por empezado.`,
+        tumba:
+          `una frase que nombra «${assert.valor}» lo reclama en pasado o se ` +
+          "compromete con él sin diferidor",
+      };
     case "declara_fallo": {
       const veredicto =
         assert.veredicto === undefined ? "un marcador de fallo" : `el veredicto «${assert.veredicto}»`;

@@ -23,6 +23,8 @@ import {
   entornoDelSandbox,
   entornoDelSut,
   npmCommand,
+  PERMISOS_DEL_SANDBOX,
+  permisosDelSandbox,
   escriturasFueraDelSandbox,
   realCommand,
   runCaso,
@@ -1112,4 +1114,78 @@ describe("npmCommand: el build resuelve npm con el PATH del harness (ticket 25)"
       }
     },
   );
+});
+
+/**
+ * Ticket 27: los `assets/` de un skill viven en el `HOME` del sandbox, fuera del
+ * `workDir`, y `external_directory: deny` los bloqueaba. `desy-component-recognizer`
+ * pedía leer su catálogo y recibía `Permission denied: external_directory` 11
+ * veces en la suite del 20/11: el Caso parecía un fallo del skill y era el sandbox.
+ *
+ * La excepción es **una carpeta**, no el disco: el resto de `external_directory`
+ * sigue denegado.
+ */
+describe("permisosDelSandbox: los assets del skill, y nada más (ticket 27)", () => {
+  const conSandbox = (fn: (skillsDir: string) => void) => {
+    const raiz = mkdtempSync(join(tmpdir(), "permisos-"));
+    const skillsDir = join(raiz, "home", ".config", "opencode", "skills");
+    mkdirSync(skillsDir, { recursive: true });
+    try {
+      fn(skillsDir);
+    } finally {
+      rmSync(raiz, { recursive: true, force: true });
+    }
+  };
+
+  it("añade una excepción para la carpeta de skills, al final", () => {
+    conSandbox((skillsDir) => {
+      const permisos = permisosDelSandbox(skillsDir);
+      const ultima = permisos.at(-1);
+
+      expect(ultima).toEqual({
+        action: "external_directory",
+        resource: `${skillsDir}/*`,
+        effect: "allow",
+      });
+      // La base se conserva: la negación general sigue estando, y antes.
+      expect(permisos).toContainEqual({
+        action: "external_directory",
+        resource: "*",
+        effect: "deny",
+      });
+      expect(permisos.indexOf(ultima!)).toBeGreaterThan(
+        permisos.findIndex((p) => p.action === "external_directory" && p.resource === "*"),
+      );
+      expect(PERMISOS_DEL_SANDBOX).toHaveLength(permisos.length - 1);
+    });
+  });
+
+  it("la excepción no abre el disco: su recurso es una carpeta, no `*`", () => {
+    conSandbox((skillsDir) => {
+      const [excepcion] = permisosDelSandbox(skillsDir).slice(-1);
+      expect(excepcion!.resource).not.toBe("*");
+      expect(excepcion!.resource.endsWith("/*")).toBe(true);
+      // Y sigue sin haber ningún `allow` general de `external_directory`.
+      expect(
+        permisosDelSandbox(skillsDir).filter(
+          (p) => p.action === "external_directory" && p.effect === "allow" && p.resource === "*",
+        ),
+      ).toEqual([]);
+    });
+  });
+
+  it("la configuración del sandbox la usa, y apunta a su propio skillsDir", () => {
+    conSandbox((skillsDir) => {
+      const config = configuracionDelSandbox({ home: join(skillsDir, "../../.."), skillsDir }) as {
+        permissions: { action: string; resource: string; effect: string }[];
+        skills: string[];
+      };
+      expect(config.permissions.at(-1)).toEqual({
+        action: "external_directory",
+        resource: `${skillsDir}/*`,
+        effect: "allow",
+      });
+      expect(config.skills).toEqual([skillsDir]);
+    });
+  });
 });

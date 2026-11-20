@@ -109,6 +109,13 @@ escribe un `opencode.jsonc` en el sandbox con:
   nueva de una versión futura también queda cerrada) y `allow` a `read`, `edit`,
   `glob`, `grep`, `list` y `skill` —lo que el Caso necesita para escribir su
   artefacto—, con `external_directory: deny`.
+  **Una excepción, y solo una** (ticket 27): el árbol de skills del sandbox
+  (`<home>/.config/opencode/skills/*`), que es copia del Pin y vive dentro del
+  propio `HOME`. Sin ella, un skill que manda leer sus `assets/` recibía
+  `Permission denied: external_directory` —y el Caso parecía un fallo del skill—.
+  La ruta va **tal cual**, sin `realpath`: medido con el binario, la literal
+  permite y la canonicalizada deniega, porque V2 casa el recurso contra la ruta
+  que el SUT usa (la del config), no contra su enlace resuelto.
 
 > **Falta una pieza, medida el 18/11/2026.** Esta configuración encierra *qué*
 > puede hacer el SUT, no **dónde** escribe: con el `PWD` heredado, un `write

@@ -134,6 +134,26 @@ export interface AssertNoDeclaraEjecucion {
 }
 
 /**
+ * Un hecho de **no-arranque**: el SUT no presenta el siguiente paso como algo que
+ * ya hace o ya hizo, sino como lo que hará **cuando** reciba lo que falta.
+ *
+ * Nace del falso positivo del 20/11 (ticket 28). `no_declara_decision` prohíbe
+ * *nombrar* el paso, y una respuesta correcta lo nombra al anunciar el plan
+ * («en cuanto tenga el mockup sigo con el orden: … `choose-page-template` …»).
+ * Lo que hay que medir es el **arranque**, no la mención.
+ *
+ * Falla si una frase que nombra el paso lo reclama en pasado («ya he aplicado
+ * `choose-page-template`») o lo compromete en presente sin diferidor («empiezo
+ * por `choose-page-template`»). Una frase con «cuando», «en cuanto», «si»,
+ * «falta»… es un plan condicionado y pasa.
+ */
+export interface AssertNoArranca {
+  kind: "no_arranca";
+  /** El paso que no se puede dar por empezado (`choose-page-template`). */
+  valor: string;
+}
+
+/**
  * Un hecho de **decisión** sobre un informe: el SUT declara el veredicto de un
  * hecho en la misma línea/fila/bullet que lo nombra. Es el Guard positivo de un
  * Caso cuyo output es un informe (`desy-validate-accessibility`) o una tabla de
@@ -187,6 +207,7 @@ export type Assert =
   | AssertDeclaraDecision
   | AssertNoDeclaraDecision
   | AssertNoDeclaraEjecucion
+  | AssertNoArranca
   | AssertDeclaraFallo
   | AssertReconoceComponente;
 
@@ -527,6 +548,7 @@ const ASSERT_KINDS = new Set([
   "declara_decision",
   "no_declara_decision",
   "no_declara_ejecucion",
+  "no_arranca",
   "declara_fallo",
   "reconoce_componente",
 ]);
@@ -616,6 +638,8 @@ function parseAssert(raw: unknown, contexto: string): Assert {
       return { kind: "no_declara_decision", valor: exigirString(raw, "valor", contexto) };
     case "no_declara_ejecucion":
       return { kind: "no_declara_ejecucion", accion: exigirString(raw, "accion", contexto) };
+    case "no_arranca":
+      return { kind: "no_arranca", valor: exigirString(raw, "valor", contexto) };
     case "declara_fallo": {
       const hecho = exigirString(raw, "hecho", contexto);
       const veredicto = raw.veredicto;

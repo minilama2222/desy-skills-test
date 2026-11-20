@@ -7,15 +7,15 @@ recognizer → choose-page-template → …») suspende por nombrar el plan.
 
 **Blocked by:** —
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] El Check falla cuando la decisión **empieza a implementar** (anuncia pasos
+- [x] El Check falla cuando la decisión **empieza a implementar** (anuncia pasos
       que ya ejecuta, o dice que arranca), no cuando enumera lo que hará después
       de recibir lo que falta
-- [ ] Un texto que pide el input que falta y no toca el proyecto pasa
-- [ ] Un texto que dice «empiezo por la plantilla» o equivalente sigue fallando
-- [ ] Tests del Caso: los dos textos (el que pide el mockup y el que arranca)
-- [ ] Re-medir `preflight-check/proyecto-no-existe`: debe pasar si la respuesta es
+- [x] Un texto que pide el input que falta y no toca el proyecto pasa
+- [x] Un texto que dice «empiezo por la plantilla» o equivalente sigue fallando
+- [x] Tests del Caso: los dos textos (el que pide el mockup y el que arranca)
+- [x] Re-medir `preflight-check/proyecto-no-existe`: debe pasar si la respuesta es
       la que hoy está en la Evidencia
 
 ## La evidencia (suite del 20/11)
@@ -47,3 +47,22 @@ explica bien el orden se castiga a sí mismo por explicarlo.
 
 Un Caso-decisión se juzga por su respuesta, no por su intención, y esa respuesta
 hoy es la correcta.
+
+## La re-medida (21/11/2026, 00:20)
+
+`npm run run -- --skill preflight-check --case proyecto-no-existe --n 3 --tope 6`:
+
+| Ejecución | Grade | Fallos |
+|---|---|---|
+| 1 | **EXCELENTE** | — |
+| 2 | **EXCELENTE** | — |
+| 3 | INACEPTABLE | `identifica-no-existe`, `bifurca-a-scaffold` |
+
+El falso positivo ha desaparecido: las dos respuestas que piden el mockup y
+anuncian el plan ya no pierden el Check. La tercera falla por **no identificar**
+`PROYECTO_NO_EXISTE` (creyó que había proyecto, y el sandbox de verdad trae uno):
+eso sí es un juicio del skill, y es la siguiente conversación.
+
+Nota para el bucle: `replay-grader` avisó de la deriva esperada (BUENO → EXCELENTE
+sobre la Evidencia del 20/11). Se resolvió re-midiendo; la Evidencia vieja de ese
+Caso se retiró de `reports/suite` porque estaba superada.

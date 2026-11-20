@@ -7,17 +7,19 @@ Hoy `desy-component-recognizer` manda usar `assets/catalog.json`,
 
 **Blocked by:** —
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] `read`, `grep` y `list` alcanzan los `assets/` del **árbol de skills del
+- [x] `read`, `grep` y `list` alcanzan los `assets/` del **árbol de skills del
       sandbox** (`<home>/.config/opencode/skills/`), que es copia del Pin y vive
       dentro del propio sandbox
-- [ ] Sigue denegado todo lo que esté fuera del sandbox: `external_directory` no
+- [x] Sigue denegado todo lo que esté fuera del sandbox: `external_directory` no
       se abre a `*`
-- [ ] Test: un comando del SUT que lee un fichero de `skills/<x>/assets/` no
+- [x] Test: un comando del SUT que lee un fichero de `skills/<x>/assets/` no
       recibe `external_directory`, y uno que lee fuera del sandbox sí
-- [ ] La salida del Caso deja de contener `Permission denied: external_directory`
-- [ ] Re-medir `component-recognizer/reconocimiento-login`: si el skill lee el
+- [x] Las lecturas de `skills/<x>/assets/` ya no reciben `Permission denied:
+      external_directory` (quedan otras denegaciones, y son correctas: un
+      `write` del SUT a `/private/var/.../T/opencode/`, fuera del sandbox)
+- [x] Re-medir `component-recognizer/reconocimiento-login`: si el skill lee el
       catálogo y sigue suspendiendo, entonces sí es del skill
 
 ## La evidencia (suite del 20/11)
@@ -60,3 +62,30 @@ Un Caso que suspende porque el SUT no pudo leer lo que el skill le manda leer no
 es un hallazgo sobre el skill: es una falta de medida disfrazada de suspenso. El
 bucle de refinamiento, tal como está escrito hoy, no tiene cajón para esto y
 mandaría a reescribir un skill que no falló.
+
+## La re-medida (21/11/2026, 00:40)
+
+`npm run run -- --skill component-recognizer --case reconocimiento-login --n 3 --tope 6`:
+las tres ejecuciones leen el catálogo y **ninguna** recibe `external_directory` en
+una ruta de `skills/`. Quedan dos denegaciones que son correctas: un `write` a
+`/private/var/.../T/opencode/identificaciones-login.json` (fuera del sandbox) y un
+`read` suelto de `/var/folders/x`.
+
+Y el skill **sigue suspendiendo los mismos 6 Checks**. El ticket pedía justo esta
+separación: ya no es el sandbox, es el skill (o el Check). Dos pistas para la
+próxima vuelta:
+
+- `reconoce-input-group`: la respuesta pone `input-group` en las **notas** de dos
+  filas («Contenedor del 3 y 4: `input-group` text»), no como fila propia. El
+  ejemplo del propio skill lo pone como fila.
+- `reconoce-header-mini`: la respuesta **sí** tiene una fila `header-mini`, y el
+  Check la tumba igual. Eso huele a segundo falso positivo: hay que mirarlo antes
+  de tocar el skill.
+
+## La lección del permiso
+
+La primera versión canonicalizaba la ruta con `realpathSync` «porque V2 normaliza
+antes de casar». **Era al revés**, y se midió con el binario: la ruta literal
+permite y la canonicalizada deniega. En macOS `/var` es un enlace a
+`/private/var`, y resolverlo rompía justo la regla que se quería añadir. Queda
+escrito en el ADR-0013 para que no se «arregle» en la dirección contraria.

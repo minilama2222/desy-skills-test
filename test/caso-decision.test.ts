@@ -289,3 +289,44 @@ describe("Caso-decisión: assert `reconoce_componente` contra el catálogo", () 
     ).toThrow();
   });
 });
+
+/**
+ * Ticket 28: `no_declara_decision` prohibía **nombrar** el paso, y una respuesta
+ * correcta lo nombra al anunciar el plan que hará cuando reciba lo que falta. El
+ * 20/11, `proyecto-no-existe` suspendió 3 de 3 por esto, con la respuesta
+ * correcta delante. Lo que hay que medir es el **arranque**, no la mención.
+ */
+describe("Caso-decisión: assert `no_arranca` (no lo da por empezado)", () => {
+  const checks = declarar("no-arranca", "quality", 1, {
+    kind: "no_arranca",
+    valor: "choose-page-template",
+  });
+
+  const pasa = (salida: string): boolean =>
+    gradoCon("caso-decision", checks, salida).detalle.find((d) => d.id === "no-arranca")!.passed;
+
+  it("un plan condicionado a lo que falta pasa", () => {
+    // La respuesta real del 20/11, recortada: pide el mockup y anuncia el orden
+    // obligatorio. Nombrar el paso no es arrancarlo.
+    const salida = [
+      "No, todavía no puedes empezar — y además la carpeta no es lo que crees.",
+      "El preflight da PROYECTO_OK, no PROYECTO_NO_EXISTE.",
+      "En cuanto tenga el mockup sigo con el orden obligatorio: " +
+        "desy-component-recognizer → desy-choose-page-template → implementación.",
+    ].join("\n");
+
+    expect(pasa(salida)).toBe(true);
+  });
+
+  it("un compromiso en presente sin diferidor sí falla", () => {
+    expect(pasa("Empiezo por desy-choose-page-template y maqueto la página.")).toBe(false);
+  });
+
+  it("una reclamación en pasado sí falla", () => {
+    expect(pasa("Ya he aplicado desy-choose-page-template a tu proyecto.")).toBe(false);
+  });
+
+  it("una respuesta que no nombra el paso pasa", () => {
+    expect(pasa("¿Quieres que clone el starter oficial? Dime y sigo.")).toBe(true);
+  });
+});

@@ -261,6 +261,8 @@ function evaluar(
       return !textoDeclara(htmlText, assert.valor);
     case "no_declara_ejecucion":
       return !textoReclamaEjecucion(htmlText, assert.accion);
+    case "no_arranca":
+      return !textoArranca(htmlText, assert.valor);
     case "declara_fallo":
       return lineaDeclaraFallo(htmlText, assert.hecho, assert.veredicto);
     case "reconoce_componente":
@@ -386,6 +388,71 @@ function textoReclamaEjecucion(texto: string, accion: string): boolean {
         raices.some((raiz) => normalizarTexto(linea).includes(raiz)) &&
         RECLAMACIONES_EJECUCION.some((re) => re.test(linea)),
     );
+}
+
+/**
+ * Formas de **comprometerse** con un paso en presente o futuro: «empiezo por
+ * X», «sigo con X», «voy a implementar». Se buscan sobre el texto **crudo**,
+ * porque el acento distingue el pasado de la primera persona («empecé»), que ya
+ * cubre `RECLAMACIONES_EJECUCION`.
+ */
+const ARRANQUES = [
+  /\bempiezo\b/i,
+  /\b(voy|vamos)\s+a\b/i,
+  /\bprocedo\b/i,
+  /\barranco\b/i,
+  /\bimplemento\b/i,
+  /\bmaqueto\b/i,
+  /\bgenero\b/i,
+  /\bsigo\s+con\b/i,
+  /\bpaso\s+a\b/i,
+  /\bme\s+pongo\b/i,
+];
+
+/**
+ * Marcas de que el paso queda **condicionado** a lo que todavía falta: «en cuanto
+ * tenga el mockup», «cuando me lo pases», «si el proyecto existe», «falta el
+ * input». Sobre el texto crudo: `\bsi\b` no debe casar con «sí».
+ */
+const DIFERIDORES = [
+  /\bcuando\b/i,
+  /\ben\s+cuanto\b/i,
+  /\bsi\b/i,
+  /\bantes\s+de\b/i,
+  /\bfalta(n)?\b/i,
+  /\bnecesito\b/i,
+  /\bespero\b/i,
+  /\bespera\b/i,
+  /\bhasta\b/i,
+  /\buna\s+vez\b/i,
+  /\bdespues\s+de\b|\bdespués\s+de\b/i,
+  /\bsin\b/i,
+  /\btodavia\b|\btodavía\b/i,
+  /\baun\b|\baún\b/i,
+];
+
+/**
+ * ¿El SUT da el paso por empezado? (ticket 28)
+ *
+ * El falso positivo que lo motivó: una respuesta correcta —«falta el mockup; en
+ * cuanto lo tenga sigo con el orden: recognizer → choose-page-template → …»—
+ * suspendía un Check que sólo miraba si el texto **nombraba** el paso. Lo que hay
+ * que medir es el arranque.
+ *
+ * Se mira **frase a frase** (por puntuación y saltos de línea) y sólo cuentan las
+ * frases que nombran el paso. Una frase lo arranca si lo reclama en pasado
+ * («ya he aplicado X») o si se compromete en presente sin diferidor («empiezo por
+ * X»). Un plan condicionado no arranca nada.
+ */
+function textoArranca(texto: string, valor: string): boolean {
+  const frases = texto.split(/(?<=[.!?])\s+|\n+/);
+  return frases.some(
+    (frase) =>
+      textoDeclara(frase, valor) &&
+      (RECLAMACIONES_EJECUCION.some((re) => re.test(frase)) ||
+        (ARRANQUES.some((re) => re.test(frase)) &&
+          !DIFERIDORES.some((re) => re.test(frase)))),
+  );
 }
 
 /**

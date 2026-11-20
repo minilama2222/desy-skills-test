@@ -419,13 +419,49 @@ export const PERMISOS_DEL_SANDBOX = [
   { action: "external_directory", resource: "*", effect: "deny" },
 ] as const;
 
+/** Una regla de `permissions` en la forma de V2 (ADR-0013). */
+export interface PermisoDelSandbox {
+  action: string;
+  resource: string;
+  effect: "allow" | "deny";
+}
+
+/**
+ * Los permisos del sandbox para una carpeta de skills concreta: la base de
+ * `PERMISOS_DEL_SANDBOX` más **una** excepción, la de los `assets/` de los skills
+ * (ticket 27).
+ *
+ * El entorno del SUT sigue cerrado: no se abre `external_directory` a `*`, solo
+ * al árbol de skills del sandbox, que es una copia del Pin dentro de su propio
+ * `HOME`. `desy-component-recognizer` manda leer `assets/catalog.json`,
+ * `assets/catalog-summary.md` y `assets/linter.py`; sin esta excepción recibía
+ * `Permission denied: external_directory` en cada intento (medido: 11 veces en
+ * las 3 ejecuciones del 20/11) y el Caso parecía un fallo del skill.
+ *
+ * **La ruta va tal cual, sin `realpath`.** V2 casa el recurso contra la ruta que
+ * el SUT usa, y esa es la del config (medido con el binario 2.2.1: la literal
+ * permite y la canonicalizada deniega — en macOS `/var` es un enlace a
+ * `/private/var`, y resolverlo hacía que la regla no casara nunca). Lo único que
+ * se normaliza son las barras, porque el patrón se compara con `/`.
+ *
+ * Va **al final** de la lista: en V2 gana la última regla que casa, así que el
+ * `deny` de la base sigue cubriendo todo lo demás.
+ */
+export function permisosDelSandbox(skillsDir: string): PermisoDelSandbox[] {
+  const ruta = skillsDir.split("\\").join("/").replace(/\/+$/, "");
+  return [
+    ...PERMISOS_DEL_SANDBOX,
+    { action: "external_directory", resource: `${ruta}/*`, effect: "allow" },
+  ];
+}
+
 /**
  * La configuración del sandbox en la forma nativa de OpenCode V2:
  *
  * - `policies.provider.use` sustituye al `enabled_providers` de V1 (que V2 no
  *   tiene): solo el proveedor del modelo fijado. Con el `auth.json` copiado,
  *   sin esto el SUT podría gastar cualquier otra cuenta del usuario.
- * - `permissions`: ver `PERMISOS_DEL_SANDBOX`.
+ * - `permissions`: ver `PERMISOS_DEL_SANDBOX` y `permisosDelSandbox`.
  * - `skills` explícitas al `skillsDir` del sandbox: es ruta absoluta, así que V2
  *   la resuelve tal cual en cualquier plataforma (las relativas se resuelven
  *   desde el directorio de trabajo, no desde el config).
@@ -441,7 +477,7 @@ export function configuracionDelSandbox(sandbox: {
   return {
     $schema: "https://opencode.ai/config.json",
     skills: [sandbox.skillsDir],
-    permissions: PERMISOS_DEL_SANDBOX,
+    permissions: permisosDelSandbox(sandbox.skillsDir),
     policies: [
       { action: "provider.use", resource: "*", effect: "deny" },
       { action: "provider.use", resource: PROVEEDOR_DEL_SUT, effect: "allow" },

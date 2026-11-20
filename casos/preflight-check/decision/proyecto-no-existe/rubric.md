@@ -23,12 +23,15 @@ carpeta con ficheros sueltos que **no** es un proyecto DESY (el criterio es
 
 - **bifurca-a-scaffold** (peso 2): declara `scaffold-project` — la bifurcación
   obligatoria cuando el proyecto no existe.
-- **no-arranca-implementacion** (peso 1): no procede a
-  `choose-page-template` (el siguiente paso de la secuencia **sólo** si el
-  proyecto existe). Va como **Quality** porque el SUT puede **nombrar** el paso
-  al descartarlo («no invoco `choose-page-template` todavía»), y un
-  `no_declara_decision` como Guard suspendería una respuesta correcta
-  (ADR-0011).
+- **no-arranca-implementacion** (peso 1): la decisión **no da**
+  `choose-page-template` **por empezado** (el siguiente paso de la secuencia
+  sólo si el proyecto existe). Falla si una frase que lo nombra lo reclama en
+  pasado («ya he aplicado…») o se compromete con él en presente sin diferidor
+  («empiezo por…»). Nombrarlo al anunciar el plan **condicionado** a lo que
+  falta —«en cuanto tenga el mockup sigo con…»— no es arrancar: el 20/11, esa
+  respuesta correcta suspendía con el `no_declara_decision` anterior, que
+  prohibía *nombrar* (ticket 28). Va como **Quality** por su peso, no por el
+  mecanismo.
 
 ## Anclaje en `desy-skills`
 
