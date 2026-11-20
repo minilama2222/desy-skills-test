@@ -8,7 +8,7 @@ de entorno y el Caso sale INDETERMINADO.
 
 **Blocked by:** —
 
-**Status:** ready-for-human
+**Status:** done
 
 - [x] El build recibe un `PATH` utilizable (el del propio harness), y **solo** el
       build: el entorno del SUT no se ensancha. Es `entornoDelBuild`, un derivador
@@ -17,10 +17,8 @@ de entorno y el Caso sale INDETERMINADO.
       «no hay `npm`»
 - [x] Tests: con un entorno sin `PATH` el build encuentra `npm` (proceso real, se
       salta en Windows), y el entorno del sandbox no gana variables
-- [ ] Re-medir: `patron-pagina-paso-1-nombre-nif` deja de ser «Sin medir» y se
-      gradúa (o SUSPENDE por sus Checks, que ya es un juicio del skill). **Falta
-      la corrida**: el arreglo está y sus tests en verde, pero la casilla no se
-      marca sin la medida que la prueba.
+- [x] Re-medir: `patron-pagina-paso-1-nombre-nif` deja de ser «Sin medir» y se
+      gradúa (SUSPENDE por sus Checks, que ya es un juicio del skill)
 
 ## Lo que se descartó, y por qué
 
@@ -68,3 +66,20 @@ El ticket 22 se cerró con tests que inyectan un `CommandRunner` falso: el doble
 nunca busca un binario, así que un `ENOENT` real no podía salir. La primera vez
 que el camino se ejecuta de verdad es en una suite, y ahí han hecho falta 37
 minutos para verlo.
+
+## La re-medida (20/11/2026, 23:45)
+
+Solo ese Caso, con `--reports` y `DESY_VERSIONES_DIR` fuera del repo para no
+pisar la medida completa:
+
+| | Antes (suite de 21:56) | Después |
+|---|---|---|
+| Veredicto | INDETERMINADO | **SUSPENDE** |
+| Entregas | 0 de 6 | **3 de 4 intentos** |
+| «Sin medir» | 4 | **0** |
+| Guards | 0/9 | **8/9** |
+| Artefacto | ninguno | `dist/formulario-datos-identidad.html` |
+
+19m 11s, y se para en el intento 4 porque ya tenía tres entregas. Los rojos que
+quedan —`encadenado-canonico` (3 de 4) y `fidelidad-gap` (3 de 4)— ya son
+asunto del skill, no del harness.
