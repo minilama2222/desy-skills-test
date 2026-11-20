@@ -8,18 +8,28 @@ de entorno y el Caso sale INDETERMINADO.
 
 **Blocked by:** —
 
-**Status:** ready-for-agent
+**Status:** ready-for-human
 
-- [ ] El build recibe un `PATH` utilizable (el del propio harness), y **solo** el
-      build: el entorno del SUT no se ensancha
-- [ ] `npm` se resuelve a una ruta **absoluta** antes de lanzarlo, para no
-      depender del orden del `PATH` ni de que el hijo lo herede
-- [ ] Si `npm` sigue sin encontrarse, el mensaje dice la ruta buscada, no solo
+- [x] El build recibe un `PATH` utilizable (el del propio harness), y **solo** el
+      build: el entorno del SUT no se ensancha. Es `entornoDelBuild`, un derivador
+      aparte: `entornoDelSandbox` se queda cerrado
+- [x] Si `npm` sigue sin encontrarse, el mensaje dice el `PATH` buscado, no solo
       «no hay `npm`»
-- [ ] Test: con un entorno sin `PATH`, el build encuentra `npm`; y el entorno que
-      se le pasa al SUT no gana variables
+- [x] Tests: con un entorno sin `PATH` el build encuentra `npm` (proceso real, se
+      salta en Windows), y el entorno del sandbox no gana variables
 - [ ] Re-medir: `patron-pagina-paso-1-nombre-nif` deja de ser «Sin medir» y se
-      gradúa (o SUSPENDE por sus Checks, que ya es un juicio del skill)
+      gradúa (o SUSPENDE por sus Checks, que ya es un juicio del skill). **Falta
+      la corrida**: el arreglo está y sus tests en verde, pero la casilla no se
+      marca sin la medida que la prueba.
+
+## Lo que se descartó, y por qué
+
+La ruta **absoluta** de `npm` (que llegué a escribir en la lista de arriba) no
+sirve: en Windows `npm` es un `npm.cmd`, y `spawn` no lanza un `.cmd` por ruta
+absoluta sin `shell` (`docs/agents/testing.md`). Copiar el `PATH` del harness
+resuelve el `ENOENT` en las dos plataformas sin tocar cómo se busca el binario.
+Que en Windows el build siga sin arrancar —`npm` es un `.cmd`— es un asunto
+aparte: el CI de allí no corre el Caso-página.
 
 ## La evidencia (20/11/2026, corrida de 21:56)
 

@@ -39,6 +39,11 @@ parte menos fiable del sistema en la receta.
 - El build tiene su propio techo (`TIMEOUT_BUILD_MS`, 5 min) y su propio motivo de
   infraestructura (`entorno`): que falte `npm` o que se pase del techo no es un
   juicio sobre el skill.
+- El build corre con el **`PATH` del harness**, no con el entorno cerrado del
+  sandbox (ticket 25): el entorno del SUT es cerrado a propósito y sin `PATH`
+  `spawnSync("npm")` moría con `ENOENT` antes de compilar. Que el build necesite
+  un binario no ensancha el entorno del SUT; el `PATH` se añade solo a la
+  compilación.
 - Un build que falla **compilando el fuente** no lleva esa marca: el artefacto no
   compila, y eso sí es del SUT.
 - El prompt no menciona el harness ni la compilación: es el encargo de un usuario,

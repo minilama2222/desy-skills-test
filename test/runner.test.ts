@@ -19,7 +19,10 @@ import {
   configuracionDelSandbox,
   createSandbox,
   dirArtefactoDeCaso,
+  entornoDelBuild,
+  entornoDelSandbox,
   entornoDelSut,
+  npmCommand,
   escriturasFueraDelSandbox,
   realCommand,
   runCaso,
@@ -1046,4 +1049,67 @@ describe("el harness compila el Caso-página (ticket 22)", () => {
       rmSync(raiz, { recursive: true, force: true });
     }
   });
+});
+
+/**
+ * Ticket 25: el build del harness moría antes de compilar. `npmCommand` recibía
+ * el entorno **cerrado** del sandbox —`HOME`, `PWD`, `XDG_CONFIG_HOME`,
+ * `OPENCODE_HOME` y las claves del proveedor, sin `PATH`— y `spawnSync("npm")`
+ * devolvía `ENOENT`. En la suite del 20/11 los 6 intentos del Caso-página
+ * acabaron así, y 3 de ellos sí habían escrito su HTML.
+ *
+ * El build no es el SUT: es una herramienta de quien mide y necesita resolver
+ * `npm`. Lo que no puede pasar es que ese `PATH` se cuele en el entorno del SUT.
+ */
+describe("npmCommand: el build resuelve npm con el PATH del harness (ticket 25)", () => {
+  it("entornoDelBuild añade el PATH del harness sin tocar el del sandbox", () => {
+    const delSandbox: Entorno = { HOME: "/home/sandbox", PWD: "/work" };
+    const delBuild = entornoDelBuild(delSandbox);
+
+    expect(delBuild.HOME).toBe("/home/sandbox");
+    expect(delBuild.PATH).toBe(process.env.PATH);
+    // El entorno del sandbox no se muta: es el mismo objeto que usa el SUT.
+    expect(delSandbox).not.toHaveProperty("PATH");
+  });
+
+  it("sin PATH en el harness, el entorno del sandbox se queda como estaba", () => {
+    const anterior = process.env.PATH;
+    delete process.env.PATH;
+    try {
+      const delSandbox: Entorno = { HOME: "/home/sandbox" };
+      expect(entornoDelBuild(delSandbox)).toEqual(delSandbox);
+    } finally {
+      if (anterior !== undefined) process.env.PATH = anterior;
+    }
+  });
+
+  it("el entorno del sandbox sigue sin PATH: el SUT no gana variables", () => {
+    const delSandbox = entornoDelSandbox({
+      home: "/home/sandbox",
+      configDir: "/home/sandbox/.config/opencode",
+      workDir: "/work",
+      authOrigen: "/no/existe.json",
+    });
+    expect(delSandbox).not.toHaveProperty("PATH");
+  });
+
+  // Proceso real a propósito: el fallo fue un `ENOENT` del propio `spawnSync`, y
+  // un `CommandRunner` doble nunca busca un binario, así que no puede verlo. En
+  // Windows se salta porque allí `npm` es un `npm.cmd` y `spawn` no lo lanza sin
+  // `shell` — ese rojo sería otro asunto (y no es el que este ticket arregla).
+  it.skipIf(process.platform === "win32")(
+    "encuentra npm aunque el entorno del sandbox no traiga PATH",
+    () => {
+      const cwd = mkdtempSync(join(tmpdir(), "desy-npm-"));
+      try {
+        const r = npmCommand.run(["--version"], { cwd, env: { HOME: cwd } });
+
+        expect(r.code).toBe(0);
+        expect(r.stdout.trim()).toMatch(/^\d+\.\d+\.\d+/);
+        expect(r.stderr).not.toContain("ENOENT");
+      } finally {
+        rmSync(cwd, { recursive: true, force: true });
+      }
+    },
+  );
 });

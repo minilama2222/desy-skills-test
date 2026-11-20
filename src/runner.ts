@@ -852,9 +852,10 @@ export const npmCommand: CommandRunner = {
   run(args, opts) {
     const pedido = Number(opts.env.DESY_BUILD_TIMEOUT_MS ?? TIMEOUT_BUILD_MS);
     const limite = Number.isFinite(pedido) && pedido > 0 ? pedido : TIMEOUT_BUILD_MS;
+    const env = entornoDelBuild(opts.env);
     const resultado = spawnSync("npm", args, {
       cwd: opts.cwd,
-      env: opts.env,
+      env,
       encoding: "utf8",
       maxBuffer: 64 * 1024 * 1024,
       timeout: limite,
@@ -862,7 +863,8 @@ export const npmCommand: CommandRunner = {
     const codigoError = (resultado.error as NodeJS.ErrnoException | undefined)?.code;
     const aviso =
       codigoError === "ENOENT"
-        ? "El harness no pudo compilar (ticket 22): no hay `npm` en el entorno del sandbox."
+        ? "El harness no pudo compilar (ticket 22): no hay `npm` en el PATH del " +
+          `harness (${env.PATH ?? "(sin PATH)"}).`
         : codigoError === "ETIMEDOUT"
           ? `El harness no pudo compilar (ticket 22): el build superó ${limite} ms.`
           : "";
@@ -1023,6 +1025,28 @@ export function entornoDelSandbox(sandbox: {
     OPENCODE_HOME: datosDirDeHome(sandbox.home),
     ...clavesDeProveedores(auth),
   };
+}
+
+/**
+ * El entorno del **build del harness**: el del sandbox más el `PATH` del harness.
+ *
+ * El build no es el SUT: es una herramienta de quien mide (ADR-0006), y sólo
+ * necesita resolver `npm`. El entorno del sandbox es cerrado a propósito —`HOME`,
+ * `PWD`, `XDG_CONFIG_HOME`, `OPENCODE_HOME` y las claves del proveedor, nada más—
+ * y sin `PATH` `spawnSync("npm")` muere con `ENOENT` **antes de compilar**: los 6
+ * intentos del Caso-página de la suite del 20/11 acabaron así, y el Caso se
+ * contó como «Sin medir» aunque 3 de esos intentos sí habían escrito su HTML
+ * (ticket 25).
+ *
+ * Se copia el `PATH` de **quien lanza la suite**, no el que traiga el entorno del
+ * sandbox: si el sandbox no trae uno (lo normal) o trae uno sin `npm`, el build
+ * se resuelve igual. No se añade nada más —ni el `HOME` del usuario ni
+ * credenciales—: el proyecto está en el `cwd`, y el resto de variables del build
+ * siguen siendo las del sandbox.
+ */
+export function entornoDelBuild(env: Entorno): Entorno {
+  const path = process.env.PATH;
+  return path === undefined || path.length === 0 ? env : { ...env, PATH: path };
 }
 
 /**

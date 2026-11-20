@@ -41,7 +41,11 @@ const TEST_DIR = join(REPO_ROOT, "test");
  *   a un SUT que escribe fuera del sandbox no se puede con un doble que nunca
  *   escribe—, pero el binario es `process.execPath` (un guion de Node que escribe
  *   un fichero y sale), nunca el `opencode` de la máquina: se inyecta con
- *   `DESY_OPENCODE_BIN` y `DESY_OPENCODE_ARGS`.
+ *   `DESY_OPENCODE_BIN` y `DESY_OPENCODE_ARGS`. Y el test del ticket 25 lanza el
+ *   `npm` de la máquina a propósito —`npm --version`, sin red y sin proyecto—:
+ *   el fallo fue un `ENOENT` del propio `spawnSync`, y un doble nunca busca un
+ *   binario, así que no puede verlo. En Windows se salta: allí `npm` es un `.cmd`
+ *   y `spawn` no lo lanza sin `shell`.
  */
 const FICHEROS_EXCLUIDOS = new Set([
   "test/guardarrail-tests.test.ts",
