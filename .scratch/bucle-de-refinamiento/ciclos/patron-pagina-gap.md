@@ -174,3 +174,49 @@ validación no viaja: la medida no lo sostiene.
 El cuerpo del PR dice lo que la medida dice, incluido que no pone el Caso en
 verde. Pendiente y humano: el merge, el `bump-pin` (pedido expresamente) y la
 suite de regresión sobre el pin nuevo.
+
+## Pendientes (21/11/2026)
+
+**Hecho hoy:** PR #38 mergeado (`44c27a7`), pin bumpeado y vendor verificado
+byte a byte. Commit `7d015e7`.
+
+### En curso
+
+1. **Suite de regresión sobre el pin `44c27a7`.** Lanzada a petición del
+   mantenedor. Al terminar: leer el Scorecard, comparar con la suite 7 (13 PASA
+   · 1 SUSPENDE) y decidir si el grid sube el Caso o si sigue la varianza.
+   Recordar la tasa medida: 2 EXCELENTE de 9 en este Caso.
+
+### Decisiones abiertas (ninguna es escribir prosa)
+
+2. **El orden canónico** falla 4 de 9 con dos formas distintas (inversión de los
+   dos últimos pasos; `design-match` adelantado al principio) y está escrito en
+   nueve sitios. La pregunta: ¿el guard exige una perfección que un SUT
+   estocástico no da, o el flujo puede hacerse ineludible? Pide decisión, no
+   petición de redacción.
+3. **La columna de mobile del grid.** 3 de los 4 fallos de `fidelidad-gap` son
+   `grid-cols-1` u omitir la columna; el Gold pide `grid-cols-2`. El skill ya lo
+   dice («si los pone a dos, se escribe `grid-cols-2`») y no basta. Petición
+   aparte, si se decide que hay algo que decir.
+4. **`pasaSostenido` sigue sin lector**: ningún comando lo comprueba, se lee a
+   mano sobre `corridas`. Con la tasa del 2 de 9, la regla de «dos corridas
+   consecutivas» puede dar por bueno un Caso que pasa por suerte.
+
+### Esperan a una persona
+
+5. **Ticket 17** (el vigilante acusa una edición del mantenedor): decidir si
+   acusa sólo ficheros nuevos o también los rastreados que cambiaron. Nos ha
+   obligado a parar el repo durante cada medida.
+6. **Tickets 05 y 15**: construidos y verdes; les falta tu «acepto» a los
+   ADR-0015 y ADR-0018 para pasar a `done`.
+
+### De otro ciclo, sin tocar
+
+7. **`implement-component/boton-primario`** entregó una vez EXCELENTE **sin
+   invocar el skill**: es el trigger del frontmatter, no el harness.
+
+### Descartado con medida (no reimplementar)
+
+8. **`peticion-validar-la-version-final.md`**: 1 EXCELENTE de 4 y la inversión
+   que atacaba reaparece. No se mergea. Queda como registro de que esa frase no
+   es la palanca.

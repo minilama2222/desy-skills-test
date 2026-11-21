@@ -6,7 +6,7 @@
 `encadenado-canonico`, Ejecuciones 5, 6 y 7 del árbol local `a0b29172…`
 (21/11/2026)
 
-**Estado:** propuesta
+**Estado:** descartada con medida (§8) — no se mergea
 
 ---
 
