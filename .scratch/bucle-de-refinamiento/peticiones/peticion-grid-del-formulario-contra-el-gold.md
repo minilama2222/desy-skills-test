@@ -104,6 +104,9 @@ la mitad del fallo.
 - [ ] Sin regresión en `implement-layout-patterns/fieldset-grid-acciones`
       (su guard sólo exige `grid` + `lg:grid-cols-4` en el mismo elemento).
 
+El diff exacto está en [`adjuntos/grid-del-formulario.patch`](adjuntos/grid-del-formulario.patch);
+se aplica sobre `cce1633` (copia de `vendor/desy-skills`).
+
 ## 6. Skills sugeridos para el agente
 
 - `desy-implement-layout-patterns`
