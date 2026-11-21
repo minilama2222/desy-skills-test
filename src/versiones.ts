@@ -15,6 +15,11 @@ export interface ScorecardDeVersion {
   /** La identidad de lo medido: el nombre del fichero es este hash. */
   arbolHash: string;
   pin: Scorecard["pin"];
+  /**
+   * La versión del starter con la que se midió (ticket 39). Opcional: un
+   * fichero anterior no lo trae y sigue siendo válido.
+   */
+  starter?: Scorecard["starter"];
   skills: Scorecard["skills"];
   /**
    * Las corridas que han medido esta versión, la última al final (ticket 23).
@@ -92,6 +97,7 @@ export function scorecardDeVersion(scorecard: Scorecard): ScorecardDeVersion {
   return {
     arbolHash: scorecard.arbolHash,
     pin: { ref: scorecard.pin.ref, commit: scorecard.pin.commit, fecha: scorecard.pin.fecha },
+    ...(scorecard.starter === undefined ? {} : { starter: scorecard.starter }),
     skills: scorecard.skills,
   };
 }

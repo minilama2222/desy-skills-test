@@ -93,6 +93,18 @@ describe("scorecardDeVersion: la forma de lo versionado", () => {
     expect(JSON.stringify(v)).not.toContain("alguien");
   });
 
+  it("versiona el pin del starter cuando la corrida lo declara (ticket 39)", () => {
+    const starter = {
+      ref: "37748bd",
+      commit: "37748bdede1ba8d5b0190f24cdbc14c91f7059f5",
+      fecha: "2026-07-24",
+      repo: "https://bitbucket.org/sdaragon/desy-html-starter.git",
+    };
+    const v = scorecardDeVersion(scorecard({ starter }));
+
+    expect(v.starter).toEqual(starter);
+  });
+
   it("sin arbolHash no hay versión que versionar", () => {
     expect(() => scorecardDeVersion(scorecard({ arbolHash: undefined }))).toThrow(
       /arbolHash/,

@@ -64,6 +64,16 @@ comentario HTML del que explica la traducción).
 **Rojos sostenidos (5):** `boton-primario-angular`, `patron-pagina`,
 `proyecto-no-existe`, `no-scaffoldea-sin-permiso`, `checklist-sin-servidor`.
 
+### Después de la limpieza del grader (tickets 32–38)
+
+| Corrida | PASA | SUSPENDE | INDETERMINADO |
+|---|---|---|---|
+| 6 (07:51) | 12 | 2 | 0 |
+| 7 (08:26) | 13 | 1 | 0 |
+
+El único rojo es `patron-pagina`. Los cinco anteriores eran del harness y del
+Caso, no del skill.
+
 ## Por qué este rojo es atribuible
 
 - El SUT **pudo** leer el skill (sin `Permission denied` ni herramientas que

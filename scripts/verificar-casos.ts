@@ -3,6 +3,7 @@ import { execFileSync } from "node:child_process";
 import { join, relative } from "node:path";
 import { anclajesDeRubric, contradiccionesDeRubric, seccionesCitadasEnRubric } from "../src/caso.js";
 import { CASOS_DIR, cargarCaso } from "../src/caso-loader.js";
+import { problemaDeCapturaDesactualizada } from "../src/captura-gold.js";
 import {
   deudaDeAnclaje,
   problemasDeAnclajePerdidas,
@@ -123,6 +124,17 @@ function leerRubric(
 
 const arbol = describirArbol(seccionesDelArbol());
 const hallazgos = problemasDelArbolDeCasos(arbol);
+
+// La Captura de Gold tiene que corresponder al gold.html actual (ticket 40):
+// el manifiesto guarda la clave, pero sin este contraste nadie la mira y un PNG
+// viejo se queda midiendo contra una referencia que ya no es la del Caso.
+for (const caso of arbol) {
+  if (caso.tipo !== "pagina") continue;
+  const problema = problemaDeCapturaDesactualizada(
+    join(REPO_ROOT, caso.ruta, "input"),
+  );
+  if (problema !== undefined) hallazgos.push(`${caso.ruta}: ${problema}`);
+}
 
 /**
  * Las secciones que citaba cada rúbrica en `HEAD`, y las que **no se pudieron

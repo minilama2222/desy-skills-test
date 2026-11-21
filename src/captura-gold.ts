@@ -80,6 +80,38 @@ export function leerManifiestoCaptura(dir: string): ManifiestoCaptura | undefine
   }
 }
 
+/**
+ * ¿La captura del Gold sigue correspondiendo a su `gold.html`? (ticket 40).
+ *
+ * El manifiesto guarda la clave, pero nadie la contrastaba: cambiar el HTML y
+ * olvidar recapturar dejaba un PNG viejo y la suite medía contra una referencia
+ * que ya no era la del Caso. La regla es pura y dice **qué hacer**.
+ *
+ * `dirInput` es el `input/` del Caso, el directorio que contiene `gold.html`.
+ */
+export function problemaDeCapturaDesactualizada(dirInput: string): string | undefined {
+  const gold = join(dirInput, "gold.html");
+  const png = join(dirInput, FICHERO_CAPTURA);
+  const manifiesto = leerManifiestoCaptura(dirInput);
+  if (!existsSync(png)) {
+    return manifiesto === undefined
+      ? undefined
+      : "hay gold.captura.json pero falta gold.png";
+  }
+  if (manifiesto === undefined) {
+    return "gold.png sin gold.captura.json: no se sabe con qué Gold se capturó";
+  }
+  if (!existsSync(gold)) return "gold.png sin gold.html";
+  const clave = claveDeCaptura({ html: readFileSync(gold, "utf8"), ancho: ANCHO_CAPTURA });
+  if (!capturaVigente(manifiesto, clave)) {
+    return (
+      "la captura no corresponde al gold.html actual; recaptura con " +
+      "`npm run capturar-gold -- --skill <skill> --case <caso>`"
+    );
+  }
+  return undefined;
+}
+
 export interface OpcionesCaptura {
   /** Ancho de viewport de la captura. Por defecto, `ANCHO_CAPTURA`. */
   ancho?: number;

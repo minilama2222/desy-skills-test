@@ -42,6 +42,7 @@ import {
   type Seleccion,
 } from "./suite.js";
 import { agregarCorrida, scorecardDeVersion, serializarVersion, validarVersion } from "./versiones.js";
+import { readScaffoldPin } from "./scaffold-pin.js";
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -541,6 +542,7 @@ async function runSuite(args: string[]): Promise<number> {
     pin,
     hashComun(ejecuciones),
     contradiccionesPorCaso(ejecuciones),
+    readScaffoldPin(),
   );
   const markdown = renderScorecard(scorecard) + "\n";
   escribirScorecard(JSON.stringify(scorecard, null, 2) + "\n", markdown, rutas);
@@ -698,6 +700,7 @@ function runReport(args: string[]): void {
     pin,
     hashComun(ejecuciones),
     contradiccionesPorCaso(ejecuciones),
+    readScaffoldPin(),
   );
   const markdown = renderScorecard(scorecard) + "\n";
 

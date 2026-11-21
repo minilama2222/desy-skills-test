@@ -11,13 +11,19 @@
 # movimiento. El Grade del Caso depende de la versión del starter tanto como del
 # Pin de desy-skills (ver ADR-0005).
 param(
-  [string]$Ref = "37748bd",
+  [string]$Ref = "",
   [string]$Repo = "https://bitbucket.org/sdaragon/desy-html-starter.git"
 )
 
 $ErrorActionPreference = "Stop"
 
 $raiz = Split-Path -Parent $PSScriptRoot
+# El ref por defecto sale de `scaffold-pin.json`, que es lo que versiona la
+# versión del starter (ticket 39). Duplicarlo aquí fue cómo los dos se
+# desincronizaron.
+if (-not $Ref) {
+  $Ref = (Get-Content (Join-Path $raiz "scaffold-pin.json") | ConvertFrom-Json).ref
+}
 $destino = Join-Path $raiz ".scaffold-cache\desy-html-starter"
 
 if (Test-Path $destino) {

@@ -11,10 +11,16 @@
 # desy-skills (ver ADR-0005).
 set -e
 
-REF="${1:-37748bd}"
+REF="${1:-}"
 REPO="${DESY_STARTER_REPO:-https://bitbucket.org/sdaragon/desy-html-starter.git}"
 
 RAIZ=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+# El ref por defecto sale de `scaffold-pin.json`, que es lo que versiona la
+# versión del starter (ticket 39). Duplicarlo aquí fue cómo los dos se
+# desincronizaron.
+if [ -z "$REF" ]; then
+  REF=$(node -e "console.log(require('$RAIZ/scaffold-pin.json').ref)")
+fi
 DESTINO="$RAIZ/.scaffold-cache/desy-html-starter"
 
 if [ -d "$DESTINO" ]; then

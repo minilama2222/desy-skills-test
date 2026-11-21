@@ -7,14 +7,14 @@ no es el del checklist del skill.
 
 **Blocked by:** —
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] La línea se compara **sin** las tildes de código y los asteriscos de los
+- [x] La línea se compara **sin** las tildes de código y los asteriscos de los
       bordes y del interior
-- [ ] `Sin label: nif` cuenta como marcador de fallo del Check de labels
-- [ ] Los `hecho` del Caso usan el wording del checklist del skill
+- [x] `Sin label: nif` cuenta como marcador de fallo del Check de labels
+- [x] Los `hecho` del Caso usan el wording del checklist del skill
       («un solo h1», «cada fieldset con su legend», «sin label», «skip-link»)
-- [ ] Tests: ``Un solo `h1` `` casa con `un solo h1`; `fieldset` OK no casa
+- [x] Tests: ``Un solo `h1` `` casa con `un solo h1`; `fieldset` OK no casa
 
 ## La evidencia (suites 4 y 5, 21/11/2026)
 
@@ -33,3 +33,7 @@ El primero falla sólo por las tildes de código; el segundo, porque el skill di
 «con **su** legend»; el tercero, porque `labels-visibles` no aparece en ningún
 sitio: el skill escribe «sin label». La propia rúbrica dice «se juzga el
 veredicto, no el wording», y el Check hace lo contrario.
+
+## La re-medida (suite 7, 21/11/2026)
+
+`validate-accessibility/checklist-sin-servidor` pasa a **PASA · EXCELENTE** (3 de 3, guards 2/2). El informe que detecta los cuatro fallos ya no pierde por las tildes de código ni por el wording.

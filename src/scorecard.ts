@@ -3,6 +3,7 @@ import type { ContradiccionDeSkill } from "./caso.js";
 import type { Grade } from "./grader.js";
 import type { Pin } from "./pin.js";
 import { LOCAL, esPinLocal } from "./pin.js";
+import type { PinDelStarter } from "./scaffold-pin.js";
 
 /**
  * El veredicto agregado de un Caso (ADR-0007): el Grade de una Ejecución no es
@@ -135,6 +136,12 @@ export interface Scorecard {
    * nuevas declaran el hash; el agregador lo recoge de ellas cuando existe.
    */
   arbolHash?: string;
+  /**
+   * La versión del starter cacheado con la que se midió (ticket 39). Opcional
+   * porque una corrida antigua no lo guardó; sin él, la evidencia no distingue
+   * dos starters distintos bajo el mismo `arbolHash`.
+   */
+  starter?: PinDelStarter;
   skills: SkillScorecard[];
 }
 
@@ -338,6 +345,7 @@ export function agregarScorecard(
   pin: Pin,
   arbolHash?: string,
   contradicciones?: ReadonlyMap<string, ReadonlyMap<string, ContradiccionDeSkill>>,
+  starter?: PinDelStarter,
 ): Scorecard {
   const porSkill = agruparPor(ejecuciones, (e) => e.skill);
 
@@ -361,6 +369,7 @@ export function agregarScorecard(
     // qué no es decisión del ticket 09, sobre esta misma forma.
     pin: { ref: pin.ref, commit: pin.commit, fecha: pin.fecha, repo: pin.repo },
     ...(arbolHash === undefined ? {} : { arbolHash }),
+    ...(starter === undefined ? {} : { starter }),
     skills,
   };
 }
@@ -387,6 +396,9 @@ export function renderScorecard(reporte: Scorecard): string {
   lineas.push(`# Scorecard — Pin ${etiquetaDelPin(reporte.pin)} (${reporte.pin.fecha})`);
   if (reporte.pin.ref) lineas.push(`Ref: ${reporte.pin.ref}`);
   if (reporte.arbolHash) lineas.push(`Árbol ${reporte.arbolHash}`);
+  if (reporte.starter) {
+    lineas.push(`Starter ${reporte.starter.ref} (${reporte.starter.commit})`);
+  }
 
   if (reporte.skills.length === 0) {
     lineas.push("", "Sin Ejecuciones.");

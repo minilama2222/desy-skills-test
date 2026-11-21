@@ -7,13 +7,13 @@ que tiene delante, así que «el preflight da `PROYECTO_OK`, **no**
 
 **Blocked by:** —
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Un valor precedido de `no`, `ni`, `sin` o `nunca` (y de `no es`, `no son`,
+- [x] Un valor precedido de `no`, `ni`, `sin` o `nunca` (y de `no es`, `no son`,
       `no hay`, `no existe`) no cuenta como declarado
-- [ ] «no solo `p-base`, también `gap-base`» sigue contando: es una mención
+- [x] «no solo `p-base`, también `gap-base`» sigue contando: es una mención
       positiva, no una negación
-- [ ] Tests de los dos lados
+- [x] Tests de los dos lados
 
 ## La evidencia (20/11/2026, preflight-check)
 
@@ -26,3 +26,7 @@ El Guard `identifica-no-existe` pasó porque la palabra estaba, no porque la
 decisión fuera la correcta. Es un falso positivo que hace que el Scorecard diga
 PASA cuando el skill dijo lo contrario. La corrección no cambia el veredicto
 bueno: un «declara `PROYECTO_NO_EXISTE`» sin negación sigue pasando.
+
+## La re-medida (suite 7, 21/11/2026)
+
+`preflight-check/proyecto-no-existe` pasa a **PASA** con el fixture: ya no hay ningún «no es PROYECTO_NO_EXISTE» que pueda colarse. Los tests cubren la negación y la mención positiva.

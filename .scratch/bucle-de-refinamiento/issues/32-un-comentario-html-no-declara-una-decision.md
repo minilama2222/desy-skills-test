@@ -6,13 +6,13 @@ documenta la traducción de una macro en un `<!-- … -->` se tumba a sí mismo.
 
 **Blocked by:** —
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] `textoDeclara` ignora lo que va dentro de `<!-- … -->`, igual que ya ignora
+- [x] `textoDeclara` ignora lo que va dentro de `<!-- … -->`, igual que ya ignora
       los comentarios Nunjucks `{# … #}`
-- [ ] Un artefacto que sólo nombra `componentButton` dentro del comentario pasa
+- [x] Un artefacto que sólo nombra `componentButton` dentro del comentario pasa
       `no_declara_decision`
-- [ ] Nombrado fuera del comentario sigue fallando (no se afloja el hecho)
+- [x] Nombrado fuera del comentario sigue fallando (no se afloja el hecho)
 
 ## La evidencia (suites 4 y 5, 21/11/2026)
 
@@ -32,3 +32,7 @@ El skill pide justo esa trazabilidad; el Check la castiga. Es el mismo género q
 el ticket 31, pero sobre comentarios HTML en vez de celdas de tabla. En la
 corrida 3 del mismo árbol el Caso pasó: el agente no incluyó el comentario. Un
 Check no debería decidir por eso.
+
+## La re-medida (suite 7, 21/11/2026)
+
+`angular-translator/boton-primario-angular` pasa a **PASA · EXCELENTE** (3 de 3). El comentario HTML de la traducción ya no cuenta como macro sin traducir.

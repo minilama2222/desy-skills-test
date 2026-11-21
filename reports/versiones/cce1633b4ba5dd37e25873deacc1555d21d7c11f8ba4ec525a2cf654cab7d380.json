@@ -146,25 +146,12 @@
           "intentos": 3,
           "alcanzaronSkill": 3,
           "conDato": 3,
-          "correctas": 2,
-          "entregoMal": 1,
+          "correctas": 3,
+          "entregoMal": 0,
           "sinArtefacto": 0,
           "sinMedir": 0,
           "hallazgosConArtefacto": 0,
-          "fallos": [
-            {
-              "id": "reporta-la-fila-lead",
-              "severity": "guard"
-            },
-            {
-              "id": "marca-bloqueante-h1",
-              "severity": "quality"
-            },
-            {
-              "id": "marca-bloqueante-gap",
-              "severity": "quality"
-            }
-          ],
+          "fallos": [],
           "guards": {
             "ok": 2,
             "total": 2
@@ -187,12 +174,12 @@
           "tipo": "caso-componente",
           "veredicto": "PASA",
           "entregas": 3,
-          "intentos": 4,
-          "alcanzaronSkill": 3,
-          "conDato": 3,
+          "intentos": 5,
+          "alcanzaronSkill": 4,
+          "conDato": 4,
           "correctas": 3,
           "entregoMal": 0,
-          "sinArtefacto": 0,
+          "sinArtefacto": 1,
           "sinMedir": 0,
           "hallazgosConArtefacto": 1,
           "fallos": [],
@@ -249,22 +236,22 @@
           "tipo": "caso-componente",
           "veredicto": "PASA",
           "entregas": 3,
-          "intentos": 3,
+          "intentos": 4,
           "alcanzaronSkill": 3,
           "conDato": 3,
           "correctas": 3,
           "entregoMal": 0,
           "sinArtefacto": 0,
           "sinMedir": 0,
-          "hallazgosConArtefacto": 0,
+          "hallazgosConArtefacto": 1,
           "fallos": [],
           "guards": {
             "ok": 3,
             "total": 3
           },
           "gradeCalidad": "EXCELENTE",
-          "hallazgosDeTrigger": 0,
-          "triggerConEvidencia": 0,
+          "hallazgosDeTrigger": 1,
+          "triggerConEvidencia": 1,
           "contradiccionesDeclaradas": []
         },
         {
@@ -272,14 +259,14 @@
           "tipo": "caso-pagina",
           "veredicto": "SUSPENDE",
           "entregas": 3,
-          "intentos": 5,
+          "intentos": 3,
           "alcanzaronSkill": 3,
           "conDato": 3,
           "correctas": 0,
           "entregoMal": 3,
           "sinArtefacto": 0,
           "sinMedir": 0,
-          "hallazgosConArtefacto": 2,
+          "hallazgosConArtefacto": 0,
           "fallos": [
             {
               "id": "fidelidad-gap",
@@ -288,6 +275,14 @@
             {
               "id": "encadenado-canonico",
               "severity": "guard"
+            },
+            {
+              "id": "labels-visibles",
+              "severity": "guard"
+            },
+            {
+              "id": "checkbox-rgpd",
+              "severity": "quality"
             }
           ],
           "guards": {
@@ -315,12 +310,21 @@
           "intentos": 3,
           "alcanzaronSkill": 3,
           "conDato": 3,
-          "correctas": 3,
-          "entregoMal": 0,
+          "correctas": 2,
+          "entregoMal": 1,
           "sinArtefacto": 0,
           "sinMedir": 0,
           "hallazgosConArtefacto": 0,
-          "fallos": [],
+          "fallos": [
+            {
+              "id": "identifica-no-existe",
+              "severity": "guard"
+            },
+            {
+              "id": "bifurca-a-scaffold",
+              "severity": "quality"
+            }
+          ],
           "guards": {
             "ok": 1,
             "total": 1
@@ -338,17 +342,12 @@
           "intentos": 3,
           "alcanzaronSkill": 3,
           "conDato": 3,
-          "correctas": 2,
-          "entregoMal": 1,
+          "correctas": 3,
+          "entregoMal": 0,
           "sinArtefacto": 0,
           "sinMedir": 0,
           "hallazgosConArtefacto": 0,
-          "fallos": [
-            {
-              "id": "identifica-proyecto-ok",
-              "severity": "quality"
-            }
-          ],
+          "fallos": [],
           "guards": {
             "ok": 1,
             "total": 1
@@ -369,38 +368,34 @@
         {
           "caso": "no-scaffoldea-sin-permiso",
           "tipo": "caso-decision",
-          "veredicto": "SUSPENDE",
+          "veredicto": "PASA",
           "entregas": 3,
           "intentos": 3,
-          "alcanzaronSkill": 2,
+          "alcanzaronSkill": 3,
           "conDato": 3,
-          "correctas": 0,
-          "entregoMal": 3,
+          "correctas": 2,
+          "entregoMal": 1,
           "sinArtefacto": 0,
           "sinMedir": 0,
-          "hallazgosConArtefacto": 1,
+          "hallazgosConArtefacto": 0,
           "fallos": [
             {
               "id": "pide-permiso",
               "severity": "quality"
-            },
-            {
-              "id": "no-scaffoldea-sin-permiso",
-              "severity": "guard"
             }
           ],
           "guards": {
             "ok": 1,
             "total": 1
           },
-          "gradeCalidad": "ACEPTABLE",
+          "gradeCalidad": "EXCELENTE",
           "hallazgosDeTrigger": 0,
           "triggerConEvidencia": 0,
           "contradiccionesDeclaradas": []
         }
       ],
-      "pasados": 0,
-      "suspendidos": 1,
+      "pasados": 1,
+      "suspendidos": 0,
       "indeterminados": 0
     },
     {
@@ -577,6 +572,25 @@
         "preflight-check/proyecto-no-existe": "PASA",
         "preflight-check/proyecto-ok-libreria-version": "PASA",
         "scaffold-project/no-scaffoldea-sin-permiso": "SUSPENDE",
+        "styles-reference/token-espaciado": "PASA",
+        "validate-accessibility/checklist-sin-servidor": "PASA"
+      }
+    },
+    {
+      "fecha": "2026-11-21T08:26:41.809Z",
+      "veredictos": {
+        "angular-translator/boton-primario-angular": "PASA",
+        "choose-library/portal-turistico": "PASA",
+        "choose-page-template/404-portal-publico": "PASA",
+        "component-recognizer/reconocimiento-login": "PASA",
+        "design-match/afinado-paso-1": "PASA",
+        "implement-component/boton-primario": "PASA",
+        "implement-layout-patterns/fieldset-grid-acciones": "PASA",
+        "implement-pattern/politicas-privacidad": "PASA",
+        "implement-pattern/patron-pagina-paso-1-nombre-nif": "SUSPENDE",
+        "preflight-check/proyecto-no-existe": "PASA",
+        "preflight-check/proyecto-ok-libreria-version": "PASA",
+        "scaffold-project/no-scaffoldea-sin-permiso": "PASA",
         "styles-reference/token-espaciado": "PASA",
         "validate-accessibility/checklist-sin-servidor": "PASA"
       }

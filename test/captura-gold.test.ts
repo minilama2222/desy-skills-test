@@ -1,4 +1,4 @@
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -9,6 +9,7 @@ import {
   claveDeCaptura,
   dimensionesDePng,
   leerManifiestoCaptura,
+  problemaDeCapturaDesactualizada,
   problemaDePng,
   type ManifiestoCaptura,
 } from "../src/captura-gold.js";
@@ -220,3 +221,63 @@ describe("asegurarCaptura (caché de la Captura de Gold como fixture)", () => {
 });
 
 
+
+/**
+ * Ticket 40: la captura del Gold tiene que corresponder al `gold.html` actual.
+ * Sin este guardarraíl, cambiar el HTML y olvidar recapturar dejaba un PNG viejo
+ * midiendo contra una referencia que ya no era la del Caso.
+ */
+describe("problemaDeCapturaDesactualizada (ticket 40)", () => {
+  let dir: string | undefined;
+
+  afterEach(() => {
+    if (dir) rmSync(dir, { recursive: true, force: true });
+    dir = undefined;
+  });
+
+  const preparar = (html: string, conManifiesto = true, conPng = true): string => {
+    dir = mkdtempSync(join(tmpdir(), "captura-"));
+    writeFileSync(join(dir, "gold.html"), html);
+    if (conPng) writeFileSync(join(dir, "gold.png"), "PNG");
+    if (conManifiesto) {
+      writeFileSync(
+        join(dir, "gold.captura.json"),
+        JSON.stringify({
+          ancho: ANCHO_CAPTURA,
+          clave: claveDeCaptura({ html, ancho: ANCHO_CAPTURA }),
+          fichero: "gold.png",
+        }),
+      );
+    }
+    return dir;
+  };
+
+  it("una captura vigente no da problema", () => {
+    expect(problemaDeCapturaDesactualizada(preparar("<main>Gold</main>"))).toBeUndefined();
+  });
+
+  it("cambiar el gold.html sin recapturar se detecta", () => {
+    const d = preparar("<main>Gold</main>");
+    writeFileSync(join(d, "gold.html"), "<main>Gold nuevo</main>");
+
+    expect(problemaDeCapturaDesactualizada(d)).toMatch(/recaptura/);
+  });
+
+  it("un gold.png sin manifiesto se detecta", () => {
+    expect(problemaDeCapturaDesactualizada(preparar("<main>Gold</main>", false))).toMatch(
+      /gold\.captura\.json/,
+    );
+  });
+
+  it("un manifiesto sin gold.png se detecta", () => {
+    expect(problemaDeCapturaDesactualizada(preparar("<main>Gold</main>", true, false))).toMatch(
+      /falta gold\.png/,
+    );
+  });
+
+  it("sin captura no hay nada que comprobar", () => {
+    dir = mkdtempSync(join(tmpdir(), "captura-"));
+    writeFileSync(join(dir, "gold.html"), "<main>Gold</main>");
+    expect(problemaDeCapturaDesactualizada(dir)).toBeUndefined();
+  });
+});
