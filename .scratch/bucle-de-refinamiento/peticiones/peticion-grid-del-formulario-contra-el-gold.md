@@ -4,7 +4,7 @@
 
 **Origen:** Caso `implement-pattern/patron-pagina-paso-1-nombre-nif`, guard `fidelidad-gap`, Ejecuciones 1, 2 y 4 del árbol `cce1633b…` (suite del 21/11/2026)
 
-**Estado:** propuesta
+**Estado:** aplicada en el PR #38 (pendiente de merge; ver §9)
 
 ---
 
@@ -138,3 +138,32 @@ segundo):
 
 Siguiente paso: abrir el ciclo de `encadenado-canonico` con esta rama puesta y
 repetir la medición. El cambio del gap se queda en la rama como base.
+
+## 9. Corrección de la medida (21/11/2026, Ejecuciones 12–17)
+
+La medida anterior decía «3 de 3» y «1 de 4». Con seis Ejecuciones más del mismo
+árbol (`a0b29172`), la tasa real es más baja y la lectura cambia:
+
+| Árbol `a0b29172` (esta rama) | `fidelidad-gap` |
+|---|---|
+| 5, 6, 7, 12–17 | **5 de 9** |
+
+Los cuatro fallos son concretos y no ruido:
+
+- **13, 14, 16**: escriben `grid-cols-1` u **omiten** la columna de mobile; el
+  Gold pide `grid-cols-2`. El gap ya es `gap-lg` en las tres.
+- **12**: no escribe ninguna rejilla.
+
+Lo que el cambio **sí** consiguió: ninguna rejilla madre usa `gap-x-base` en toda
+la muestra. Antes, 2 de 3 Ejecuciones copiaban el ejemplo literal
+(`grid lg:grid-cols-4 gap-x-base`); ahora la contradicción «NO `gap-lg`» ya no
+está.
+
+Lo que **no** consiguió: que el guard pase siempre. La frase «si los pone a dos,
+se escribe `grid-cols-2`» roza la desviación pero no la clava, y tres de cuatro
+fallos son esa misma omisión.
+
+**Estado:** aplicada en el PR
+[#38](https://github.com/minilama2222/desy-skills/pull/38), pendiente de merge.
+No se declara cerrada como «PASA sostenido»: el Caso da 2 verdes de 9 y este
+cambio no lo pone verde. La columna de mobile queda como petición aparte.

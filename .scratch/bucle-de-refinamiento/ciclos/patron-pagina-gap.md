@@ -144,3 +144,33 @@ Queda abierto, para otro ciclo, decidir qué es: ¿el Caso exige una perfección
 conducta que un SUT estocástico no da (y entonces el «PASA sostenido» del Caso
 mide otra cosa), o hay una forma de escribir el flujo que el agente no pueda
 saltarse? Eso es una decisión, no una petición de redacción.
+
+## La tasa real del Caso (21/11/2026, nueve Ejecuciones del árbol `a0b29172`)
+
+Seis más, después de las 5–7, para no leer una moneda al aire:
+
+| Guard | Verde |
+|---|---|
+| `fidelidad-gap` | 5 de 9 |
+| `encadenado-canonico` | 4 de 9 |
+| los dos a la vez (EXCELENTE) | **2 de 9** |
+
+Antes de estos cambios, en el árbol base `cce1633`: 2 de 3 Ejecuciones copiaban
+el ejemplo literal del grid (`gap-x-base`) y fallaban.
+
+Esto cambia la lectura del ciclo y la de cualquier «PASA sostenido» futuro: el
+Caso pasa por suerte más de lo que parecía. Un Caso con seis guards
+independientes y un SUT estocástico da ~25 % de Ejecuciones perfectas, así que
+una suite de tres entregas sale PASA algo más de la mitad de las veces **sin
+que el skill haya cambiado**. Es el hallazgo que hay que tener delante al
+interpretar el próximo Scorecard.
+
+## El PR (21/11/2026)
+
+[#38](https://github.com/minilama2222/desy-skills/pull/38), abierto y sin
+mergear: **solo** los dos commits del grid (`193053a`, `366c1fc`). El cambio de
+validación no viaja: la medida no lo sostiene.
+
+El cuerpo del PR dice lo que la medida dice, incluido que no pone el Caso en
+verde. Pendiente y humano: el merge, el `bump-pin` (pedido expresamente) y la
+suite de regresión sobre el pin nuevo.
