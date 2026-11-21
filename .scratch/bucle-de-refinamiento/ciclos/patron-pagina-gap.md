@@ -182,10 +182,11 @@ byte a byte. Commit `7d015e7`.
 
 ### En curso
 
-1. **Suite de regresión sobre el pin `44c27a7`.** Lanzada a petición del
-   mantenedor. Al terminar: leer el Scorecard, comparar con la suite 7 (13 PASA
-   · 1 SUSPENDE) y decidir si el grid sube el Caso o si sigue la varianza.
-   Recordar la tasa medida: 2 EXCELENTE de 9 en este Caso.
+1. **Suite de regresión sobre el pin `44c27a7`.** Pendiente de lanzar: el
+   mantenedor decidió dejarla para más tarde. Cuando toque, leer el Scorecard,
+   comparar con la suite 7 (13 PASA · 1 SUSPENDE) y decidir si el grid sube el
+   Caso o si sigue la varianza. Recordar la tasa medida: 2 EXCELENTE de 9 en
+   este Caso.
 
 ### Decisiones abiertas (ninguna es escribir prosa)
 
