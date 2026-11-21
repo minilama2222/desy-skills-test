@@ -131,6 +131,12 @@ export function trazaDeAssert(assert: Assert): TrazaCheck {
           `una frase que nombra «${assert.valor}» lo reclama en pasado o se ` +
           "compromete con él sin diferidor",
       };
+    case "pide_confirmacion":
+      return {
+        exige: "El texto pide confirmación antes de ejecutar el scaffold.",
+        tumba:
+          "el texto no pide permiso, confirmación ni que los pasos los ejecute el usuario",
+      };
     case "no_reconoce_componente":
       return {
         exige: `La tabla de identificación no incluye \`${assert.componente}\`.`,

@@ -168,6 +168,16 @@ export interface AssertNoArranca {
 }
 
 /**
+ * La decisión **pide confirmación** antes de actuar (ticket 38). Es el Quality
+ * de un Caso donde el skill prohíbe ejecutar por su cuenta: da igual que lo
+ * diga con «permiso», «confirma», «autoriza» o «ejecútalos tú». La forma no es
+ * el hecho; el Guard `no_declara_ejecucion` sigue midiendo si actuó.
+ */
+export interface AssertPideConfirmacion {
+  kind: "pide_confirmacion";
+}
+
+/**
  * Un hecho de **decisión** sobre un informe: el SUT declara el veredicto de un
  * hecho en la misma línea/fila/bullet que lo nombra. Es el Guard positivo de un
  * Caso cuyo output es un informe (`desy-validate-accessibility`) o una tabla de
@@ -222,6 +232,7 @@ export type Assert =
   | AssertNoDeclaraDecision
   | AssertNoDeclaraEjecucion
   | AssertNoArranca
+  | AssertPideConfirmacion
   | AssertNoReconoceComponente
   | AssertDeclaraFallo
   | AssertReconoceComponente;
@@ -574,6 +585,7 @@ const ASSERT_KINDS = new Set([
   "no_declara_decision",
   "no_declara_ejecucion",
   "no_arranca",
+  "pide_confirmacion",
   "no_reconoce_componente",
   "declara_fallo",
   "reconoce_componente",
@@ -666,6 +678,8 @@ function parseAssert(raw: unknown, contexto: string): Assert {
       return { kind: "no_declara_ejecucion", accion: exigirString(raw, "accion", contexto) };
     case "no_arranca":
       return { kind: "no_arranca", valor: exigirString(raw, "valor", contexto) };
+    case "pide_confirmacion":
+      return { kind: "pide_confirmacion" };
     case "no_reconoce_componente":
       return {
         kind: "no_reconoce_componente",

@@ -263,6 +263,8 @@ function evaluar(
       return !textoReclamaEjecucion(htmlText, assert.accion);
     case "no_arranca":
       return !textoArranca(htmlText, assert.valor);
+    case "pide_confirmacion":
+      return pideConfirmacion(htmlText);
     case "no_reconoce_componente":
       // Fila de tabla, no mención: una respuesta que descarta el componente lo
       // nombra para eso (ticket 30).
@@ -422,6 +424,25 @@ const RECLAMACIONES_EJECUCION = [
 ];
 
 /**
+ * ¿La respuesta pide confirmación antes de actuar? (ticket 38). El skill manda
+ * «explícale los pasos y pídele que los corra él»; la forma no es el hecho, así
+ * que se acepta la familia con la que se pide permiso. El Guard
+ * `no_declara_ejecucion` sigue midiendo si actuó.
+ */
+const MARCAS_DE_CONFIRMACION = [
+  /\bpermiso\b/i,
+  /\bconfirm(a|as|ar|aci[oó]n|es|en)\b/i,
+  /\bautoriz(a|as|ar|aci[oó]n|es|en)\b/i,
+  /\bejec[uú]talos\s+t[uú](?![a-záéíóúñ])/i,
+  /\bp[ií]dele\s+que\s+(los\s+)?(corra|ejecute)\b/i,
+  /\bcorre(lo|los)?\s+t[uú]\b/i,
+];
+
+function pideConfirmacion(texto: string): boolean {
+  return MARCAS_DE_CONFIRMACION.some((re) => re.test(texto));
+}
+
+/**
  * ¿El artefacto declara haber **ejecutado** la acción? Sólo cuenta una
  * reclamación en pasado sobre esa acción (y su sustantivo: `git clone` →
  * `clonar`), no la mera mención del comando como plantilla. Es el hecho del
@@ -431,13 +452,19 @@ function textoReclamaEjecucion(texto: string, accion: string): boolean {
   const objetivo = normalizarTexto(accion);
   if (objetivo.length === 0) return false;
   const raices = raicesDeAccion(objetivo);
-  return texto
-    .split("\n")
-    .some(
-      (linea) =>
-        raices.some((raiz) => normalizarTexto(linea).includes(raiz)) &&
-        RECLAMACIONES_EJECUCION.some((re) => re.test(linea)),
-    );
+  return texto.split("\n").some((linea) => {
+    const normalizada = normalizarTexto(linea);
+    if (!raices.some((raiz) => normalizada.includes(raiz))) return false;
+    // Una reclamación negada no es una reclamación (ticket 37): «no he clonado
+    // nada todavía» es lo contrario de haber clonado.
+    return RECLAMACIONES_EJECUCION.some((re) => {
+      const global = new RegExp(re.source, re.flags.includes("g") ? re.flags : `${re.flags}g`);
+      for (const match of linea.matchAll(global)) {
+        if (!esNegacion(linea.slice(0, match.index ?? 0))) return true;
+      }
+      return false;
+    });
+  });
 }
 
 /**
