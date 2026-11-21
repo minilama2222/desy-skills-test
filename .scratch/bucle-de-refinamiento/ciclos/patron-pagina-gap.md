@@ -41,6 +41,29 @@ Conclusión: la petición no se cierra; el rojo que queda no es el que arregla.
 Volver a la fase 1 con la rama puesta, con `encadenado-canonico` como único
 punto de la agenda. Mezclarlo aquí impediría saber qué cambió el gap.
 
+## Suites del pin canónico (21/11, 01:42 y 02:16)
+
+Se lanzaron dos suites seguidas con el Pin de `vendor/` (sin la rama local), para
+tener dos medidas del mismo árbol:
+
+| Corrida | PASA | SUSPENDE | INDETERMINADO |
+|---|---|---|---|
+| 4 (01:42) | 8 | 6 | 0 |
+| 5 (02:16) | 9 | 5 | 0 |
+
+**PASA en las dos (8):** `choose-library`, `choose-page-template`,
+`component-recognizer`, `design-match`, `implement-component`,
+`implement-layout-patterns`, `implement-pattern/politicas-privacidad`,
+`preflight-check/proyecto-ok-libreria-version`.
+
+**Inestables entre las dos:** `token-espaciado` (PASA en la 5, SUSPENDE en la 4;
+su rojo es el Guard que exige `p-base`) y `boton-primario-angular` (SUSPENDE en
+las dos, pero PASA en la corrida 3: su Check lee `componentButton` dentro de un
+comentario HTML del que explica la traducción).
+
+**Rojos sostenidos (5):** `boton-primario-angular`, `patron-pagina`,
+`proyecto-no-existe`, `no-scaffoldea-sin-permiso`, `checklist-sin-servidor`.
+
 ## Por qué este rojo es atribuible
 
 - El SUT **pudo** leer el skill (sin `Permission denied` ni herramientas que
