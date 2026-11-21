@@ -288,10 +288,14 @@ function leerTope(args: string[], n: number): number | undefined {
 
 /**
  * El sandbox del SUT. Se crea con el `HOME` y la config que resuelve el propio
- * `createSandbox`; lo único que se añade es el starter cacheado, para que cada
- * Ejecución no scaffoldee sin permiso (ADR-0005).
+ * `createSandbox`; lo único que se añade es el árbol de trabajo: el starter
+ * cacheado, para que cada Ejecución no scaffoldee sin permiso (ADR-0005), o el
+ * `input/fixture/` del Caso cuando su premisa no es el starter (ticket 36).
  */
-function sandboxDelCaso(): ReturnType<typeof createSandbox> {
+function sandboxDelCaso(caso: Caso): ReturnType<typeof createSandbox> {
+  if (caso.fixtureDir !== undefined) {
+    return createSandbox({ fixtureDir: caso.fixtureDir });
+  }
   return createSandbox(existsSync(SCAFFOLD_CACHE_DIR) ? { scaffoldDir: SCAFFOLD_CACHE_DIR } : {});
 }
 
@@ -360,7 +364,10 @@ export async function correrCaso(
   opciones: OpcionesDelPresupuesto,
 ): Promise<ResultadoEjecucion[]> {
   const tope = limiteDeIntentos(opciones.n, opciones.tope);
-  const deps = opciones.deps ?? { sandbox: { create: sandboxDelCaso }, command: realCommand };
+  const deps = opciones.deps ?? {
+    sandbox: { create: () => sandboxDelCaso(caso) },
+    command: realCommand,
+  };
   const resultados: ResultadoEjecucion[] = [];
   let entregas = 0;
   for (let intento = 1; intento <= tope && entregas < opciones.n; intento++) {

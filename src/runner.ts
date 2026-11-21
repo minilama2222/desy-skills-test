@@ -1184,6 +1184,13 @@ export interface SandboxOptions {
   /** Directorio donde crear el sandbox temporal. */
   base?: string;
   /**
+   * Árbol propio del Caso (`input/fixture/`) que sustituye al starter en el
+   * `workDir` (ticket 36). Es lo que hace medible una premisa de «carpeta
+   * vacía»: se copia **sólo** lo que trae el fixture, sin el `node_modules` ni
+   * las páginas del starter. Si está, manda sobre `scaffoldDir`.
+   */
+  fixtureDir?: string;
+  /**
    * Starter DESY ya scaffoldeado y cacheado que se copia al `workDir` antes de
    * lanzar el SUT. Ver ADR-0005. Si se omite, el `workDir` queda vacío.
    *
@@ -1245,7 +1252,12 @@ export function createSandbox(opciones: string | SandboxOptions = {}): Sandbox {
   mkdirSync(datosDir, { recursive: true });
   mkdirSync(workDir, { recursive: true });
 
-  if (opts.scaffoldDir) {
+  if (opts.fixtureDir) {
+    if (!existsSync(opts.fixtureDir)) {
+      throw new Error(`No existe el fixture del Caso en ${opts.fixtureDir}`);
+    }
+    copiarContenido(opts.fixtureDir, workDir);
+  } else if (opts.scaffoldDir) {
     if (!existsSync(opts.scaffoldDir)) {
       throw new Error(
         `No existe el scaffold cacheado en ${opts.scaffoldDir} (ver ADR-0005)`,

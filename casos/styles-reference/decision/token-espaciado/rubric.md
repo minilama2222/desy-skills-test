@@ -12,11 +12,16 @@ lugar del token del proyecto.
 
 ## Guards (su fallo ⇒ INACEPTABLE)
 
-- **token-base-16px**: el SUT declara `p-base` (la unidad base, 1rem) para los
-  16 px. Cualquier otra respuesta (`p-4`) es la escala de Tailwind, que el
-  sistema no tiene.
-- **token-lg-28px**: el SUT declara `p-lg` (1.75rem) para los 28 px, el token de
-  separación entre secciones.
+- **token-base-16px**: el SUT declara el token del sistema `--spacing-base`
+  (1rem) para los 16 px. Cualquier otra respuesta (`p-4`) es la escala de
+  Tailwind, que el sistema no tiene.
+- **token-lg-28px**: el SUT declara el token `--spacing-lg` (1.75rem) para los
+  28 px.
+
+El Guard mide **el token**, no la familia de utilidad: la pregunta es una
+**separación**, y `gap-base`/`space-y-base`/`mb-base` son tan válidas como
+`p-base` según dónde se aplique. La familia la decide el uso, no el Check
+(ticket 34).
 
 El Guard es la **declaración positiva del token correcto** (ver
 `CODING_STANDARDS.md`): si la decisión es errónea, el guard cae.

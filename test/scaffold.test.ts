@@ -263,3 +263,38 @@ describe("contaminacionDelScaffold", () => {
     expect(problemas).toHaveLength(2);
   });
 });
+
+/**
+ * Ticket 36: un Caso con premisa de «carpeta vacía» trae su `input/fixture/` y
+ * el sandbox copia sólo eso. Antes, el starter entraba siempre y el SUT veía un
+ * proyecto donde el Caso decía que no había ninguno.
+ */
+describe("fixture del Caso en el sandbox (ticket 36)", () => {
+  let cleanup: (() => void) | undefined;
+
+  afterEach(() => {
+    cleanup?.();
+    cleanup = undefined;
+  });
+
+  it("copia el fixture y no el starter, aunque haya caché", () => {
+    const base = join(tmpdir(), `fixture-${Date.now()}`);
+    mkdirSync(base, { recursive: true });
+    const fixture = join(base, "fixture");
+    mkdirSync(join(fixture, "attached_assets"), { recursive: true });
+    writeFileSync(join(fixture, "README.md"), "# Página\n");
+    writeFileSync(join(fixture, "attached_assets", "mockup.png"), "PNG");
+    const origen = scaffoldFalso(base);
+
+    const sandbox = createSandbox({ fixtureDir: fixture, scaffoldDir: origen });
+    cleanup = () => {
+      sandbox.cleanup();
+      rmSync(base, { recursive: true, force: true });
+    };
+
+    expect(readFileSync(join(sandbox.workDir, "README.md"), "utf8")).toBe("# Página\n");
+    expect(existsSync(join(sandbox.workDir, "attached_assets", "mockup.png"))).toBe(true);
+    expect(existsSync(join(sandbox.workDir, "package.json"))).toBe(false);
+    expect(existsSync(join(sandbox.workDir, "node_modules"))).toBe(false);
+  });
+});

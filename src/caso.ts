@@ -487,6 +487,16 @@ interface CasoBase {
   checks: Check[];
   /** Las contradicciones declaradas en `rubric.md`, por id de Check. */
   contradicciones?: Map<string, ContradiccionDeSkill>;
+  /**
+   * Árbol que se copia al `workDir` en vez del starter cacheado (ticket 36).
+   * Existe sólo si el Caso trae `input/fixture/`. Es lo que hace medible una
+   * premisa de «carpeta vacía»: sin él, el sandbox siempre trae un
+   * `desy-html-starter` y el SUT responde —con razón— que ya hay proyecto.
+   *
+   * Nace para los Casos-decisión, que no compilan: un Caso-página necesita el
+   * starter entero para el build.
+   */
+  fixtureDir?: string;
 }
 
 export interface CasoComponente extends CasoBase {

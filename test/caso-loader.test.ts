@@ -375,3 +375,34 @@ describe("cargarCasos", () => {
     expect(resultado.grade).not.toBe("INACEPTABLE");
   });
 });
+
+/**
+ * Ticket 36: un Caso cuya premisa es una carpeta sin proyecto declara su propio
+ * `input/fixture/`, y el sandbox lo usa en vez del starter.
+ */
+describe("cargarCaso: fixture del Caso (ticket 36)", () => {
+  let root: string | undefined;
+
+  afterEach(() => {
+    if (root) rmSync(root, { recursive: true, force: true });
+    root = undefined;
+  });
+
+  it("expone `input/fixture/` cuando existe", () => {
+    root = mkdtempSync(join(tmpdir(), "casos-"));
+    const dir = crearCaso(root, "preflight-check", "decision", "proyecto-no-existe");
+    mkdirSync(join(dir, "input", "fixture"), { recursive: true });
+    writeFileSync(join(dir, "input", "fixture", "README.md"), "# Página\n");
+
+    const caso = cargarCaso(dir);
+
+    expect(caso.fixtureDir).toBe(join(dir, "input", "fixture"));
+  });
+
+  it("sin `input/fixture/` no declara fixture y el sandbox usa el starter", () => {
+    root = mkdtempSync(join(tmpdir(), "casos-"));
+    const dir = crearCaso(root, "preflight-check", "decision", "proyecto-no-existe");
+
+    expect(cargarCaso(dir).fixtureDir).toBeUndefined();
+  });
+});

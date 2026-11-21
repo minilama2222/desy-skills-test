@@ -27,6 +27,8 @@ const CHECKS = join("expected", "checks.json");
 const GOLD = join("input", "gold.html");
 const GOLD_IMAGEN = join("input", "gold.png");
 const MOCKUP = join("input", "mockup.png");
+/** El `workDir` propio de un Caso cuando su premisa no es el starter (ticket 36). */
+const FIXTURE = join("input", "fixture");
 
 function leer(path: string, descripcion: string): string {
   if (!existsSync(path)) {
@@ -82,6 +84,10 @@ export function cargarCaso(dir: string): Caso {
   // el ancla sigue siendo la fuente de la regla y esto es el desacuerdo con ella.
   const contradicciones = contradiccionesDeRubric(rubric);
   const declaradas = contradicciones.size === 0 ? {} : { contradicciones };
+  // Si el Caso trae un `input/fixture/`, ese árbol sustituye al starter en el
+  // `workDir` (ticket 36). Sin él, el sandbox sigue trayendo el starter.
+  const fixture = join(dir, FIXTURE);
+  const conFixture = existsSync(fixture) ? { fixtureDir: fixture } : {};
 
   if (tipo === "caso-pagina") {
     const goldPath = join(dir, GOLD);
@@ -95,6 +101,7 @@ export function cargarCaso(dir: string): Caso {
       prompt,
       checks,
       ...declaradas,
+      ...conFixture,
       goldPath,
       goldImagenPath: join(dir, GOLD_IMAGEN),
     };
@@ -110,12 +117,21 @@ export function cargarCaso(dir: string): Caso {
       prompt,
       checks,
       ...declaradas,
+      ...conFixture,
       ...(existsSync(mockupImagenPath) ? { mockupImagenPath } : {}),
     };
     return caso;
   }
 
-  const caso: CasoComponente = { tipo, skill, id, prompt, checks, ...declaradas };
+  const caso: CasoComponente = {
+    tipo,
+    skill,
+    id,
+    prompt,
+    checks,
+    ...declaradas,
+    ...conFixture,
+  };
   return caso;
 }
 

@@ -366,9 +366,31 @@ function textoDeclara(texto: string, valor: string): boolean {
     .split(" ")
     .map((palabra) => palabra.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
     .join("[\\s\\-_]+");
-  return new RegExp(`(^|[^\\w-])${patron}([^\\w-]|$)`, "i").test(
-    normalizarTexto(texto),
+  const normalizado = normalizarTexto(sinComentariosHtml(texto));
+  const regex = new RegExp(`(^|[^\\w-])${patron}([^\\w-]|$)`, "gi");
+  // Un valor **negado** no es una declaración (ticket 35): «da PROYECTO_OK, no
+  // PROYECTO_NO_EXISTE» pasaba el Guard por nombrar lo que descartaba.
+  for (const match of normalizado.matchAll(regex)) {
+    if (esNegacion(normalizado.slice(0, match.index))) continue;
+    return true;
+  }
+  return false;
+}
+
+/**
+ * ¿Lo que hay justo antes del valor lo niega? Sólo cuenta la negación pegada al
+ * valor (`no`, `ni`, `sin`, `nunca`, y las formas `no es/son/hay/existe`). Un
+ * «no solo `p-base`, también `gap-base`» es una mención positiva y no cae.
+ */
+function esNegacion(antes: string): boolean {
+  return /(^|\s)(no|ni|sin|nunca)(\s+(es|son|era|eran|hay|existe|existen|se\s+trata\s+de))?\s*$/i.test(
+    antes,
   );
+}
+
+/** Quita los comentarios HTML: lo que va dentro no es una decisión del SUT (ticket 32). */
+function sinComentariosHtml(texto: string): string {
+  return texto.replace(/<!--[\s\S]*?-->/g, "");
 }
 
 /** Minúsculas, sin tildes, y espacios/guiones/guiones_bajos unificados a un espacio. */
@@ -517,6 +539,9 @@ const MARCADORES_FALLO = [
   /\bko\b/i,
   /\bno\s+conform/i,
   /\bfail(ed|s)?\b/i,
+  // El checklist del skill declara el hallazgo con esta frase («sin label: nif»),
+  // no con la palabra «falla» (ticket 33).
+  /\bsin\s+(label|etiqueta)\b/i,
   /[✗✘❌]/,
   // Un cero como **conteo** del hallazgo ("2 fieldset / 0 legend", ": 0"): un
   // informe puede declarar el fallo con el número, sin palabra.
@@ -566,11 +591,20 @@ function lineaDeclaraFallo(
   const esperado =
     veredicto === undefined ? undefined : normalizarTexto(veredicto);
   return texto.split("\n").some((linea) => {
-    const normalizada = normalizarTexto(linea);
+    // La decoración markdown no es el hecho (ticket 33): «Un solo `h1`» y
+    // «Un solo h1» declaran lo mismo. Se limpia antes de comparar; el hecho
+    // sigue siendo el mismo.
+    const sinFormato = sinDecoracionMarkdown(linea);
+    const normalizada = normalizarTexto(sinFormato);
     if (!normalizada.includes(aguja)) return false;
-    if (esperado !== undefined) return normalizarVeredicto(linea).includes(esperado);
+    if (esperado !== undefined) return normalizarVeredicto(sinFormato).includes(esperado);
     return MARCADORES_FALLO.some((re) => re.test(linea));
   });
+}
+
+/** Tildes de código y asteriscos: formato de la prosa, no contenido. */
+function sinDecoracionMarkdown(texto: string): string {
+  return texto.replace(/[`*]/g, "");
 }
 
 /**

@@ -4,31 +4,46 @@
       "id": "detecta-h1-de-mas",
       "severity": "guard",
       "weight": 0,
-      "assert": { "kind": "declara_fallo", "hecho": "un-solo-h1" }
+      "assert": {
+        "kind": "declara_fallo",
+        "hecho": "un-solo-h1"
+      }
     },
     {
       "id": "detecta-fieldset-sin-legend",
       "severity": "guard",
       "weight": 0,
-      "assert": { "kind": "declara_fallo", "hecho": "fieldset-con-legend" }
+      "assert": {
+        "kind": "declara_fallo",
+        "hecho": "fieldset con su legend"
+      }
     },
     {
       "id": "detecta-label-sin-for",
       "severity": "quality",
       "weight": 2,
-      "assert": { "kind": "declara_fallo", "hecho": "labels-visibles" }
+      "assert": {
+        "kind": "declara_fallo",
+        "hecho": "sin label"
+      }
     },
     {
       "id": "detecta-skip-link-ausente",
       "severity": "quality",
       "weight": 1,
-      "assert": { "kind": "declara_fallo", "hecho": "skip-link" }
+      "assert": {
+        "kind": "declara_fallo",
+        "hecho": "skip-link"
+      }
     },
     {
       "id": "no-inventa-un-pase",
       "severity": "quality",
       "weight": 1,
-      "assert": { "kind": "no_declara_decision", "valor": "0 errores" }
+      "assert": {
+        "kind": "no_declara_decision",
+        "valor": "0 errores"
+      }
     }
   ]
 }

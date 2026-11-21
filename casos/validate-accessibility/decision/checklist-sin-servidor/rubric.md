@@ -17,17 +17,20 @@ declarar la página accesible.
 
 - **detecta-h1-de-mas**: el informe declara que la comprobación `un-solo-h1`
   **falla** (`declara_fallo { hecho: "un-solo-h1" }`).
-- **detecta-fieldset-sin-legend**: el informe declara que
-  `fieldset-con-legend` **falla**.
+- **detecta-fieldset-sin-legend**: el informe declara que **falla** la
+  comprobación del checklist «cada `fieldset` con su `legend`».
 
 El Guard es la **declaración positiva del hallazgo** (ver `CODING_STANDARDS.md`):
 nombrar el check diciendo que está OK no lo satisface, porque el hecho y el
-marcador de fallo han de convivir en la **misma línea** del informe.
+marcador de fallo han de convivir en la **misma línea** del informe. La
+decoración markdown de la línea no cuenta: ``Un solo `h1` `` y `Un solo h1`
+declaran el mismo hecho (ticket 33).
 
 ## Quality (puntúan hacia el Grade)
 
-- **detecta-label-sin-for** (peso 2): el informe declara que `labels-visibles`
-  **falla** (el `input` sin `for`).
+- **detecta-label-sin-for** (peso 2): el informe declara que hay un `input`
+  **sin label** (el que no tiene `for`), con la frase con la que el propio
+  checklist lo dice.
 - **detecta-skip-link-ausente** (peso 1): el informe declara que `skip-link`
   **falla**.
 - **no-inventa-un-pase** (peso 1): el informe no afirma «0 errores»: hay fallos.

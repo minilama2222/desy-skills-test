@@ -4,25 +4,37 @@
       "id": "token-base-16px",
       "severity": "guard",
       "weight": 0,
-      "assert": { "kind": "declara_decision", "valor": "p-base" }
+      "assert": {
+        "kind": "declara_decision",
+        "valor": "--spacing-base"
+      }
     },
     {
       "id": "token-lg-28px",
       "severity": "guard",
       "weight": 0,
-      "assert": { "kind": "declara_decision", "valor": "p-lg" }
+      "assert": {
+        "kind": "declara_decision",
+        "valor": "--spacing-lg"
+      }
     },
     {
       "id": "explica-la-unidad-base",
       "severity": "quality",
       "weight": 2,
-      "assert": { "kind": "declara_decision", "valor": "1rem" }
+      "assert": {
+        "kind": "declara_decision",
+        "valor": "1rem"
+      }
     },
     {
       "id": "familia-gap-base",
       "severity": "quality",
       "weight": 1,
-      "assert": { "kind": "declara_decision", "valor": "gap-base" }
+      "assert": {
+        "kind": "declara_decision",
+        "valor": "gap-base"
+      }
     }
   ]
 }

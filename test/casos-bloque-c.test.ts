@@ -40,10 +40,10 @@ describe("Bloque C · styles-reference/token-espaciado", () => {
   const ID = "token-espaciado";
   const DIR = dirDecision(SKILL, ID);
 
-  /** Salida dorada: la respuesta del skill con los tokens canónicos. */
+  /** Salida dorada: la respuesta del skill con los tokens del sistema. */
   const SALIDA_OK = [
-    "Para 16 px usa `p-base` (o `mb-base` / `gap-base`), la unidad base de 1rem.",
-    "Para 28 px usa `p-lg` (o `mb-lg` / `gap-lg`), la separación entre secciones.",
+    "Para 16 px usa `--spacing-base` = 1rem: `p-base`, `mb-base` o `gap-base`, la unidad base.",
+    "Para 28 px usa `--spacing-lg` = 1.75rem: `p-lg`, `mb-lg` o `gap-lg`, la separación entre secciones.",
   ].join("\n");
 
   it("existe el Caso en disco con su input/, expected/ y rubric.md", () => {
@@ -64,14 +64,14 @@ describe("Bloque C · styles-reference/token-espaciado", () => {
     expect(resultado.grade).toBe("EXCELENTE");
   });
 
-  it("responder `p-4` en vez de `p-base` es INACEPTABLE (el token es el Guard)", () => {
+  it("responder con la escala de Tailwind y sin el token es INACEPTABLE (el token es el Guard)", () => {
     const mal = "Para 16 px usa `p-4`. Para 28 px usa `p-lg`.";
     const resultado = gradeDe(DIR, mal);
     expect(resultado.grade).toBe("INACEPTABLE");
     expect(paso(resultado, "token-base-16px")).toBe(false);
   });
 
-  it("responder `gap-7` en vez de `gap-lg` es INACEPTABLE", () => {
+  it("responder `gap-7` y no declarar el token de 28 px es INACEPTABLE", () => {
     const mal = "Para 16 px usa `p-base`. Para 28 px usa `gap-7`.";
     const resultado = gradeDe(DIR, mal);
     expect(resultado.grade).toBe("INACEPTABLE");
@@ -80,8 +80,8 @@ describe("Bloque C · styles-reference/token-espaciado", () => {
 
   it("acertar los tokens pero no explicar la unidad baja de EXCELENTE (Quality)", () => {
     const sinUnidad = [
-      "Para 16 px usa `p-base`.",
-      "Para 28 px usa `p-lg`.",
+      "Para 16 px usa `--spacing-base`.",
+      "Para 28 px usa `--spacing-lg`.",
     ].join("\n");
     const resultado = gradeDe(DIR, sinUnidad);
     expect(paso(resultado, "explica-la-unidad-base")).toBe(false);
@@ -352,9 +352,9 @@ describe("Bloque C · validate-accessibility/checklist-sin-servidor", () => {
   /** Informe dorado: el checklist de grep con sus fallos detectados. */
   const SALIDA_OK = [
     "## Checklist sin servidor",
-    "- [ ] un-solo-h1: hay 2 `<h1>` → FALLA (debe haber 1)",
-    "- [ ] fieldset-con-legend: 1 `<fieldset>` y 0 `<legend>` → FALLA",
-    "- [ ] labels-visibles: el input `nif` no tiene `label for` → FALLA",
+    "- [ ] un solo h1: hay 2 `<h1>` → FALLA (debe haber 1)",
+    "- [ ] cada fieldset con su legend: 1 `<fieldset>` y 0 `<legend>` → FALLA",
+    "- [ ] sin label: el input `nif` no tiene `label for` → FALLA",
     "- [ ] skip-link (`c-skip-link`): ausente → FALLA",
   ].join("\n");
 

@@ -390,3 +390,65 @@ describe("Caso-decisión: la decoración markdown de una celda no cuenta (ticket
     expect(pasa(tabla("`header`", "por defecto"))).toBe(false);
   });
 });
+
+/**
+ * Tickets 32, 33 y 35: el hecho es el contenido, no la forma ni lo que se niega.
+ * Los tres falsos positivos que la suite destapó el 21/11.
+ */
+describe("Caso-decisión: la forma no es el hecho (tickets 32, 33 y 35)", () => {
+  const pasa = (checks: string, salida: string, id = "x"): boolean =>
+    gradoCon("caso-decision", checks, salida).detalle.find((d) => d.id === id)!.passed;
+
+  it("un valor dentro de un comentario HTML no declara (ticket 32)", () => {
+    const checks = declarar("sin-macro", "guard", 0, {
+      kind: "no_declara_decision",
+      valor: "componentButton",
+    });
+    const artefacto = [
+      "<!--",
+      '  Origen (Nunjucks): {{ componentButton({ "text": "Enviar" }) }}',
+      "-->",
+      '<desy-button [text]="text"></desy-button>',
+    ].join("\n");
+    expect(pasa(checks, artefacto, "sin-macro")).toBe(true);
+  });
+
+  it("fuera del comentario, el valor sigue contando (no se afloja)", () => {
+    const checks = declarar("sin-macro", "guard", 0, {
+      kind: "no_declara_decision",
+      valor: "componentButton",
+    });
+    const artefacto = "{{ componentButton({ text: 'Enviar' }) }}";
+    expect(pasa(checks, artefacto, "sin-macro")).toBe(false);
+  });
+
+  it("un valor negado no declara (ticket 35)", () => {
+    const checks = declarar("existe", "guard", 0, {
+      kind: "declara_decision",
+      valor: "PROYECTO_NO_EXISTE",
+    });
+    const salida = "El preflight da PROYECTO_OK, no PROYECTO_NO_EXISTE.";
+    expect(pasa(checks, salida, "existe")).toBe(false);
+  });
+
+  it("«no solo X, también Y» sigue contando: es una mención positiva", () => {
+    const checks = declarar("token", "guard", 0, {
+      kind: "declara_decision",
+      valor: "p-base",
+    });
+    expect(pasa(checks, "Usa no solo p-base, también gap-base.", "token")).toBe(true);
+  });
+
+  it("la decoración markdown no impide leer un fallo (ticket 33)", () => {
+    const informe = [
+      "| 1 | Un solo `h1` | 1 | 2 | ❌ FALLA |",
+      "| 3 | Cada `fieldset` con su `legend` | 1 | 0 | ❌ FALLA |",
+      "| 4 | Cada input con su label | — | Sin label: **`nif`** | … |",
+    ].join("\n");
+    const checks = (hecho: string) =>
+      declarar("detecta", "guard", 0, { kind: "declara_fallo", hecho });
+    expect(pasa(checks("un solo h1"), informe, "detecta")).toBe(true);
+    expect(pasa(checks("cada fieldset con su legend"), informe, "detecta")).toBe(true);
+    expect(pasa(checks("sin label"), informe, "detecta")).toBe(true);
+  });
+});
