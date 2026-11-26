@@ -1,9 +1,12 @@
 # 43: El trigger de `implement-component` sigue sin dispararse
 
-**What to build:** que `implement-component` se invoque cuando toca. El PR #36
-cambió su `description` (español, verbo al principio, `SIEMPRE`, conjunto
-abierto y frontera explícita) y **el hallazgo persiste**: hay Ejecuciones que
-entregan un botón EXCELENTE sin invocar el skill.
+**What to build:** que `implement-component` se invoque cuando toca. **No se
+reabre la petición anterior**: se continúa.
+[`peticion-trigger-implement-component.md`](../peticiones/peticion-trigger-implement-component.md)
+se aplicó en el PR #36 y su propia declaración de cierre ya avisaba de que
+**no cerraba el trigger** (2 Ejecuciones, 0 invocaciones en el árbol
+`a2dfb98…`). Aquello quitó la incoherencia de idioma y el veto; el disparo
+sigue fallando.
 
 **Blocked by:** —
 
@@ -11,7 +14,7 @@ entregan un botón EXCELENTE sin invocar el skill.
 
 - [ ] Diagnosticar por qué no se dispara: leer la `description`, el prompt del
       Caso y las invocaciones de las Ejecuciones que no lo llamaron
-- [ ] Proponer el cambio de frontmatter (una petición, no un parche suelto)
+- [ ] Escribir una petición **nueva** (la anterior está aplicada; se enlaza, no se reabre)
 - [ ] Medir con el Caso `implement-component/boton-primario`: intentos por
       entrega y hallazgos de trigger
 - [ ] Criterio de cierre: 3 entregas en 3 intentos, 0 hallazgos de trigger
