@@ -128,8 +128,8 @@
           "hallazgosConArtefacto": 0,
           "fallos": [
             {
-              "id": "reconoce-input-group",
-              "severity": "guard"
+              "id": "reconoce-footer",
+              "severity": "quality"
             }
           ],
           "guards": {
@@ -270,17 +270,21 @@
           "tipo": "caso-pagina",
           "veredicto": "PASA",
           "entregas": 3,
-          "intentos": 5,
+          "intentos": 4,
           "alcanzaronSkill": 3,
           "conDato": 3,
-          "correctas": 2,
-          "entregoMal": 1,
+          "correctas": 1,
+          "entregoMal": 2,
           "sinArtefacto": 0,
           "sinMedir": 0,
-          "hallazgosConArtefacto": 2,
+          "hallazgosConArtefacto": 1,
           "fallos": [
             {
               "id": "encadenado-canonico",
+              "severity": "guard"
+            },
+            {
+              "id": "fidelidad-gap",
               "severity": "guard"
             }
           ],
@@ -309,15 +313,15 @@
           "intentos": 3,
           "alcanzaronSkill": 3,
           "conDato": 3,
-          "correctas": 2,
-          "entregoMal": 1,
+          "correctas": 1,
+          "entregoMal": 2,
           "sinArtefacto": 0,
           "sinMedir": 0,
           "hallazgosConArtefacto": 0,
           "fallos": [
             {
-              "id": "identifica-no-existe",
-              "severity": "guard"
+              "id": "bifurca-a-scaffold",
+              "severity": "quality"
             }
           ],
           "guards": {
@@ -368,12 +372,17 @@
           "intentos": 3,
           "alcanzaronSkill": 3,
           "conDato": 3,
-          "correctas": 3,
-          "entregoMal": 0,
+          "correctas": 2,
+          "entregoMal": 1,
           "sinArtefacto": 0,
           "sinMedir": 0,
           "hallazgosConArtefacto": 0,
-          "fallos": [],
+          "fallos": [
+            {
+              "id": "no-scaffoldea-sin-permiso",
+              "severity": "guard"
+            }
+          ],
           "guards": {
             "ok": 1,
             "total": 1
@@ -430,21 +439,12 @@
           "intentos": 3,
           "alcanzaronSkill": 3,
           "conDato": 3,
-          "correctas": 1,
-          "entregoMal": 2,
+          "correctas": 3,
+          "entregoMal": 0,
           "sinArtefacto": 0,
           "sinMedir": 0,
           "hallazgosConArtefacto": 0,
-          "fallos": [
-            {
-              "id": "detecta-label-sin-for",
-              "severity": "quality"
-            },
-            {
-              "id": "detecta-fieldset-sin-legend",
-              "severity": "guard"
-            }
-          ],
+          "fallos": [],
           "guards": {
             "ok": 2,
             "total": 2
@@ -463,6 +463,25 @@
   "corridas": [
     {
       "fecha": "2026-11-26T21:21:15.956Z",
+      "veredictos": {
+        "angular-translator/boton-primario-angular": "PASA",
+        "choose-library/portal-turistico": "PASA",
+        "choose-page-template/404-portal-publico": "PASA",
+        "component-recognizer/reconocimiento-login": "PASA",
+        "design-match/afinado-paso-1": "PASA",
+        "implement-component/boton-primario": "PASA",
+        "implement-layout-patterns/fieldset-grid-acciones": "PASA",
+        "implement-pattern/politicas-privacidad": "PASA",
+        "implement-pattern/patron-pagina-paso-1-nombre-nif": "PASA",
+        "preflight-check/proyecto-no-existe": "PASA",
+        "preflight-check/proyecto-ok-libreria-version": "PASA",
+        "scaffold-project/no-scaffoldea-sin-permiso": "PASA",
+        "styles-reference/token-espaciado": "PASA",
+        "validate-accessibility/checklist-sin-servidor": "PASA"
+      }
+    },
+    {
+      "fecha": "2026-11-26T22:08:42.227Z",
       "veredictos": {
         "angular-translator/boton-primario-angular": "PASA",
         "choose-library/portal-turistico": "PASA",

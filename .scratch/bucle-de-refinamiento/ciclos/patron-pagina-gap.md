@@ -175,51 +175,45 @@ El cuerpo del PR dice lo que la medida dice, incluido que no pone el Caso en
 verde. Pendiente y humano: el merge, el `bump-pin` (pedido expresamente) y la
 suite de regresión sobre el pin nuevo.
 
-## Pendientes (21/11/2026)
+## Pendientes (26/11/2026)
 
-**Hecho hoy:** PR #38 mergeado (`44c27a7`), pin bumpeado y vendor verificado
-byte a byte. Commit `7d015e7`.
+Repartidos a su sitio: lo que es trabajo vive en un ticket, lo que es estado se
+queda aquí. Ningún pendiente queda sólo en este fichero.
 
-### En curso
+### Se queda en el ciclo
 
-1. **Suite de regresión sobre el pin `44c27a7`.** Pendiente de lanzar: el
-   intento del 26/11 se descartó (ver abajo). Cuando el proveedor responda,
-   lanzarla, leer el Scorecard y comparar con la suite 7 (13 PASA · 1 SUSPENDE).
-   Recordar la tasa medida: 2 EXCELENTE de 9 en este Caso.
+1. **El Caso ya tiene dos corridas PASA** (`reports/versiones/a0b29172….json`):
+   `pasaSostenido` se cumple para los 14 Casos. Pero `patron-pagina` hizo **1 de
+   3** en la segunda suite y `preflight/proyecto-no-existe` también 1 de 3. La
+   regla dice «refinado»; la tasa dice otra cosa. Eso se decide en el 41.
 
-### Decisiones abiertas (ninguna es escribir prosa)
+### Tickets abiertos
 
-2. **El orden canónico** falla 4 de 9 con dos formas distintas (inversión de los
-   dos últimos pasos; `design-match` adelantado al principio) y está escrito en
-   nueve sitios. La pregunta: ¿el guard exige una perfección que un SUT
-   estocástico no da, o el flujo puede hacerse ineludible? Pide decisión, no
-   petición de redacción.
-3. **La columna de mobile del grid.** 3 de los 4 fallos de `fidelidad-gap` son
-   `grid-cols-1` u omitir la columna; el Gold pide `grid-cols-2`. El skill ya lo
-   dice («si los pone a dos, se escribe `grid-cols-2`») y no basta. Petición
-   aparte, si se decide que hay algo que decir.
-4. **`pasaSostenido` sigue sin lector**: ningún comando lo comprueba, se lee a
-   mano sobre `corridas`. Con la tasa del 2 de 9, la regla de «dos corridas
-   consecutivas» puede dar por bueno un Caso que pasa por suerte.
+- **41** — Grill-with-docs: cómo se demuestra que un skill es bueno (material
+  literal, decisión de umbral y de tasa). `ready-for-human`.
+- **42** — El orden canónico falla **5 de 9** sin causa de redacción:
+  ¿el guard exige una perfección que un SUT estocástico no da, o el flujo puede
+  hacerse ineludible? `ready-for-human`.
+- **43** — El trigger de `implement-component` sigue sin dispararse: 6 intentos
+  para 3 entregas en las dos suites. `ready-for-agent`.
+- **44** — `patron-pagina` aprueba sin invocar `implement-pattern`: el Caso
+  puede no estar midiendo su skill. `ready-for-human`.
+- **harness 20** — Ningún comando lee `pasaSostenido`. `ready-for-agent`.
+- **05, 15, 17** — siguen esperando una persona (ADR-0015, ADR-0018, el
+  vigilante).
 
-### Esperan a una persona
+### Peticiones
 
-5. **Ticket 17** (el vigilante acusa una edición del mantenedor): decidir si
-   acusa sólo ficheros nuevos o también los rastreados que cambiaron. Nos ha
-   obligado a parar el repo durante cada medida.
-6. **Tickets 05 y 15**: construidos y verdes; les falta tu «acepto» a los
-   ADR-0015 y ADR-0018 para pasar a `done`.
+- [`peticion-columna-de-mobile-del-grid.md`](../peticiones/peticion-columna-de-mobile-del-grid.md)
+  — `propuesta`: 3 de los 4 fallos de `fidelidad-gap` son `grid-cols-1` u
+  omitir la columna; el Gold pide `grid-cols-2`.
+- [`peticion-validar-la-version-final.md`](../peticiones/peticion-validar-la-version-final.md)
+  — **descartada con medida**; no reimplementar.
 
-### De otro ciclo, sin tocar
+### Cerrado por la medida
 
-7. **`implement-component/boton-primario`** entregó una vez EXCELENTE **sin
-   invocar el skill**: es el trigger del frontmatter, no el harness.
-
-### Descartado con medida (no reimplementar)
-
-8. **`peticion-validar-la-version-final.md`**: 1 EXCELENTE de 4 y la inversión
-   que atacaba reaparece. No se mergea. Queda como registro de que esa frase no
-   es la palanca.
+- **`validate-accessibility` 1 de 3**: en la segunda suite dio **3 de 3**. Era
+  varianza, no defecto. Sin ticket.
 
 ## La suite del 26/11: descartada
 
@@ -278,3 +272,28 @@ Los dos fallos son los dos modos ya conocidos (gap y orden). Nada nuevo.
 `reports/versiones/a0b29172….json` tiene **1 corrida**. Hacen falta dos
 consecutivas del mismo árbol, y `pasaSostenido` sigue sin lector: se comprueba a
 mano sobre `corridas`.
+
+## La segunda suite (26/11/2026)
+
+Pin `44c27a7`, árbol `a0b29172`, **14 PASA · 0 SUSPENDE · 0 INDETERMINADO**, 46
+Ejecuciones, **0 con `infraestructura`**. El proveedor aguantó y el run es
+válido: ni una Ejecución cortada por reloj.
+
+`reports/versiones/a0b29172….json` guarda ya **dos corridas consecutivas PASA**,
+así que `pasaSostenido` se cumple para los 14 Casos.
+
+### La letra pequeña, que es el hallazgo
+
+| Caso | Corrida 1 | Corrida 2 |
+|---|---|---|
+| `patron-pagina` | 2/3 | **1/3** |
+| `preflight/proyecto-no-existe` | 2/3 | **1/3** |
+| `validate-accessibility/checklist-sin-servidor` | **1/3** | 3/3 |
+| `scaffold-project/no-scaffoldea-sin-permiso` | 3/3 | 2/3 |
+
+El mismo Caso que satisface «refinado» acertó una entrega de tres. Y
+`validate-accessibility` osciló de 1/3 a 3/3 sin que su skill cambiara: aquel 1/3
+era varianza, no defecto. Es la evidencia que abre el ticket 41.
+
+`patron-pagina` volvió a entregar **EXCELENTE sin invocar el skill bajo test**
+(2.ª Ejecución), igual que en la suite 1 (4.ª). De ahí el ticket 44.
