@@ -183,10 +183,9 @@ byte a byte. Commit `7d015e7`.
 ### En curso
 
 1. **Suite de regresión sobre el pin `44c27a7`.** Pendiente de lanzar: el
-   mantenedor decidió dejarla para más tarde. Cuando toque, leer el Scorecard,
-   comparar con la suite 7 (13 PASA · 1 SUSPENDE) y decidir si el grid sube el
-   Caso o si sigue la varianza. Recordar la tasa medida: 2 EXCELENTE de 9 en
-   este Caso.
+   intento del 26/11 se descartó (ver abajo). Cuando el proveedor responda,
+   lanzarla, leer el Scorecard y comparar con la suite 7 (13 PASA · 1 SUSPENDE).
+   Recordar la tasa medida: 2 EXCELENTE de 9 en este Caso.
 
 ### Decisiones abiertas (ninguna es escribir prosa)
 
@@ -221,3 +220,20 @@ byte a byte. Commit `7d015e7`.
 8. **`peticion-validar-la-version-final.md`**: 1 EXCELENTE de 4 y la inversión
    que atacaba reaparece. No se mergea. Queda como registro de que esa frase no
    es la palanca.
+
+## La suite del 26/11: descartada
+
+Lanzada por el mantenedor sobre el pin `44c27a7` y parada en el caso 9 de 14.
+
+- 28 Ejecuciones escritas; **5 con `exit 143` y `infraestructura: tiempo`**,
+  incluidas **las tres** de `patron-pagina`.
+- Causa: el proveedor de inferencia saturado («Model is busy»); las Ejecuciones
+  se aguantaban 20 minutos entre sí y el harness las mataba por reloj.
+- Un run así mide al proveedor, no al skill. **Descartado**, no hay Scorecard
+  nuevo.
+- No deja residuos: `reports/suite/ejecuciones` se vacía al arrancar la suite,
+  y `git status` quedó limpio.
+
+Comprobado además que las trece Ejecuciones locales que sostienen la tasa del
+Caso (5–17) **sí** son limpias: `exit 0` y sin `infraestructura`. La tasa 2 de 9
+sigue en pie.
