@@ -237,3 +237,44 @@ Lanzada por el mantenedor sobre el pin `44c27a7` y parada en el caso 9 de 14.
 Comprobado además que las trece Ejecuciones locales que sostienen la tasa del
 Caso (5–17) **sí** son limpias: `exit 0` y sin `infraestructura`. La tasa 2 de 9
 sigue en pie.
+
+## La suite sobre el pin nuevo (26/11/2026)
+
+Pin `44c27a7`, árbol `a0b29172`, **14 PASA · 0 SUSPENDE · 0 INDETERMINADO**, 47
+Ejecuciones, **0 con `infraestructura`**: el proveedor aguantó y ninguna se cortó
+por reloj. La cabecera imprime ya `Starter 37748bd (37748bde…)` (ticket 39).
+
+Pero `PASA` es «acertó al menos una entrega»:
+
+| Caso | Correctas / entregas |
+|---|---|
+| 9 Casos | 3/3 |
+| `boton-primario-angular`, `component-recognizer`, `preflight/proyecto-no-existe`, `patron-pagina` | 2/3 |
+| `validate-accessibility/checklist-sin-servidor` | **1/3** |
+
+`checklist-sin-servidor` estaba **3/3 EXCELENTE** en la suite 7 y hoy es 1
+EXCELENTE, 1 ACEPTABLE (`detecta-label-sin-for`) y 1 INACEPTABLE
+(`detecta-fieldset-sin-legend`). Ese skill no ha cambiado: es varianza del SUT y
+está a una mala racha de SUSPENDE.
+
+### `patron-pagina`, intento a intento
+
+| # | Grade | ¿Invocó el skill? | Fallo |
+|---|---|---|---|
+| 1 | EXCELENTE | sí | — |
+| 2 | INACEPTABLE | no | `fidelidad-gap` |
+| 3 | INACEPTABLE | sí | `encadenado-canonico` (validate → design) |
+| 4 | EXCELENTE | **no** | — |
+| 5 | EXCELENTE | sí | — |
+
+La 4 **aprobó sin invocar `implement-pattern`**: mismo hallazgo de trigger que
+`implement-component/boton-primario`, ahora en el Caso que lo tiene como skill
+bajo test. No es un rojo; es una pregunta sobre el Caso.
+
+Los dos fallos son los dos modos ya conocidos (gap y orden). Nada nuevo.
+
+### PASA sostenido: no
+
+`reports/versiones/a0b29172….json` tiene **1 corrida**. Hacen falta dos
+consecutivas del mismo árbol, y `pasaSostenido` sigue sin lector: se comprueba a
+mano sobre `corridas`.
