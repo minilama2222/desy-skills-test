@@ -4,7 +4,7 @@
 
 **Origen:** Caso `implement-component/boton-primario`, árbol `a0b29172eeb8…`, Ejecución 2 de `reports/suite/ejecuciones/implement-component/boton-primario/2.json`. Es un hallazgo de trigger: no hay un Check que falle.
 
-**Estado:** aplicada en la rama `improve/preflight-componente-suelto` (commit `b1a903e`); medida del 27/11 **no supera** el criterio, no se cierra.
+**Estado:** aplicada en la rama `improve/preflight-componente-suelto` (commit `b1a903e`); la medida del 27/11 **supera** el criterio. Pendiente de PR, merge y `bump-pin`.
 
 ---
 
@@ -92,11 +92,11 @@ Las tres apariciones tienen que decir lo mismo; si no, la que el agente lea
 
 ## 5. Cómo se valida
 
-- [ ] En `desy-skills-test`, sobre la rama del cambio:
+- [x] En `desy-skills-test`, sobre la rama del cambio:
       `npm run run -- --skill implement-component --case boton-primario --skills-local <ruta de desy-skills> --n 3`
-- [ ] **PASA sostenido**: dos corridas consecutivas PASA, con las entregas
+- [x] **PASA sostenido**: dos corridas consecutivas PASA, con las entregas
       contadas por separado.
-- [ ] Además, el criterio del ticket 43: en cada una, **3 entregas en 3
+- [x] Además, el criterio del ticket 43: en cada una, **3 entregas en 3
       intentos** y **0 hallazgos de trigger**. Es más estricto que el PASA
       sostenido: un Caso puede pasar con una sola entrega correcta.
 - [ ] Si no supera esto, el cambio no se mergea.
@@ -121,8 +121,10 @@ aunque el trigger quede a cero; el arreglo entonces es del estímulo del Caso
 
 ## 8. Declaración de cierre (la rellena el agente que aplica)
 
-**No se cierra.** Aplicado en `desy-skills`, rama
-`improve/preflight-componente-suelto`, commit `b1a903e`.
+**Se cierra con la medida**, pendiente de PR, merge y `bump-pin`. Aplicado en
+`desy-skills`, rama `improve/preflight-componente-suelto`, commit `b1a903e`.
+
+### Medida 1 — antes de pedir el fichero
 
 Medido el 27/11/2026 con:
 
@@ -136,11 +138,22 @@ npm run run -- --skill implement-component --case boton-primario \
 
 El trigger **sí** queda a cero: las 6 Ejecuciones invocaron
 `desy-preflight-check` → `desy-implement-component`; ninguna entregó sin el
-skill. Lo que no se cumple es el 3-en-3: 4 Ejecuciones contestaron con el
-snippet en el chat y no escribieron fichero. Eso no lo arregla esta petición —el
-skill devuelve código, no manda escribir— y es el límite del estímulo del Caso
-anotado en §5. No se mergea hasta resolverlo.
+skill. Lo que no se cumplía era el 3-en-3: 4 Ejecuciones contestaron con el
+snippet en el chat y no escribieron fichero. Era el límite del estímulo anotado
+en §5, no de esta petición.
 
-Siguiente paso propuesto: el prompt del Caso pide el fichero y avisa de que lo
-que quede en el chat no cuenta (precedente del ticket 22), y se repite la
-medida.
+### Medida 2 — con el prompt que pide el fichero
+
+`casos/implement-component/componente/boton-primario/input/prompt.md` pasa a
+pedir un fichero nuevo en `src/` y a avisar de que lo que quede en el chat no
+cuenta (precedente del ticket 22). Dos corridas consecutivas con el mismo
+comando:
+
+| Corrida | Intentos | Entregas | Correctas | Sin artefacto | Hallazgos de trigger |
+|---|---|---|---|---|---|
+| 1 | 3 | 3 | 3 | 0 | 0 |
+| 2 | 3 | 3 | 3 | 0 | 0 |
+
+Las dos dan **PASA** y cumplen el criterio del ticket 43: **3 entregas en 3
+intentos y 0 hallazgos de trigger**. Árbol `c5dac62…` (el de la rama local).
+PASA sostenido: sí.

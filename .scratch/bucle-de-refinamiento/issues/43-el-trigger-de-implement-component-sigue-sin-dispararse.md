@@ -12,16 +12,16 @@ sigue fallando.
 
 **Status:** ready-for-human
 
-**Status depende de:** aplicar la petición en `desy-skills`; la medida se hace
-desde aquí con `--skills-local`, pero necesita la rama del otro repo.
+**Status depende de:** mergear la rama `improve/preflight-componente-suelto` en
+`desy-skills` y re-pinear; la medida local ya supera el criterio.
 
 - [x] Diagnosticar por qué no se dispara: leer la `description`, el prompt del
       Caso y las invocaciones de las Ejecuciones que no lo llamaron
 - [x] Escribir una petición **nueva** (la anterior está aplicada; se enlaza, no se reabre):
       [`peticion-componente-suelto-en-preflight.md`](../peticiones/peticion-componente-suelto-en-preflight.md)
-- [ ] Medir con el Caso `implement-component/boton-primario`: intentos por
+- [x] Medir con el Caso `implement-component/boton-primario`: intentos por
       entrega y hallazgos de trigger
-- [ ] Criterio de cierre: 3 entregas en 3 intentos, 0 hallazgos de trigger
+- [x] Criterio de cierre: 3 entregas en 3 intentos, 0 hallazgos de trigger
 
 ## La evidencia
 
@@ -80,7 +80,7 @@ trigger (frontmatter)» como nombre genérico del hecho. Lo que este diagnóstic
 corrige es la atribución a un frontmatter concreto; el hecho —una entrega
 EXCELENTE sin el skill bajo test— sigue siendo el mismo.
 
-### Medida de la petición (27/11/2026)
+### Medida 1 — la petición sola (27/11/2026)
 
 Aplicada en `desy-skills`, rama `improve/preflight-componente-suelto`, commit
 `b1a903e`. Medida con `--skills-local` y `--n 3`:
@@ -92,5 +92,18 @@ Aplicada en `desy-skills`, rama `improve/preflight-componente-suelto`, commit
 El trigger **queda a cero**: las 6 Ejecuciones invocaron
 `desy-preflight-check` → `desy-implement-component`. Pero el criterio de 3
 entregas en 3 intentos no se cumple: 4 Ejecuciones contestaron con el snippet en
-el chat. Es el límite del estímulo del Caso, no de esta petición. Siguiente paso:
-pedir el fichero en el prompt del Caso (precedente del ticket 22) y repetir.
+el chat. Es el límite del estímulo del Caso, no de esta petición.
+
+### Medida 2 — con el prompt que pide el fichero (27/11/2026)
+
+El prompt del Caso ahora pide un fichero nuevo en `src/` y avisa de que lo que
+quede en el chat no cuenta (precedente del ticket 22). Dos corridas consecutivas:
+
+| Corrida | Intentos | Entregas | Correctas | Sin artefacto | Hallazgos de trigger |
+|---|---|---|---|---|---|
+| 1 | 3 | 3 | 3 | 0 | 0 |
+| 2 | 3 | 3 | 3 | 0 | 0 |
+
+Las dos dan **PASA** y cumplen el criterio: **3 entregas en 3 intentos, 0
+hallazgos de trigger**. Árbol `c5dac62…`, el de la rama local. PASA sostenido:
+sí. Queda el merge y el `bump-pin`.
