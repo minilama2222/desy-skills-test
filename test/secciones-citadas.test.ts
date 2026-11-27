@@ -35,6 +35,10 @@ const EPIGRAFE = "## Anclaje en `desy-skills`";
 
 /** El cuerpo del epígrafe de anclaje, sin el título y sin los bordes en blanco. */
 function cuerpoDelAnclaje(texto: string): string {
+  // `core.autocrlf=true` en Windows deja la rúbrica del working tree en CRLF,
+  // mientras `git show` devuelve el blob en LF. Sin normalizar, cada línea
+  // «falta» aunque esté: el invariante compara texto, no finales de línea.
+  texto = texto.replace(/\r\n/g, "\n");
   const i = texto.indexOf(EPIGRAFE);
   if (i === -1) throw new Error(`no hay «${EPIGRAFE}»`);
   const desde = i + EPIGRAFE.length;
