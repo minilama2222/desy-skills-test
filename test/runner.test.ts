@@ -1163,6 +1163,12 @@ describe("npmCommand: el build resuelve npm con el PATH del harness (ticket 25)"
  * sigue denegado.
  */
 describe("permisosDelSandbox: los assets del skill, y nada más (ticket 27)", () => {
+  // El producto normaliza la ruta a `/` para que la config sea la misma en
+  // Windows y Linux; la expectativa tiene que hacer lo mismo o el gate de
+  // Windows compara `C:\\...` contra `C:/...`.
+  const recursoPermitido = (skillsDir: string) =>
+    `${skillsDir.split("\\").join("/").replace(/\/+$/, "")}/*`;
+
   const conSandbox = (fn: (skillsDir: string) => void) => {
     const raiz = mkdtempSync(join(tmpdir(), "permisos-"));
     const skillsDir = join(raiz, "home", ".config", "opencode", "skills");
@@ -1181,7 +1187,7 @@ describe("permisosDelSandbox: los assets del skill, y nada más (ticket 27)", ()
 
       expect(ultima).toEqual({
         action: "external_directory",
-        resource: `${skillsDir}/*`,
+        resource: recursoPermitido(skillsDir),
         effect: "allow",
       });
       // La base se conserva: la negación general sigue estando, y antes.
@@ -1219,7 +1225,7 @@ describe("permisosDelSandbox: los assets del skill, y nada más (ticket 27)", ()
       };
       expect(config.permissions.at(-1)).toEqual({
         action: "external_directory",
-        resource: `${skillsDir}/*`,
+        resource: recursoPermitido(skillsDir),
         effect: "allow",
       });
       expect(config.skills).toEqual([skillsDir]);

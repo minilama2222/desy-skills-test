@@ -30,7 +30,12 @@ jobs:
     # ~120 s. El techo es para una máquina de CI cargada, no una medición.
     timeout-minutes: 30
     steps:
+      # `fetch-depth: 0`: `test/secciones-citadas.test.ts` compara la prosa actual
+      # con la de un commit histórico (`465a071`). Un clon shallow no tiene ese
+      # objeto y el gate entero cae por 11 tests que no miden el código de hoy.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
