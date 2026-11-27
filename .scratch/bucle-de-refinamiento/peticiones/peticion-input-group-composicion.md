@@ -110,8 +110,9 @@ Validado en `desy-skills-test` con la rama puesta: dos ejecuciones consecutivas
 `EXCELENTE` (8 y 9, 2026-11-27), con `reconoce-input` y `reconoce-input-group`
 en verde. Cambió la definición de `input-group` en el recognizer y en el
 traductor Angular. El PR #39 se mergeó el 2026-11-27 (merge commit
-`6058b74`). Pendiente el `bump-pin` y la suite de regresión (los firma el
-humano).
+`6058b74`). La suite de regresión con la rama dio 14 PASA, 0 SUSPENDE y 0
+INDETERMINADO; el diff contra la base no movió ningún veredicto de skill.
+Pendiente solo el `bump-pin` (lo firma el humano).
 
 ## 9. Estado de aplicación
 

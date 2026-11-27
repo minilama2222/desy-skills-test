@@ -1,6 +1,6 @@
 # Ciclo: component-recognizer-input
 
-**Estado:** abierto
+**Estado:** abierto — pendiente `bump-pin`
 **Fase:** 5
 **Base:** a0b29172eeb807ff1e6c5db8024d1c5bfd1af7e58ee5b9953a24fc2b3aa54bae
 **Skills en foco:** component-recognizer
@@ -33,7 +33,7 @@ regla 3 contradice al catálogo que dice validar.
 | 2026-11-27 | local `57789f7` (PR #39) | reconocimiento-perfil | 1 EXCELENTE + 1 BUENO de 2 | PASA (0 INACEPTABLE); `no-inventa-input-group` en 1 de 2 |
 | 2026-11-27 | local `5d83a8c` (PR #39, Caso ajustado) | reconocimiento-perfil | EXCELENTE × 2 | PASA |
 | 2026-11-27 | local `9e01d84` (PR #39, date-input corregido) | reconocimiento-perfil | EXCELENTE × 2 | **PASA sostenido** |
-| 2026-11-27 | merge `6058b74` (main de `desy-skills`) | reconocimiento-perfil | — | pendiente de suite de regresión |
+| 2026-11-27 | merge `6058b74`, medido como local `7756428` | los 14 Casos | 3 por Caso | **14 PASA · 0 SUSPENDE · 0 INDETERMINADO** |
 
 ## Fase 2 cerrada (2026-11-27)
 
@@ -73,7 +73,13 @@ El PR #39 se mergeó el 2026-11-27 (merge commit `6058b74`).
 
 Propuestas para el humano, en orden:
 
-1. `npm run suite -- --skills-local /root/work/desy-skills-input-group`
-   (regresión; el repo no se toca mientras corre).
-2. `npm run bump-pin 6058b74` (lo firma el humano; el bucle lo veta).
-3. `npm run diff-versiones <base> <nuevo>` contra la versión base.
+1. [x] `npm run suite -- --skills-local /root/work/desy-skills-input-group`
+   → 14 PASA, 0 SUSPENDE, 0 INDETERMINADO (árbol `7756428`).
+2. [x] `npm run diff-versiones a0b2917 7756428` → **0 Skills con cambio de
+   veredicto**; `component-recognizer` sigue PASA y `reconocimiento-perfil` da
+   EXCELENTE en 2 de 3 entregas.
+3. [ ] `npm run bump-pin 6058b74` (lo firma el humano; el bucle lo veta).
+
+Hallazgo colateral, ya conocido: `implement-pattern` entregó una Ejecución
+correcta **sin invocar** el skill (aviso de trigger del scorecard). No es del
+PR #39 ni mueve el veredicto.

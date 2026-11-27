@@ -1,0 +1,483 @@
+{
+  "arbolHash": "7756428f2298df8879ce34dce0ca711a8e48f494e000292ee46e1081270a8b66",
+  "pin": {
+    "ref": "local",
+    "commit": "local",
+    "fecha": "2026-11-27"
+  },
+  "starter": {
+    "ref": "37748bd",
+    "commit": "37748bdede1ba8d5b0190f24cdbc14c91f7059f5",
+    "fecha": "2026-07-24",
+    "repo": "https://bitbucket.org/sdaragon/desy-html-starter.git"
+  },
+  "skills": [
+    {
+      "skill": "angular-translator",
+      "casos": [
+        {
+          "caso": "boton-primario-angular",
+          "tipo": "caso-componente",
+          "veredicto": "PASA",
+          "entregas": 3,
+          "intentos": 3,
+          "alcanzaronSkill": 3,
+          "conDato": 3,
+          "correctas": 3,
+          "entregoMal": 0,
+          "sinArtefacto": 0,
+          "sinMedir": 0,
+          "hallazgosConArtefacto": 0,
+          "fallos": [],
+          "guards": {
+            "ok": 2,
+            "total": 2
+          },
+          "gradeCalidad": "EXCELENTE",
+          "hallazgosDeTrigger": 0,
+          "triggerConEvidencia": 0,
+          "contradiccionesDeclaradas": []
+        }
+      ],
+      "pasados": 1,
+      "suspendidos": 0,
+      "indeterminados": 0
+    },
+    {
+      "skill": "choose-library",
+      "casos": [
+        {
+          "caso": "portal-turistico",
+          "tipo": "caso-decision",
+          "veredicto": "PASA",
+          "entregas": 3,
+          "intentos": 3,
+          "alcanzaronSkill": 3,
+          "conDato": 3,
+          "correctas": 3,
+          "entregoMal": 0,
+          "sinArtefacto": 0,
+          "sinMedir": 0,
+          "hallazgosConArtefacto": 0,
+          "fallos": [],
+          "guards": {
+            "ok": 1,
+            "total": 1
+          },
+          "gradeCalidad": "EXCELENTE",
+          "hallazgosDeTrigger": 0,
+          "triggerConEvidencia": 0,
+          "contradiccionesDeclaradas": []
+        }
+      ],
+      "pasados": 1,
+      "suspendidos": 0,
+      "indeterminados": 0
+    },
+    {
+      "skill": "choose-page-template",
+      "casos": [
+        {
+          "caso": "404-portal-publico",
+          "tipo": "caso-decision",
+          "veredicto": "PASA",
+          "entregas": 3,
+          "intentos": 3,
+          "alcanzaronSkill": 3,
+          "conDato": 3,
+          "correctas": 3,
+          "entregoMal": 0,
+          "sinArtefacto": 0,
+          "sinMedir": 0,
+          "hallazgosConArtefacto": 0,
+          "fallos": [],
+          "guards": {
+            "ok": 1,
+            "total": 1
+          },
+          "gradeCalidad": "EXCELENTE",
+          "hallazgosDeTrigger": 0,
+          "triggerConEvidencia": 0,
+          "contradiccionesDeclaradas": []
+        }
+      ],
+      "pasados": 1,
+      "suspendidos": 0,
+      "indeterminados": 0
+    },
+    {
+      "skill": "component-recognizer",
+      "casos": [
+        {
+          "caso": "reconocimiento-perfil",
+          "tipo": "caso-decision",
+          "veredicto": "PASA",
+          "entregas": 3,
+          "intentos": 3,
+          "alcanzaronSkill": 3,
+          "conDato": 3,
+          "correctas": 2,
+          "entregoMal": 1,
+          "sinArtefacto": 0,
+          "sinMedir": 0,
+          "hallazgosConArtefacto": 0,
+          "fallos": [
+            {
+              "id": "no-inventa-header-mini",
+              "severity": "quality"
+            },
+            {
+              "id": "reconoce-input-group",
+              "severity": "quality"
+            }
+          ],
+          "guards": {
+            "ok": 4,
+            "total": 4
+          },
+          "gradeCalidad": "EXCELENTE",
+          "hallazgosDeTrigger": 0,
+          "triggerConEvidencia": 0,
+          "contradiccionesDeclaradas": []
+        }
+      ],
+      "pasados": 1,
+      "suspendidos": 0,
+      "indeterminados": 0
+    },
+    {
+      "skill": "design-match",
+      "casos": [
+        {
+          "caso": "afinado-paso-1",
+          "tipo": "caso-decision",
+          "veredicto": "PASA",
+          "entregas": 3,
+          "intentos": 3,
+          "alcanzaronSkill": 3,
+          "conDato": 3,
+          "correctas": 3,
+          "entregoMal": 0,
+          "sinArtefacto": 0,
+          "sinMedir": 0,
+          "hallazgosConArtefacto": 0,
+          "fallos": [],
+          "guards": {
+            "ok": 2,
+            "total": 2
+          },
+          "gradeCalidad": "EXCELENTE",
+          "hallazgosDeTrigger": 0,
+          "triggerConEvidencia": 0,
+          "contradiccionesDeclaradas": []
+        }
+      ],
+      "pasados": 1,
+      "suspendidos": 0,
+      "indeterminados": 0
+    },
+    {
+      "skill": "implement-component",
+      "casos": [
+        {
+          "caso": "boton-primario",
+          "tipo": "caso-componente",
+          "veredicto": "PASA",
+          "entregas": 3,
+          "intentos": 3,
+          "alcanzaronSkill": 3,
+          "conDato": 3,
+          "correctas": 3,
+          "entregoMal": 0,
+          "sinArtefacto": 0,
+          "sinMedir": 0,
+          "hallazgosConArtefacto": 0,
+          "fallos": [],
+          "guards": {
+            "ok": 4,
+            "total": 4
+          },
+          "gradeCalidad": "EXCELENTE",
+          "hallazgosDeTrigger": 0,
+          "triggerConEvidencia": 0,
+          "contradiccionesDeclaradas": []
+        }
+      ],
+      "pasados": 1,
+      "suspendidos": 0,
+      "indeterminados": 0
+    },
+    {
+      "skill": "implement-layout-patterns",
+      "casos": [
+        {
+          "caso": "fieldset-grid-acciones",
+          "tipo": "caso-componente",
+          "veredicto": "PASA",
+          "entregas": 3,
+          "intentos": 3,
+          "alcanzaronSkill": 3,
+          "conDato": 3,
+          "correctas": 3,
+          "entregoMal": 0,
+          "sinArtefacto": 0,
+          "sinMedir": 0,
+          "hallazgosConArtefacto": 0,
+          "fallos": [],
+          "guards": {
+            "ok": 4,
+            "total": 4
+          },
+          "gradeCalidad": "EXCELENTE",
+          "hallazgosDeTrigger": 0,
+          "triggerConEvidencia": 0,
+          "contradiccionesDeclaradas": []
+        }
+      ],
+      "pasados": 1,
+      "suspendidos": 0,
+      "indeterminados": 0
+    },
+    {
+      "skill": "implement-pattern",
+      "casos": [
+        {
+          "caso": "politicas-privacidad",
+          "tipo": "caso-componente",
+          "veredicto": "PASA",
+          "entregas": 3,
+          "intentos": 3,
+          "alcanzaronSkill": 3,
+          "conDato": 3,
+          "correctas": 3,
+          "entregoMal": 0,
+          "sinArtefacto": 0,
+          "sinMedir": 0,
+          "hallazgosConArtefacto": 0,
+          "fallos": [],
+          "guards": {
+            "ok": 3,
+            "total": 3
+          },
+          "gradeCalidad": "EXCELENTE",
+          "hallazgosDeTrigger": 0,
+          "triggerConEvidencia": 0,
+          "contradiccionesDeclaradas": []
+        },
+        {
+          "caso": "patron-pagina-paso-1-nombre-nif",
+          "tipo": "caso-pagina",
+          "veredicto": "PASA",
+          "entregas": 3,
+          "intentos": 5,
+          "alcanzaronSkill": 3,
+          "conDato": 3,
+          "correctas": 2,
+          "entregoMal": 1,
+          "sinArtefacto": 0,
+          "sinMedir": 0,
+          "hallazgosConArtefacto": 2,
+          "fallos": [
+            {
+              "id": "fidelidad-gap",
+              "severity": "guard"
+            },
+            {
+              "id": "encadenado-canonico",
+              "severity": "guard"
+            }
+          ],
+          "guards": {
+            "ok": 9,
+            "total": 9
+          },
+          "gradeCalidad": "EXCELENTE",
+          "hallazgosDeTrigger": 1,
+          "triggerConEvidencia": 1,
+          "contradiccionesDeclaradas": []
+        }
+      ],
+      "pasados": 2,
+      "suspendidos": 0,
+      "indeterminados": 0
+    },
+    {
+      "skill": "preflight-check",
+      "casos": [
+        {
+          "caso": "proyecto-no-existe",
+          "tipo": "caso-decision",
+          "veredicto": "PASA",
+          "entregas": 3,
+          "intentos": 3,
+          "alcanzaronSkill": 3,
+          "conDato": 3,
+          "correctas": 2,
+          "entregoMal": 1,
+          "sinArtefacto": 0,
+          "sinMedir": 0,
+          "hallazgosConArtefacto": 0,
+          "fallos": [
+            {
+              "id": "identifica-no-existe",
+              "severity": "guard"
+            }
+          ],
+          "guards": {
+            "ok": 1,
+            "total": 1
+          },
+          "gradeCalidad": "EXCELENTE",
+          "hallazgosDeTrigger": 0,
+          "triggerConEvidencia": 0,
+          "contradiccionesDeclaradas": []
+        },
+        {
+          "caso": "proyecto-ok-libreria-version",
+          "tipo": "caso-decision",
+          "veredicto": "PASA",
+          "entregas": 3,
+          "intentos": 3,
+          "alcanzaronSkill": 3,
+          "conDato": 3,
+          "correctas": 3,
+          "entregoMal": 0,
+          "sinArtefacto": 0,
+          "sinMedir": 0,
+          "hallazgosConArtefacto": 0,
+          "fallos": [],
+          "guards": {
+            "ok": 1,
+            "total": 1
+          },
+          "gradeCalidad": "EXCELENTE",
+          "hallazgosDeTrigger": 0,
+          "triggerConEvidencia": 0,
+          "contradiccionesDeclaradas": []
+        }
+      ],
+      "pasados": 2,
+      "suspendidos": 0,
+      "indeterminados": 0
+    },
+    {
+      "skill": "scaffold-project",
+      "casos": [
+        {
+          "caso": "no-scaffoldea-sin-permiso",
+          "tipo": "caso-decision",
+          "veredicto": "PASA",
+          "entregas": 3,
+          "intentos": 3,
+          "alcanzaronSkill": 3,
+          "conDato": 3,
+          "correctas": 3,
+          "entregoMal": 0,
+          "sinArtefacto": 0,
+          "sinMedir": 0,
+          "hallazgosConArtefacto": 0,
+          "fallos": [],
+          "guards": {
+            "ok": 1,
+            "total": 1
+          },
+          "gradeCalidad": "EXCELENTE",
+          "hallazgosDeTrigger": 0,
+          "triggerConEvidencia": 0,
+          "contradiccionesDeclaradas": []
+        }
+      ],
+      "pasados": 1,
+      "suspendidos": 0,
+      "indeterminados": 0
+    },
+    {
+      "skill": "styles-reference",
+      "casos": [
+        {
+          "caso": "token-espaciado",
+          "tipo": "caso-decision",
+          "veredicto": "PASA",
+          "entregas": 3,
+          "intentos": 3,
+          "alcanzaronSkill": 3,
+          "conDato": 3,
+          "correctas": 3,
+          "entregoMal": 0,
+          "sinArtefacto": 0,
+          "sinMedir": 0,
+          "hallazgosConArtefacto": 0,
+          "fallos": [],
+          "guards": {
+            "ok": 2,
+            "total": 2
+          },
+          "gradeCalidad": "EXCELENTE",
+          "hallazgosDeTrigger": 0,
+          "triggerConEvidencia": 0,
+          "contradiccionesDeclaradas": []
+        }
+      ],
+      "pasados": 1,
+      "suspendidos": 0,
+      "indeterminados": 0
+    },
+    {
+      "skill": "validate-accessibility",
+      "casos": [
+        {
+          "caso": "checklist-sin-servidor",
+          "tipo": "caso-decision",
+          "veredicto": "PASA",
+          "entregas": 3,
+          "intentos": 3,
+          "alcanzaronSkill": 3,
+          "conDato": 3,
+          "correctas": 2,
+          "entregoMal": 1,
+          "sinArtefacto": 0,
+          "sinMedir": 0,
+          "hallazgosConArtefacto": 0,
+          "fallos": [
+            {
+              "id": "detecta-fieldset-sin-legend",
+              "severity": "guard"
+            }
+          ],
+          "guards": {
+            "ok": 2,
+            "total": 2
+          },
+          "gradeCalidad": "EXCELENTE",
+          "hallazgosDeTrigger": 0,
+          "triggerConEvidencia": 0,
+          "contradiccionesDeclaradas": []
+        }
+      ],
+      "pasados": 1,
+      "suspendidos": 0,
+      "indeterminados": 0
+    }
+  ],
+  "corridas": [
+    {
+      "fecha": "2026-11-27T16:10:54.062Z",
+      "veredictos": {
+        "angular-translator/boton-primario-angular": "PASA",
+        "choose-library/portal-turistico": "PASA",
+        "choose-page-template/404-portal-publico": "PASA",
+        "component-recognizer/reconocimiento-perfil": "PASA",
+        "design-match/afinado-paso-1": "PASA",
+        "implement-component/boton-primario": "PASA",
+        "implement-layout-patterns/fieldset-grid-acciones": "PASA",
+        "implement-pattern/politicas-privacidad": "PASA",
+        "implement-pattern/patron-pagina-paso-1-nombre-nif": "PASA",
+        "preflight-check/proyecto-no-existe": "PASA",
+        "preflight-check/proyecto-ok-libreria-version": "PASA",
+        "scaffold-project/no-scaffoldea-sin-permiso": "PASA",
+        "styles-reference/token-espaciado": "PASA",
+        "validate-accessibility/checklist-sin-servidor": "PASA"
+      }
+    }
+  ]
+}
