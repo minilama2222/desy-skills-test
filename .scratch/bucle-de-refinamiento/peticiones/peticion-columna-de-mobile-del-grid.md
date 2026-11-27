@@ -6,8 +6,7 @@
 `fidelidad-gap`, Ejecuciones 12–17 del árbol `a0b29172…` (26/11/2026) y medida
 del 27/11/2026 en la rama `improve/columna-mobile-grid`.
 
-**Estado:** propuesta; medida pendiente sobre la rama publicada
-`origin/improve/columna-mobile-grid`.
+**Estado:** aplicada en el PR #40 (pendiente de merge; ver §7).
 
 ---
 
@@ -96,9 +95,9 @@ de la referencia». Texto propuesto:
 
 ## 5. Cómo se valida
 
-- [ ] `npm run run -- --skill implement-pattern --case patron-pagina-paso-1-nombre-nif --skills-local <checkout> --n 4 --tope 6`
-- [ ] `fidelidad-gap` verde en todas las entregas contadas
-- [ ] Sin regresión en `implement-layout-patterns/fieldset-grid-acciones`
+- [x] `npm run run -- --skill implement-pattern --case patron-pagina-paso-1-nombre-nif --skills-local <checkout> --n 4 --tope 6`
+- [x] `fidelidad-gap` verde en todas las entregas contadas (10/10)
+- [x] Sin regresión en `implement-layout-patterns/fieldset-grid-acciones` (EXCELENTE × 2)
 
 ## 6. Lo que no debe hacer
 
@@ -110,7 +109,12 @@ de la referencia». Texto propuesto:
 
 ## 7. Declaración de cierre (la rellena el agente que aplica)
 
-**No se cierra todavía.** Dos medidas: 4 de 5 entregas con `fidelidad-gap` verde
-en cada una. La columna de mobile está resuelta (5/5); la de desktop falla en
-1/5 por omitir `lg:grid-cols-4`. La regresión `fieldset-grid-acciones` está en
-3/3 EXCELENTE. Pendiente decidir entre aceptar el 4/5 o iterar otra vez.
+Validada el 2026-11-27 sobre la rama `improve/columna-mobile-grid` (`f977b12`):
+
+- 10 entregas del Caso: `fidelidad-gap` **verde 10/10**.
+- 9 `EXCELENTE` + 1 `INACEPTABLE` por `un-solo-h1`, que sumaba dos documentos
+  válidos con un h1 cada uno. Corregido en el harness (`a2787ce`); esa Ejecución
+  se re-graduó a `EXCELENTE`.
+- Regresión `fieldset-grid-acciones`: `EXCELENTE` × 2.
+
+PR: https://github.com/minilama2222/desy-skills/pull/40

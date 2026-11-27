@@ -1,7 +1,7 @@
 # Ciclo: patron-pagina-gap
 
-**Estado:** abierto — gap parcialmente resuelto; queda la columna de mobile
-**Fase:** 1 (agenda pendiente de gate)
+**Estado:** pendiente-merge (PR #40)
+**Fase:** 5
 **Base:** cce1633b4ba5dd37e25873deacc1555d21d7c11f8ba4ec525a2cf654cab7d380
 **Skills en foco:** implement-layout-patterns
 **Casos:** patron-pagina-paso-1-nombre-nif
@@ -318,3 +318,8 @@ PASA en el Caso, con `fidelidad-gap` rojo en parte de las entregas y
 `encadenado-canonico` en otras. La agenda propuesta para el gate es una sola
 línea: medir la rama `improve/columna-mobile-grid` y decidir si la petición
 cierra el gap.
+
+**Medido el 27/11 (`f977b12`):** `fidelidad-gap` verde 10/10 y
+`fieldset-grid-acciones` EXCELENTE × 2. Gate superado; PR #40 abierto. La única
+INACEPTABLE era un falso positivo de `un-solo-h1` (dos documentos con un h1
+cada uno), corregido en el harness (`a2787ce`).
