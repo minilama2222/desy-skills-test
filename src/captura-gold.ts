@@ -1,7 +1,7 @@
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
 /**
@@ -46,6 +46,13 @@ export interface ManifiestoCaptura {
   ancho: number;
   clave: string;
   fichero: string;
+  /**
+   * URL viva de la que se capturó la imagen (ticket 22). Cuando está, la
+   * captura canónica se hace contra esa URL —con su CSS aplicado— y el
+   * `gold.html` es la copia exacta que se descargó en ese momento. Si falta, la
+   * captura es local y exige que sus hojas de estilo existan junto al HTML.
+   */
+  url?: string;
 }
 
 /**
@@ -116,6 +123,11 @@ export interface OpcionesCaptura {
   /** Ancho de viewport de la captura. Por defecto, `ANCHO_CAPTURA`. */
   ancho?: number;
   /**
+   * URL viva de la que se captura (ticket 22). Se guarda en el manifiesto para
+   * que la próxima recaptura sepa de dónde salió el Gold-imagen.
+   */
+  url?: string;
+  /**
    * Cómo se genera el PNG. Se inyecta para que el test de invalidación no abra
    * un navegador (ver el ticket 06): recibe la ruta destino y escribe el PNG.
    */
@@ -142,24 +154,107 @@ export function asegurarCaptura(dir: string, opciones: OpcionesCaptura): string 
   }
 
   opciones.capturar(destino);
+  const manifiestoNuevo: ManifiestoCaptura = {
+    ancho,
+    clave,
+    fichero: FICHERO_CAPTURA,
+    ...(opciones.url === undefined ? {} : { url: opciones.url }),
+  };
   writeFileSync(
     join(dir, FICHERO_MANIFIESTO),
-    `${JSON.stringify({ ancho, clave, fichero: FICHERO_CAPTURA } satisfies ManifiestoCaptura, null, 2)}\n`,
+    `${JSON.stringify(manifiestoNuevo, null, 2)}\n`,
   );
   return destino;
 }
 
 /**
- * Genera la Captura de Gold con `agent-browser`: abre el Gold-HTML a 1900px de
- * ancho y hace un screenshot de página completa. Es el adaptador real que
+ * Las hojas de estilo **locales** que enlaza un documento (ticket 22): las que
+ * un navegador resolvería contra el fichero. Se ignoran las absolutas
+ * (`https:`, `//host`) y las `data:`, que no dependen del disco.
+ */
+export function hojasDeEstiloLocales(html: string): string[] {
+  const locales: string[] = [];
+  for (const match of html.matchAll(/<link\b[^>]*>/gi)) {
+    const etiqueta = match[0];
+    if (!/\brel\s*=\s*["']stylesheet["']/i.test(etiqueta)) continue;
+    const href = /\bhref\s*=\s*["']([^"']+)["']/i.exec(etiqueta)?.[1];
+    if (href === undefined) continue;
+    if (/^(?:[a-z]+:)?\/\//i.test(href) || href.startsWith("data:")) continue;
+    locales.push(href);
+  }
+  return locales;
+}
+
+/**
+ * Tolerancia del scrollbar vertical: el viewport declarado incluye la barra de
+ * desplazamiento, así que una captura de página completa sale hasta ~20px más
+ * estrecha (1900 → 1885 en el Gold de `implement-pattern`). Es una diferencia
+ * esperada, no un error de captura.
+ */
+export const TOLERANCIA_SCROLLBAR = 20;
+
+/**
+ * ¿El `gold.png` commiteado mide lo que declara su manifiesto? (ticket 22). El
+ * guardarraíl no miraba las dimensiones: un PNG capturado sin CSS pasaba porque
+ * la clave del manifiesto coincidía con el `gold.html`. La regla es pura sobre
+ * los bytes del PNG, y admite la franja del scrollbar.
+ *
+ * `dirInput` es el `input/` del Caso. Si falta el PNG o el manifiesto, no añade
+ * un hallazgo: de esa ausencia ya habla `problemaDeCapturaDesactualizada`.
+ */
+export function problemaDeDimensionesDeLaCaptura(
+  dirInput: string,
+): string | undefined {
+  const png = join(dirInput, FICHERO_CAPTURA);
+  const manifiesto = leerManifiestoCaptura(dirInput);
+  if (!existsSync(png) || manifiesto === undefined) return undefined;
+
+  const dims = dimensionesDePng(readFileSync(png));
+  if (dims === undefined) return "el gold.png commiteado no es un PNG válido";
+  const ancho = dims.ancho;
+  if (ancho > manifiesto.ancho || ancho < manifiesto.ancho - TOLERANCIA_SCROLLBAR) {
+    return (
+      `el gold.png mide ${ancho}px de ancho y el manifiesto declara ` +
+      `${manifiesto.ancho}px (se admite hasta ${TOLERANCIA_SCROLLBAR}px menos ` +
+      "por el scrollbar); recaptura con `npm run capturar-gold`"
+    );
+  }
+  return undefined;
+}
+
+/**
+ * Genera la Captura de Gold con `agent-browser`: abre el Gold a `ancho`px y
+ * hace un screenshot de página completa. Es el adaptador real que
  * `asegurarCaptura` inyecta; el test de invalidación usa un capturador falso.
+ *
+ * Con `urlViva`, captura la URL tal cual la sirve el sitio (con su CSS y sus
+ * fuentes): es el modo canónico desde el ticket 22. Sin ella, abre el `gold.html`
+ * local y **falla** si enlaza una hoja de estilo local que no existe, en vez de
+ * capturar silenciosamente una página sin estilos.
  */
 export function capturarConAgentBrowser(
   goldHtml: string,
   ancho: number,
+  urlViva?: string,
 ): (destino: string) => void {
   return (destino: string): void => {
-    const url = pathToFileURL(goldHtml).href;
+    let url = urlViva;
+    if (url === undefined) {
+      const html = readFileSync(goldHtml, "utf8");
+      const dir = dirname(goldHtml);
+      const faltan = hojasDeEstiloLocales(html).filter(
+        (href) => !existsSync(resolve(dir, href)),
+      );
+      if (faltan.length > 0) {
+        throw new Error(
+          `El Gold local ${goldHtml} enlaza hojas de estilo que no existen ` +
+            `(${faltan.join(", ")}): capturarlo así daría una página sin CSS. ` +
+            "Descarga el CSS junto al HTML o captura desde la URL viva con " +
+            "`npm run capturar-gold -- --skill <skill> --case <caso> --url <url>`.",
+        );
+      }
+      url = pathToFileURL(goldHtml).href;
+    }
     correr("set", "viewport", String(ancho), "1080");
     correr("open", url);
     correr("screenshot", "--full", destino);

@@ -9,7 +9,9 @@ import {
   claveDeCaptura,
   dimensionesDePng,
   leerManifiestoCaptura,
+  hojasDeEstiloLocales,
   problemaDeCapturaDesactualizada,
+  problemaDeDimensionesDeLaCaptura,
   problemaDePng,
   type ManifiestoCaptura,
 } from "../src/captura-gold.js";
@@ -279,5 +281,88 @@ describe("problemaDeCapturaDesactualizada (ticket 40)", () => {
     dir = mkdtempSync(join(tmpdir(), "captura-"));
     writeFileSync(join(dir, "gold.html"), "<main>Gold</main>");
     expect(problemaDeCapturaDesactualizada(dir)).toBeUndefined();
+  });
+});
+
+/**
+ * Ticket 22: el Gold de `implement-pattern` se capturó como `file://` y el
+ * navegador no encontró `css/styles.css`, así que el PNG era el render por
+ * defecto. Una captura local sólo vale si sus hojas de estilo locales existen.
+ */
+describe("hojasDeEstiloLocales (ticket 22)", () => {
+  it("devuelve las hojas relativas del documento", () => {
+    const html =
+      '<link rel="stylesheet" href="css/styles.css">' +
+      '<link href="otra.css" rel="stylesheet">';
+    expect(hojasDeEstiloLocales(html)).toEqual(["css/styles.css", "otra.css"]);
+  });
+
+  it("ignora las hojas absolutas, protocol-relative y data:", () => {
+    const html = [
+      '<link rel="stylesheet" href="https://desy.aragon.es/css/styles.css">',
+      '<link rel="stylesheet" href="//cdn.example.com/x.css">',
+      '<link rel="stylesheet" href="data:text/css,body{}">',
+      '<link rel="stylesheet" href="css/local.css">',
+    ].join("\n");
+    expect(hojasDeEstiloLocales(html)).toEqual(["css/local.css"]);
+  });
+
+  it("no confunde un favicon ni un preconnect con una hoja de estilo", () => {
+    const html = [
+      '<link rel="icon" href="favicon.ico">',
+      '<link rel="preconnect" href="https://fonts.googleapis.com">',
+    ].join("\n");
+    expect(hojasDeEstiloLocales(html)).toEqual([]);
+  });
+});
+
+/**
+ * Ticket 22: el PNG commiteado medía 1885px y el manifiesto declaraba 1900. La
+ * diferencia es el scrollbar vertical, no un error: el guardarraíl tolera la
+ * franja del scrollbar pero no un ancho arbitrario.
+ */
+describe("problemaDeDimensionesDeLaCaptura (ticket 22)", () => {
+  let dir: string | undefined;
+
+  afterEach(() => {
+    if (dir) rmSync(dir, { recursive: true, force: true });
+    dir = undefined;
+  });
+
+  function preparar(anchoManifiesto: number, anchoPng: number): string {
+    dir = mkdtempSync(join(tmpdir(), "captura-dim-"));
+    writeFileSync(join(dir, "gold.html"), "<main>Gold</main>");
+    writeFileSync(join(dir, "gold.png"), pngConDimensiones(anchoPng, 1000));
+    writeFileSync(
+      join(dir, "gold.captura.json"),
+      JSON.stringify({
+        ancho: anchoManifiesto,
+        clave: claveDeCaptura({ html: "<main>Gold</main>", ancho: anchoManifiesto }),
+        fichero: "gold.png",
+      }),
+    );
+    return dir;
+  }
+
+  it("acepta un PNG al ancho del manifiesto", () => {
+    expect(problemaDeDimensionesDeLaCaptura(preparar(1900, 1900))).toBeUndefined();
+  });
+
+  it("acepta la franja del scrollbar (1885 de 1900)", () => {
+    expect(problemaDeDimensionesDeLaCaptura(preparar(1900, 1885))).toBeUndefined();
+  });
+
+  it("señala un ancho arbitrariamente distinto", () => {
+    expect(problemaDeDimensionesDeLaCaptura(preparar(1900, 800))).toMatch(/ancho/i);
+  });
+
+  it("señala un PNG que no es PNG", () => {
+    const d = preparar(1900, 1900);
+    writeFileSync(join(d, "gold.png"), "no soy un png");
+    expect(problemaDeDimensionesDeLaCaptura(d)).toMatch(/PNG/i);
+  });
+
+  it("sin PNG o sin manifiesto no añade un segundo hallazgo", () => {
+    expect(problemaDeDimensionesDeLaCaptura(mkdtempSync(join(tmpdir(), "vacio-")))).toBeUndefined();
   });
 });

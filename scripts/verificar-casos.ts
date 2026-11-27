@@ -3,7 +3,10 @@ import { execFileSync } from "node:child_process";
 import { join, relative } from "node:path";
 import { anclajesDeRubric, contradiccionesDeRubric, seccionesCitadasEnRubric } from "../src/caso.js";
 import { CASOS_DIR, cargarCaso } from "../src/caso-loader.js";
-import { problemaDeCapturaDesactualizada } from "../src/captura-gold.js";
+import {
+  problemaDeCapturaDesactualizada,
+  problemaDeDimensionesDeLaCaptura,
+} from "../src/captura-gold.js";
 import {
   deudaDeAnclaje,
   problemasDeAnclajePerdidas,
@@ -134,6 +137,13 @@ for (const caso of arbol) {
     join(REPO_ROOT, caso.ruta, "input"),
   );
   if (problema !== undefined) hallazgos.push(`${caso.ruta}: ${problema}`);
+
+  // Y el PNG tiene que medir lo que declara el manifiesto (ticket 22): un
+  // fichero capturado sin CSS también conserva la clave y antes colaba.
+  const dimensiones = problemaDeDimensionesDeLaCaptura(
+    join(REPO_ROOT, caso.ruta, "input"),
+  );
+  if (dimensiones !== undefined) hallazgos.push(`${caso.ruta}: ${dimensiones}`);
 }
 
 /**

@@ -1,5 +1,10 @@
 import { bumpPin, currentRepo, realGit, PIN_PATH } from "./bump.js";
-import { ANCHO_CAPTURA, asegurarCaptura, capturarConAgentBrowser } from "./captura-gold.js";
+import {
+  ANCHO_CAPTURA,
+  asegurarCaptura,
+  capturarConAgentBrowser,
+  leerManifiestoCaptura,
+} from "./captura-gold.js";
 import { CASOS_DIR, cargarCaso, cargarCasos } from "./caso-loader.js";
 import type { AnclaDeSkill, Assert, Caso, Check, ContradiccionDeSkill, TipoCaso } from "./caso.js";
 import { cuentaComoEntrega, ejecutarCaso, type ResultadoEjecucion } from "./ejecutar.js";
@@ -734,8 +739,13 @@ function runCapturarGold(args: string[]): void {
     );
   }
   const dirGold = dirname(caso.goldPath);
+  // La URL viva es la fuente canónica desde el ticket 22: se pasa en la primera
+  // captura y queda en el manifiesto para las siguientes. Sin `--url`, la
+  // captura local exige que existan sus hojas de estilo.
+  const url = opcion(args, "--url") ?? leerManifiestoCaptura(dirGold)?.url;
   const ruta = asegurarCaptura(dirGold, {
-    capturar: capturarConAgentBrowser(caso.goldPath, ANCHO_CAPTURA),
+    ...(url === undefined ? {} : { url }),
+    capturar: capturarConAgentBrowser(caso.goldPath, ANCHO_CAPTURA, url),
   });
   console.log(`Captura de Gold lista: ${ruta}`);
 }

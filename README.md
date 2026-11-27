@@ -110,6 +110,15 @@ navegador (`agent-browser`). Donde `agent-browser` no esté disponible, la fixtu
 commiteada es la que vale; un `mockup.png` de andamiaje es un wireframe válido, no
 un error.
 
+La Captura de Gold de un Caso-página se hace **desde la URL viva** del Gold, no
+desde un `file://` con el CSS copiado a mano: `gold.html` es la copia exacta que
+sirve esa URL y `gold.png` se captura de la URL con su CSS aplicado. La primera
+captura se declara con `--url` y queda en `gold.captura.json`; las siguientes la
+reutilizan. Sin `--url`, la captura local **falla** si el HTML enlaza una hoja de
+estilo local que no existe, en vez de generar un PNG sin estilos. El guardarraíl
+de `verificar-casos` comprueba además que el `gold.png` commiteado mide el ancho
+del manifiesto, admitiendo la franja del scrollbar vertical.
+
 ## Correr la suite
 
 `npm run suite` es el comando que corre la **suite entera** y sirve para CI:
