@@ -1,6 +1,6 @@
 # Ciclo: component-recognizer-input
 
-**Estado:** abierto — pendiente `bump-pin`
+**Estado:** cerrado
 **Fase:** 5
 **Base:** a0b29172eeb807ff1e6c5db8024d1c5bfd1af7e58ee5b9953a24fc2b3aa54bae
 **Skills en foco:** component-recognizer
@@ -78,8 +78,18 @@ Propuestas para el humano, en orden:
 2. [x] `npm run diff-versiones a0b2917 7756428` → **0 Skills con cambio de
    veredicto**; `component-recognizer` sigue PASA y `reconocimiento-perfil` da
    EXCELENTE en 2 de 3 entregas.
-3. [ ] `npm run bump-pin 6058b74` (lo firma el humano; el bucle lo veta).
+3. [x] `npm run bump-pin 6058b74` (aplicado el 2026-11-27 con autorización explícita del humano).
 
 Hallazgo colateral, ya conocido: `implement-pattern` entregó una Ejecución
 correcta **sin invocar** el skill (aviso de trigger del scorecard). No es del
 PR #39 ni mueve el veredicto.
+
+## Cierre (2026-11-27)
+
+- PR #39 mergeado en `6058b74`; `pin.json` y `vendor/desy-skills` bumpeados a ese commit.
+- Suite de regresión con el contenido mergeado: 14 PASA, 0 SUSPENDE, 0 INDETERMINADO.
+- Diff `a0b2917 → 7756428`: 0 Skills con cambio de veredicto.
+- `reconocimiento-perfil`: PASA, guards 4/4, `EXCELENTE` en 2 de 3 entregas.
+- Petición `peticion-input-group-composicion.md` en estado `aplicada`.
+
+Ciclo cerrado.

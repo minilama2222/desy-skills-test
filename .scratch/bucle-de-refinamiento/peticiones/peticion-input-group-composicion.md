@@ -4,7 +4,7 @@
 
 **Origen:** Caso `component-recognizer/reconocimiento-perfil`, checks `reconoce-input` (guard) y `no-inventa-input-group` (quality), Ejecuciones 2, 3 y 4 del árbol `a0b29172eeb807ff1e6c5db8024d1c5bfd1af7e58ee5b9953a24fc2b3aa54bae` (pin `44c27a`, 27/11/2026)
 
-**Estado:** aplicada y mergeada (PR #39, commit `6058b74`; ver §9)
+**Estado:** aplicada (PR #39, commit `6058b74`; ver §9)
 
 ---
 
@@ -112,7 +112,7 @@ en verde. Cambió la definición de `input-group` en el recognizer y en el
 traductor Angular. El PR #39 se mergeó el 2026-11-27 (merge commit
 `6058b74`). La suite de regresión con la rama dio 14 PASA, 0 SUSPENDE y 0
 INDETERMINADO; el diff contra la base no movió ningún veredicto de skill.
-Pendiente solo el `bump-pin` (lo firma el humano).
+El `bump-pin` a `6058b74` se aplicó el 2026-11-27. Ciclo cerrado.
 
 ## 9. Estado de aplicación
 
