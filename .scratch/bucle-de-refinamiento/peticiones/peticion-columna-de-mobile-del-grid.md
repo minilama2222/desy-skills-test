@@ -1,19 +1,22 @@
-# Que el grid del formulario escriba `grid-cols-2`, no `grid-cols-1` ni lo omita
+# Que el grid del formulario escriba `grid-cols-2 lg:grid-cols-4`, no una rejilla distinta
 
 **Fichero destino:** `skills/desy-implement-layout-patterns/SKILL.md` (ruta dentro de `desy-skills`)
 
 **Origen:** Caso `implement-pattern/patron-pagina-paso-1-nombre-nif`, guard
-`fidelidad-gap`, Ejecuciones 12–17 del árbol `a0b29172…` (26/11/2026)
+`fidelidad-gap`, Ejecuciones 12–17 del árbol `a0b29172…` (26/11/2026) y medida
+del 27/11/2026 en la rama `improve/columna-mobile-grid`.
 
-**Estado:** propuesta
+**Estado:** propuesta, con una primera medida que amplía el alcance a
+`lg:grid-cols-4`; pendiente de repetir la medida.
 
 ---
 
 ## 1. El cambio, en una frase
 
-Que la regla del grid madre diga, para este patrón, **`grid-cols-2` explícito**
-—no `grid-cols-1`, no omitirlo—, porque el Gold oficial del paso 1 del
-formulario pone los campos a dos columnas en mobile.
+Que la regla del grid madre diga, para este patrón, **`grid-cols-2 lg:grid-cols-4`**
+explícito —no `grid-cols-1`, no omitir la columna de mobile y no cambiar la de
+desktop por una rejilla de 12—, porque el Gold oficial del paso 1 del formulario
+usa las tres clases `grid grid-cols-2 lg:grid-cols-4 gap-lg`.
 
 ## 2. Por qué (evidencia)
 
@@ -37,15 +40,52 @@ está, y no basta: escriben `grid-cols-1` o lo omiten.
 Y la cuarta no escribió rejilla, que es otra cosa (fidelidad de estructura) y
 quizá no se arregle con esta frase.
 
+### Primera medida (27/11/2026) — `grid-cols-2` sí, `lg:grid-cols-4` no
+
+Con el cambio de `grid-cols-2` en la rama `improve/columna-mobile-grid`,
+`--n 4 --tope 6`, 5 intentos y 5 entregas: `fidelidad-gap` verde en **4 de 5**.
+La que falla ya escribe `grid-cols-2`, pero usa **`lg:grid-cols-12`**:
+
+| # | Rejilla escrita | `fidelidad-gap` |
+|---|---|---|
+| 1 | `grid-cols-2 lg:grid-cols-4 gap-lg` | ✅ |
+| 2 | `grid-cols-2 lg:grid-cols-4 gap-lg` | ✅ |
+| 3 | `grid-cols-2 lg:grid-cols-4 gap-lg` | ✅ |
+| 4 | `grid-cols-2 lg:grid-cols-12 gap-lg` | ❌ |
+| 5 | `grid-cols-2 lg:grid-cols-4 gap-lg` | ✅ |
+
+Por eso esta petición no se queda en la columna de mobile: fija también la de
+desktop. Los otros dos INACEPTABLE de la corrida son `encadenado-canonico`, que
+no es de este cambio.
+
+### Segunda medida (27/11/2026) — con `lg:grid-cols-4` en la regla
+
+Con la rama ya ampliada, `--n 4 --tope 6`: **6 intentos, 5 entregas**, 1 sin
+artefacto. `fidelidad-gap` verde en **4 de 5** entregas:
+
+| # | Entrega | `fidelidad-gap` | Rejilla |
+|---|---|---|---|
+| 1 | sí | ✅ | `grid-cols-2 lg:grid-cols-4 gap-lg` |
+| 2 | sí | ✅ | `grid-cols-2 lg:grid-cols-4 gap-lg` |
+| 3 | sí | ✅ | `grid-cols-2 lg:grid-cols-4 gap-lg` |
+| 4 | no | ❌ | sin artefacto |
+| 5 | sí | ✅ | `grid-cols-2 lg:grid-cols-4 gap-lg` |
+| 6 | sí | ❌ | `grid-cols-2 gap-lg` (omite `lg:grid-cols-4`) |
+
+La columna de mobile está resuelta en **5 de 5** entregas; la de desktop falla
+en 1 de 5. La regresión `fieldset-grid-acciones` sigue en **3/3 EXCELENTE**.
+Queda pendiente decidir si se acepta el 4/5 o se itera otra vez.
+
 ## 3. La sección que lo causa
 
 En «Grid responsivo del formulario» → «Grid madre: las columnas y el gap salen
 de la referencia». Texto propuesto:
 
-> **En este patrón, `grid-cols-2`.** El paso 1 del formulario de identidad pone
-> los campos a dos columnas en mobile: se escribe `grid-cols-2`, no
-> `grid-cols-1` ni se omite. Omitir o poner una columna deja la página a una
-> columna en mobile y no reproduce el Gold.
+> **En este patrón, `grid-cols-2 lg:grid-cols-4`.** El paso 1 del formulario de
+> identidad usa `grid grid-cols-2 lg:grid-cols-4 gap-lg`: se escriben las tres
+> clases, no `grid-cols-1`, no se omite `grid-cols-2` y no se cambia
+> `lg:grid-cols-4` por una rejilla de 12. Omitir o cambiar una de las tres deja
+> la página fuera del Gold.
 
 ## 4. Restricciones
 
@@ -64,9 +104,13 @@ de la referencia». Texto propuesto:
 
 - No re-pinear `desy-skills-test` ni editar `vendor/`.
 - No cambiar el prompt del Caso para que diga la clase.
-- No dar por bueno `grid-cols-1` porque «en mobile es lo mismo»: el guard
-  compara con el Gold, y el Gold dice dos.
+- No dar por bueno `grid-cols-1` porque «en mobile es lo mismo», ni
+  `lg:grid-cols-12` porque «da más flexibilidad»: el guard compara con el Gold,
+  y el Gold dice `grid-cols-2 lg:grid-cols-4`.
 
 ## 7. Declaración de cierre (la rellena el agente que aplica)
 
-**Pendiente.** Sin medir. No se cierra con una corrida.
+**No se cierra todavía.** Dos medidas: 4 de 5 entregas con `fidelidad-gap` verde
+en cada una. La columna de mobile está resuelta (5/5); la de desktop falla en
+1/5 por omitir `lg:grid-cols-4`. La regresión `fieldset-grid-acciones` está en
+3/3 EXCELENTE. Pendiente decidir entre aceptar el 4/5 o iterar otra vez.
