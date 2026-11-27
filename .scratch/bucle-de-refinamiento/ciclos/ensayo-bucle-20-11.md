@@ -1,7 +1,7 @@
 # Ciclo: ensayo-bucle-20-11
 
-**Estado:** abierto
-**Fase:** 1
+**Estado:** cerrado
+**Fase:** 5
 **Base:** cce1633b4ba5dd37e25873deacc1555d21d7c11f8ba4ec525a2cf654cab7d380
 **Skills en foco:** por decidir en el gate (el scorecard deja seis skills con rojo)
 **Casos:** reconocimiento-login, afinado-paso-1, proyecto-no-existe, no-scaffoldea-sin-permiso, checklist-sin-servidor, patron-pagina-paso-1-nombre-nif
@@ -40,3 +40,14 @@ hasta cerrar su hueco de evidencia.
 |---|---|---|---|---|
 | 20/11 21:56 | cce1633 | los 14 | — | 8 PASA · 5 SUSPENDE · 1 INDETERMINADO |
 | 20/11 23:45 | cce1633 | patron-pagina | 3/4 | INDETERMINADO → SUSPENDE |
+
+## Cierre (2026-11-27)
+
+El ensayo cumplió su propósito: probó que `refinar-skill` conduce un ciclo y
+dejó escritos los huecos del bucle (ticket 26). Se cierra para no solapar foco
+con el ciclo nuevo `component-recognizer-input`, que retoma el hallazgo medido
+sobre `component-recognizer`.
+
+Lo que queda en la agenda **no se pierde**: sigue escrito arriba con su motivo.
+Ninguno de esos puntos tenía petición aprobada, así que no viajan a otro ciclo;
+si vuelven, se retoman desde su entrada y su evidencia, no desde el recuerdo.

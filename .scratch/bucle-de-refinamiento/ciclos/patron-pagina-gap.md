@@ -28,6 +28,7 @@ al Caso (el prompt no contradice el orden).
 | 2026-11-21 01:19 | cce1633 | patron-pagina-paso-1-nombre-nif | 3 de 4 intentos | SUSPENDE (guards 8/9) |
 | 2026-11-21 02:05 | local `477acb3` (gap + columnas) | patron-pagina-paso-1-nombre-nif | 4 de 4 intentos | INACEPTABLE: `fidelidad-gap` en 3 de 4; `encadenado-canonico` en 3 de 4 |
 | 2026-11-21 02:45 | local `5675072` (+ intro en la rejilla) | patron-pagina-paso-1-nombre-nif | 3 de 3 intentos | INACEPTABLE: `fidelidad-gap` **verde en 3 de 3**; `encadenado-canonico` en 2 de 3 |
+| 2026-11-27 | `44c27a` (`a0b2917`) | patron-pagina-paso-1-nombre-nif | 3 de 3 intentos | INACEPTABLE: `encadenado-canonico` en **3 de 3**, con el Gold-imagen recapturado desde la URL viva (ticket 22); la 3ª añade `un-solo-h1` y `fidelidad-gap` |
 
 ### Fase 1: qué invocó cada Ejecución del árbol `a0b29172`
 
