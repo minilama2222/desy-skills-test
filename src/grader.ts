@@ -136,6 +136,19 @@ function contar(html: string, re: RegExp): number {
 }
 
 /**
+ * Los documentos HTML del artefacto. Un Caso-página puede entregar más de un
+ * fichero (la página y, p. ej., un `index.html` que la enlaza): los guards de
+ * a11y se miden **por documento**, no sumando todos. Si las claves no son
+ * `.html` (fixtures de test), se trata el artefacto entero como un documento.
+ */
+function documentosHtml(artefactos: Artefactos): string[] {
+  const documentos = Object.entries(artefactos.files)
+    .filter(([ruta]) => ruta.toLowerCase().endsWith(".html"))
+    .map(([, contenido]) => contenido);
+  return documentos.length > 0 ? documentos : [html(artefactos)];
+}
+
+/**
  * Quita los comentarios Nunjucks `{# … #}` antes de leer un artefacto.
  *
  * Un Caso-componente gradúa el **fuente** que el SUT escribió (ADR-0006), y en
@@ -200,7 +213,11 @@ function evaluar(
         archivo.includes(assert.macro),
       );
     case "un_solo_h1":
-      return contar(htmlText, /<h1[\s>]/gi) === 1;
+      // «Un solo h1» es una regla **por página**, no una suma del entregable:
+      // dos páginas válidas con un h1 cada una no son dos h1 en la misma página.
+      return documentosHtml(artefactos).every(
+        (documento) => contar(documento, /<h1[\s>]/gi) === 1,
+      );
     case "skip_link":
       return /class\s*=\s*(["'])[^"']*skip-link[^"']*\1/i.test(htmlText);
     case "fieldset_con_legend": {

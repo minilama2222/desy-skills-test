@@ -133,4 +133,39 @@ describe("Framework de Caso-página con los guards de a11y del ticket 07", () =>
     const html = "<main><h1>Uno</h1><h1>Dos</h1><input id=\"x\"></main>";
     expect(conPagina(html).grade).toBe("INACEPTABLE");
   });
+
+  it("dos documentos con un h1 cada uno no suman dos h1: pasa", () => {
+    // Un Caso-página puede entregar la página y, además, un index que la
+    // enlaza. «Un solo h1» es una regla por página; sumarlas era un falso
+    // INACEPTABLE (visto en la medición del 27/11).
+    const resultado = grado(
+      {
+        artefactos: {
+          files: {
+            "dist/formulario.html": "<main><h1>Formulario</h1></main>",
+            "dist/index.html": "<main><h1>Inicio</h1></main>",
+          },
+        },
+        transcript: transcript(),
+      },
+      { tipo: "caso-pagina", checks: [], gold: GOLD_MINIMO },
+    );
+    expect(resultado.detalle.find((d) => d.id === "un-solo-h1")?.passed).toBe(true);
+  });
+
+  it("un documento con dos h1 falla aunque otro tenga uno", () => {
+    const resultado = grado(
+      {
+        artefactos: {
+          files: {
+            "dist/formulario.html": "<main><h1>Uno</h1><h1>Dos</h1></main>",
+            "dist/index.html": "<main><h1>Inicio</h1></main>",
+          },
+        },
+        transcript: transcript(),
+      },
+      { tipo: "caso-pagina", checks: [], gold: GOLD_MINIMO },
+    );
+    expect(resultado.detalle.find((d) => d.id === "un-solo-h1")?.passed).toBe(false);
+  });
 });
