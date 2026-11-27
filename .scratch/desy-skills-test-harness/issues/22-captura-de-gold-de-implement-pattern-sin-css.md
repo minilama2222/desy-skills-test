@@ -5,6 +5,11 @@
 HTML renderizado **sin la hoja de estilos**, así que el SUT recibe como
 «referencia visual del Gold» una página que no se parece al Gold oficial.
 
+**Fuente del Gold:** `https://desy.aragon.es/patron-pagina-paso-1-nombre-nif.html`.
+El `gold.html` y el `gold.png` se toman de esa página: el HTML exacto que sirve
+y una captura de la URL viva con el CSS aplicado. No se reconstruye el Gold
+copiando un `styles.css` a mano.
+
 **Blocked by:** —
 
 **Status:** ready-for-agent
@@ -14,6 +19,10 @@ HTML renderizado **sin la hoja de estilos**, así que el SUT recibe como
 - `input/gold.html:7` enlaza `css/styles.css`.
 - En `input/` solo hay `gold.html`, `gold.png`, `gold.captura.json` y
   `prompt.md`: **no existe `css/`**.
+- El `gold.html` commiteado no es el de la URL: pesa **12.064 bytes** y el que
+  sirve `https://desy.aragon.es/patron-pagina-paso-1-nombre-nif.html` pesa
+  **33.629 bytes**. El fixture actual es una versión recortada; la fuente de
+  verdad es la URL.
 - `capturarConAgentBrowser` abre el Gold como `file://…/gold.html`; el navegador
   no encuentra `file://…/input/css/styles.css` y renderiza con los estilos por
   defecto del navegador.
@@ -29,13 +38,17 @@ HTML renderizado **sin la hoja de estilos**, así que el SUT recibe como
 
 ## Qué debe quedar
 
-- [ ] Decidir cómo se sirve el CSS: copiar el `styles.css` compilado oficial a
-      `input/css/styles.css` (fixture self-contained) o capturar el Gold desde la
-      URL viva. La primera opción es la que permite recapturar sin red.
-- [ ] Recapturar `input/gold.png` y comprobar visualmente que el CSS se aplica:
-      sin spinner ni skip-link visibles, con la tipografía y la rejilla del Gold.
-- [ ] Que `capturar-gold` falle si `gold.html` referencia un CSS local que no
-      existe, en vez de capturar una página sin estilos.
+- [ ] Descargar el HTML exacto de
+      `https://desy.aragon.es/patron-pagina-paso-1-nombre-nif.html` a
+      `input/gold.html` y comprobar que sustituye a la versión recortada.
+- [ ] Capturar `input/gold.png` desde la **URL viva**, con el CSS aplicado; no
+      desde un `file://` con un CSS copiado. Comprobar visualmente que no salen
+      el spinner ni el skip-link y que la tipografía y la rejilla son las del
+      Gold.
+- [ ] Recalcular `gold.captura.json` con el HTML nuevo y el ancho de la captura.
+- [ ] Que `capturar-gold` falle si el Gold se abre en local y referencia un CSS
+      local que no existe, en vez de capturar una página sin estilos. Si la
+      captura canónica pasa a ser la URL viva, documentar ese modo.
 - [ ] Que el guardarraíl compruebe las dimensiones del `gold.png` commiteado (o
       ajuste el ancho esperado si los 1885 px son el scrollbar y no un error).
 - [ ] Pasar `npm run precommit` y `npx tsx scripts/verificar-captura-gold.ts`.
