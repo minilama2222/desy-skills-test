@@ -35,6 +35,15 @@ La unidad de test declarativa: una carpeta con `input/`, `expected/` y `rubric.m
 **Caso-componente**:
 Un Caso cuyo objetivo es el contrato de un componente aislado. No lleva Gold; valida el macro, sus props y sus tokens.
 
+**Componente suelto**:
+La tarea que pide un componente aislado —un botón, un input, una tabla— y no una
+página. Su ruta canónica es `preflight-check` → `desy-implement-component`;
+`desy-choose-page-template` no aplica. No confundirlo con un **Caso-componente**:
+el componente suelto es lo que pide el estímulo; el Caso-componente, el test que
+lo mide.
+_Avoid_: mandarlo por la secuencia de página; llamar «componente» a una página
+entera.
+
 **Caso-página**:
 Un Caso cuyo objetivo es una página completa a partir de un Gold. Lleva el Gold (Gold-HTML y Gold-imagen) y añade a los guards base el encadenado, la a11y de página y la fidelidad estructural contra el Gold-HTML.
 _Avoid_: mezclar los dos tipos; el tipo determina qué checks aplican.
