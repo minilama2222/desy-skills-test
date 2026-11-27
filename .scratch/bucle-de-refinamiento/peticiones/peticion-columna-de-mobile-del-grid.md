@@ -6,8 +6,8 @@
 `fidelidad-gap`, Ejecuciones 12–17 del árbol `a0b29172…` (26/11/2026) y medida
 del 27/11/2026 en la rama `improve/columna-mobile-grid`.
 
-**Estado:** propuesta, con una primera medida que amplía el alcance a
-`lg:grid-cols-4`; pendiente de repetir la medida.
+**Estado:** propuesta; medida pendiente sobre la rama publicada
+`origin/improve/columna-mobile-grid`.
 
 ---
 

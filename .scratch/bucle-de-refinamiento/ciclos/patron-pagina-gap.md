@@ -1,7 +1,7 @@
 # Ciclo: patron-pagina-gap
 
-**Estado:** abierto — la medida del segundo cambio dice que no; vuelve a la fase 1
-**Fase:** 4 (gate: no pasa) → 1
+**Estado:** abierto — gap parcialmente resuelto; queda la columna de mobile
+**Fase:** 1 (agenda pendiente de gate)
 **Base:** cce1633b4ba5dd37e25873deacc1555d21d7c11f8ba4ec525a2cf654cab7d380
 **Skills en foco:** implement-layout-patterns
 **Casos:** patron-pagina-paso-1-nombre-nif
@@ -298,3 +298,23 @@ era varianza, no defecto. Es la evidencia que abre el ticket 41.
 
 `patron-pagina` volvió a entregar **EXCELENTE sin invocar el skill bajo test**
 (2.ª Ejecución), igual que en la suite 1 (4.ª). De ahí el ticket 44.
+
+## Reconciliación de estado (2026-11-27)
+
+El estado de arriba se quedó atrás respecto al disco:
+
+- El PR #38 (grid del formulario) **se mergeó** (`44c27a7`) y está en el pin
+  `6058b74`. La petición del gap queda `aplicada`; no se declara PASA sostenido
+  porque la columna de mobile sigue fallando.
+- La petición de `encadenado-canonico`
+  (`peticion-validar-la-version-final.md`) está **descartada con medida**: no se
+  mergea. Ese rojo no es un cambio de skill pendiente.
+- Lo que queda de `fidelidad-gap` es la **columna de mobile**
+  (`peticion-columna-de-mobile-del-grid.md`, estado `propuesta`), con rama
+  publicada `origin/improve/columna-mobile-grid`.
+
+La suite del 27/11 con el pin actual (`7756428`, contenido de #38 + #39) da
+PASA en el Caso, con `fidelidad-gap` rojo en parte de las entregas y
+`encadenado-canonico` en otras. La agenda propuesta para el gate es una sola
+línea: medir la rama `improve/columna-mobile-grid` y decidir si la petición
+cierra el gap.

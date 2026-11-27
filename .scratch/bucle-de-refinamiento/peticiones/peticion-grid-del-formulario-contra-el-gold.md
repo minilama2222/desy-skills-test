@@ -4,7 +4,7 @@
 
 **Origen:** Caso `implement-pattern/patron-pagina-paso-1-nombre-nif`, guard `fidelidad-gap`, Ejecuciones 1, 2 y 4 del árbol `cce1633b…` (suite del 21/11/2026)
 
-**Estado:** aplicada en el PR #38 (pendiente de merge; ver §9)
+**Estado:** aplicada y mergeada (PR #38, commit `44c27a7`; ver §§9-10)
 
 ---
 
@@ -163,7 +163,14 @@ Lo que **no** consiguió: que el guard pase siempre. La frase «si los pone a do
 se escribe `grid-cols-2`» roza la desviación pero no la clava, y tres de cuatro
 fallos son esa misma omisión.
 
-**Estado:** aplicada en el PR
-[#38](https://github.com/minilama2222/desy-skills/pull/38), pendiente de merge.
-No se declara cerrada como «PASA sostenido»: el Caso da 2 verdes de 9 y este
-cambio no lo pone verde. La columna de mobile queda como petición aparte.
+**Estado:** aplicada y mergeada en el PR
+[#38](https://github.com/minilama2222/desy-skills/pull/38) (merge commit
+`44c27a7`).
+
+## 10. Cierre administrativo (2026-11-27)
+
+El PR #38 se mergeó y entró en el pin `6058b74` de `desy-skills-test`. No se
+declara «PASA sostenido» para `fidelidad-gap`: el cambio eliminó la
+contradicción del `gap-x-base`, pero la columna de mobile sigue fallando en
+parte de la muestra. Esa mitad vive en
+`peticion-columna-de-mobile-del-grid.md`, todavía en estado `propuesta`.
