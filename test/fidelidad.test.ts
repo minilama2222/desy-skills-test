@@ -70,6 +70,16 @@ describe("reproducción del hecho estructural sobre el mismo elemento", () => {
     expect(reproduceContainer(sinContainerEnMain, GOLD)).toBe(false);
   });
 
+  it("la rejilla puede ser un <form>, no solo un <div>", () => {
+    // Un formulario con las clases del grid es una rejilla válida; mirar sólo
+    // `<div>` daba un falso negativo (visto el 27/11 en la Ejecución 18).
+    const conForm = GOLD.replace(
+      '<div class="grid grid-cols-2 lg:grid-cols-4 gap-lg">',
+      '<form class="grid grid-cols-2 lg:grid-cols-4 gap-lg">',
+    ).replace("</div></main>", "</form></main>");
+    expect(reproduceGap(conForm, GOLD)).toBe(true);
+  });
+
   it("un gap-lg suelto no cuela si la rejilla no lo lleva", () => {
     const rejillaMal = GOLD.replace(
       "grid grid-cols-2 lg:grid-cols-4 gap-lg",

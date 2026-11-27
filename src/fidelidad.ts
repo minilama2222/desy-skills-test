@@ -40,17 +40,6 @@ function atributoClase(atributos: string): string[] {
   return match[2]!.split(/\s+/).filter((c) => c.length > 0);
 }
 
-/** Clases de todos los elementos de un tag dado. */
-function clasesDeTodos(html: string, tag: string): string[][] {
-  const resultado: string[][] = [];
-  const re = new RegExp(`<${tag}\\b([^>]*)>`, "gi");
-  for (const match of html.matchAll(re)) {
-    const clases = atributoClase(match[1]!);
-    if (clases.length > 0) resultado.push(clases);
-  }
-  return resultado;
-}
-
 /**
  * Las clases de **cada elemento** del HTML que lleva `class`, en orden de
  * aparición. Es la lectura por elemento que necesitan los hechos estructurales
@@ -104,11 +93,22 @@ export function escalaH1DeGold(goldHtml: string): string[] {
  * reparto (3 de 4 en los formularios DESY). Se queda sólo con esas dos familias.
  */
 export function gapDeGold(goldHtml: string): string[] {
-  const rejilla = clasesDeTodos(goldHtml, "div").find(
-    (clases) => clases.some((c) => /^gap-/.test(c)) && clases.some((c) => /grid-cols-/.test(c)),
-  );
+  const rejilla = rejillaDe(goldHtml);
   if (!rejilla) return [];
   return rejilla.filter((c) => /^gap-/.test(c) || /grid-cols-/.test(c));
+}
+
+/**
+ * La primera rejilla del documento: el elemento con `gap-*` **y** `grid-cols-*`.
+ * Puede ser un `div`, un `form`, una `section`… la etiqueta no hace la rejilla.
+ * Mirar sólo `div` daba un falso negativo cuando el SUT usaba el `form` como
+ * contenedor del grid.
+ */
+function rejillaDe(html: string): string[] | undefined {
+  return clasesPorElemento(html).find(
+    (clases) =>
+      clases.some((c) => /^gap-/.test(c)) && clases.some((c) => /^grid-cols-/.test(c)),
+  );
 }
 
 /**
@@ -130,11 +130,10 @@ export function reproduceEscalaH1(html: string, gold: string | undefined): boole
 export function reproduceGap(html: string, gold: string | undefined): boolean {
   if (gold === undefined) return false;
   const esperadas = gapDeGold(gold);
-  // La rejilla del artefacto es **su** div con gap y columnas (el primero): el
-  // hecho se mira ahí, no en cualquier div con un `gap-lg` suelto.
-  const rejilla = clasesDeTodos(html, "div").find(
-    (clases) => clases.some((c) => /^gap-/.test(c)) && clases.some((c) => /grid-cols-/.test(c)),
-  );
+  // La rejilla del artefacto es **su** elemento con gap y columnas (el
+  // primero): el hecho se mira ahí, no en cualquier elemento con un `gap-lg`
+  // suelto. Y la etiqueta da igual (`div`, `form`, `section`…).
+  const rejilla = rejillaDe(html);
   if (!rejilla) return esperadas.length === 0;
   return contiene(rejilla, esperadas);
 }
