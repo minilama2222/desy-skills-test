@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { readPin } from "../src/pin.js";
 import {
   authDelUsuario,
+  clavesDeProveedores,
   createSandbox,
   datosDirDeHome,
   entornoDelSandbox,
@@ -302,6 +303,78 @@ describe("createSandbox", () => {
     } finally {
       sandbox.cleanup();
       cleanup = undefined;
+    }
+  });
+});
+
+describe("clavesDeProveedores (las dos formas de auth.json)", () => {
+  const conAuth = (contenido: string): string => {
+    const dir = mkdtempSync(join(tmpdir(), "auth-formatos-"));
+    const path = join(dir, "auth.json");
+    writeFileSync(path, contenido);
+    return path;
+  };
+
+  it("lee la forma reciente: providers.<id>.{apiKey, mode: api_key}", () => {
+    const path = conAuth(
+      JSON.stringify({
+        providers: { deepinfra: { apiKey: "clave-nueva", mode: "api_key" } },
+      }),
+    );
+    try {
+      expect(clavesDeProveedores(path)).toEqual({ DEEPINFRA_API_KEY: "clave-nueva" });
+    } finally {
+      rmSync(dirname(path), { recursive: true, force: true });
+    }
+  });
+
+  it("sigue leyendo la forma anterior: <id>.{type: api, key} (control)", () => {
+    const path = conAuth(
+      JSON.stringify({ deepinfra: { type: "api", key: "clave-vieja" } }),
+    );
+    try {
+      expect(clavesDeProveedores(path)).toEqual({ DEEPINFRA_API_KEY: "clave-vieja" });
+    } finally {
+      rmSync(dirname(path), { recursive: true, force: true });
+    }
+  });
+
+  it("no exporta una entrada OAuth de la forma reciente", () => {
+    const path = conAuth(
+      JSON.stringify({
+        providers: { deepinfra: { apiKey: "no-debe-salir", mode: "oauth" } },
+      }),
+    );
+    try {
+      expect(clavesDeProveedores(path)).toEqual({});
+    } finally {
+      rmSync(dirname(path), { recursive: true, force: true });
+    }
+  });
+
+  it("no exporta la clave de otro proveedor", () => {
+    const path = conAuth(
+      JSON.stringify({
+        providers: {
+          deepinfra: { apiKey: "clave-del-sut", mode: "api_key" },
+          otro: { apiKey: "clave-ajena", mode: "api_key" },
+        },
+      }),
+    );
+    try {
+      expect(clavesDeProveedores(path)).toEqual({ DEEPINFRA_API_KEY: "clave-del-sut" });
+    } finally {
+      rmSync(dirname(path), { recursive: true, force: true });
+    }
+  });
+
+  it("sin fichero o con JSON roto devuelve vacío, no lanza", () => {
+    expect(clavesDeProveedores("/no/existe/auth.json")).toEqual({});
+    const path = conAuth("{ roto");
+    try {
+      expect(clavesDeProveedores(path)).toEqual({});
+    } finally {
+      rmSync(dirname(path), { recursive: true, force: true });
     }
   });
 });

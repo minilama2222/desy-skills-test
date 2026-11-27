@@ -1143,19 +1143,55 @@ export function clavesDeProveedores(authPath: string): Record<string, string> {
   } catch {
     return {};
   }
-  if (typeof crudo !== "object" || crudo === null) return {};
-  const claves: Record<string, string> = {};
   // **Solo la del proveedor del SUT.** Se probó primero con todas las `api`, y el
   // smoke del runner volcó las otras tres en el log de la suite al comparar el
   // entorno: una clave que el SUT no necesita no tiene por qué salir de su
   // usuario. El sandbox ya limita los proveedores a `PROVEEDOR_DEL_SUT`
   // (`policies.provider.use`), así que la lista corta y la larga usan lo mismo.
-  const valor = (crudo as Record<string, unknown>)[PROVEEDOR_DEL_SUT];
-  if (typeof valor !== "object" || valor === null) return {};
+  const key = claveDeProveedor(crudo, PROVEEDOR_DEL_SUT);
+  if (key === undefined) return {};
+  return {
+    [`${PROVEEDOR_DEL_SUT.toUpperCase().replace(/[^A-Z0-9]/g, "_")}_API_KEY`]: key,
+  };
+}
+
+/**
+ * La clave `api` de un proveedor, en cualquiera de las dos formas que OpenCode ha
+ * usado para `auth.json`:
+ *
+ * - **V2 reciente:** `{ "providers": { "<id>": { "apiKey", "mode": "api_key" } } }`
+ * - **V2 anterior:** `{ "<id>": { "type": "api", "key" } }`
+ *
+ * Se aceptan las dos a propósito: el harness mide con una versión fijada, pero
+ * un VPS o un runner pueden traer otra, y confundir «no hay clave» con «el
+ * proveedor no está conectado» cuesta una Ejecución entera. Una entrada OAuth
+ * (`mode` distinto de `api_key`, o `type` distinto de `api`) no se convierte en
+ * variable: no es una clave que se pueda exportar.
+ */
+function claveDeProveedor(auth: unknown, proveedor: string): string | undefined {
+  if (typeof auth !== "object" || auth === null) return undefined;
+  const raiz = auth as Record<string, unknown>;
+
+  const providers = raiz.providers;
+  if (typeof providers === "object" && providers !== null) {
+    const valor = (providers as Record<string, unknown>)[proveedor];
+    if (typeof valor === "object" && valor !== null) {
+      const { apiKey, mode } = valor as { apiKey?: unknown; mode?: unknown };
+      if (
+        typeof apiKey === "string" &&
+        apiKey.length > 0 &&
+        (mode === undefined || mode === "api_key")
+      ) {
+        return apiKey;
+      }
+    }
+  }
+
+  const valor = raiz[proveedor];
+  if (typeof valor !== "object" || valor === null) return undefined;
   const { type, key } = valor as { type?: unknown; key?: unknown };
-  if (type !== "api" || typeof key !== "string" || key.length === 0) return {};
-  claves[`${PROVEEDOR_DEL_SUT.toUpperCase().replace(/[^A-Z0-9]/g, "_")}_API_KEY`] = key;
-  return claves;
+  if (type !== "api" || typeof key !== "string" || key.length === 0) return undefined;
+  return key;
 }
 
 /**
