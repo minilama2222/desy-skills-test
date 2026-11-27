@@ -4,7 +4,7 @@
 
 **Origen:** Caso `implement-component/boton-primario`, árbol `a0b29172eeb8…`, Ejecución 2 de `reports/suite/ejecuciones/implement-component/boton-primario/2.json`. Es un hallazgo de trigger: no hay un Check que falle.
 
-**Estado:** propuesta
+**Estado:** aplicada en la rama `improve/preflight-componente-suelto` (commit `b1a903e`); medida del 27/11 **no supera** el criterio, no se cierra.
 
 ---
 
@@ -121,4 +121,26 @@ aunque el trigger quede a cero; el arreglo entonces es del estímulo del Caso
 
 ## 8. Declaración de cierre (la rellena el agente que aplica)
 
-<Qué cambió, en qué rama/PR, y con qué comando lo validó.>
+**No se cierra.** Aplicado en `desy-skills`, rama
+`improve/preflight-componente-suelto`, commit `b1a903e`.
+
+Medido el 27/11/2026 con:
+
+```
+npm run run -- --skill implement-component --case boton-primario \
+  --skills-local /Users/jesuscuadraes/sda/desy-skills-preflight-componente-suelto --n 3
+```
+
+→ árbol `c5dac62…`, **6 intentos · 2 entregas · 1 correcta · 4 sin artefacto ·
+0 hallazgos de trigger**.
+
+El trigger **sí** queda a cero: las 6 Ejecuciones invocaron
+`desy-preflight-check` → `desy-implement-component`; ninguna entregó sin el
+skill. Lo que no se cumple es el 3-en-3: 4 Ejecuciones contestaron con el
+snippet en el chat y no escribieron fichero. Eso no lo arregla esta petición —el
+skill devuelve código, no manda escribir— y es el límite del estímulo del Caso
+anotado en §5. No se mergea hasta resolverlo.
+
+Siguiente paso propuesto: el prompt del Caso pide el fichero y avisa de que lo
+que quede en el chat no cuenta (precedente del ticket 22), y se repite la
+medida.

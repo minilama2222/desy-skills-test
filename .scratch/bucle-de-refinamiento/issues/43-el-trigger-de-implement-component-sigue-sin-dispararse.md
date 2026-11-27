@@ -79,3 +79,18 @@ No se cambia el informe ni el README en este ticket: siguen usando «hallazgo de
 trigger (frontmatter)» como nombre genérico del hecho. Lo que este diagnóstico
 corrige es la atribución a un frontmatter concreto; el hecho —una entrega
 EXCELENTE sin el skill bajo test— sigue siendo el mismo.
+
+### Medida de la petición (27/11/2026)
+
+Aplicada en `desy-skills`, rama `improve/preflight-componente-suelto`, commit
+`b1a903e`. Medida con `--skills-local` y `--n 3`:
+
+| Intentos | Entregas | Correctas | Sin artefacto | Hallazgos de trigger |
+|---|---|---|---|---|
+| 6 | 2 | 1 | 4 | 0 |
+
+El trigger **queda a cero**: las 6 Ejecuciones invocaron
+`desy-preflight-check` → `desy-implement-component`. Pero el criterio de 3
+entregas en 3 intentos no se cumple: 4 Ejecuciones contestaron con el snippet en
+el chat. Es el límite del estímulo del Caso, no de esta petición. Siguiente paso:
+pedir el fichero en el prompt del Caso (precedente del ticket 22) y repetir.
