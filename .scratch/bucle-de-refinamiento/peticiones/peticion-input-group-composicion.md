@@ -91,7 +91,7 @@ Además, los ejemplos de tabla del propio recognizer (filas `input-group` con
       `npm run run -- --skill component-recognizer --case reconocimiento-perfil --skills-local <ruta de desy-skills>`
 - [x] **PASA sostenido**: dos corridas consecutivas con `reconoce-input` y
       `reconoce-input-group` en verde, entregas contadas por separado.
-- [x] Superado: `EXCELENTE` × 2 (ejecuciones 7 y 8 del 2026-11-27).
+- [x] Superado: `EXCELENTE` × 2 (ejecuciones 8 y 9 del 2026-11-27).
 
 ## 6. Skills sugeridos para el agente
 
@@ -107,7 +107,7 @@ Además, los ejemplos de tabla del propio recognizer (filas `input-group` con
 ## 8. Declaración de cierre (la rellena el agente que aplica)
 
 Validado en `desy-skills-test` con la rama puesta: dos ejecuciones consecutivas
-`EXCELENTE` (7 y 8, 2026-11-27), con `reconoce-input` y `reconoce-input-group`
+`EXCELENTE` (8 y 9, 2026-11-27), con `reconoce-input` y `reconoce-input-group`
 en verde. Cambió la definición de `input-group` en el recognizer y en el
 traductor Angular. Pendiente el merge del PR y el `bump-pin` (los firma el
 humano).
@@ -117,9 +117,11 @@ humano).
 - Rama: `skill/input-group-composicion` en `desy-skills` (worktree local
   `/root/work/desy-skills-input-group`).
 - PR: https://github.com/minilama2222/desy-skills/pull/39
-- Medición final con `--skills-local` del 2026-11-27 (ejecuciones 7 y 8):
+- Medición final con `--skills-local` del 2026-11-27 (ejecuciones 8 y 9):
   **`EXCELENTE` × 2**, con `reconoce-input` y `reconoce-input-group` verdes
   (antes: 2 `INACEPTABLE` + 1 `BUENO`).
+- `date-input` se define como fecha **o hora**; «parte de una fecha» no es un
+  `input-group`.
 - El Caso se ajustó en el gate: `no-inventa-input-group` se sustituyó por
   `reconoce-input-group` (peso 2), porque «Tipo de vía» + «Vía» es el caso
   típico de `input-group`. El guard `reconoce-input` sigue cubriendo el fallo

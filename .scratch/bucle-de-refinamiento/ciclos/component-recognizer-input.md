@@ -31,7 +31,8 @@ regla 3 contradice al catálogo que dice validar.
 |---|---|---|---|---|
 | 2026-11-27 | `44c27a` (`a0b2917`) | reconocimiento-perfil | 1 BUENO + 2 INACEPTABLE de 3 | SUSPENDE: `reconoce-input` y `no-inventa-input-group` |
 | 2026-11-27 | local `57789f7` (PR #39) | reconocimiento-perfil | 1 EXCELENTE + 1 BUENO de 2 | PASA (0 INACEPTABLE); `no-inventa-input-group` en 1 de 2 |
-| 2026-11-27 | local `5d83a8c` (PR #39, Caso ajustado) | reconocimiento-perfil | EXCELENTE × 2 | **PASA sostenido** |
+| 2026-11-27 | local `5d83a8c` (PR #39, Caso ajustado) | reconocimiento-perfil | EXCELENTE × 2 | PASA |
+| 2026-11-27 | local `9e01d84` (PR #39, date-input corregido) | reconocimiento-perfil | EXCELENTE × 2 | **PASA sostenido** |
 
 ## Fase 2 cerrada (2026-11-27)
 
@@ -57,7 +58,7 @@ para distinguir «todos los campos como input-group» de «un grupo real».
 
 ## Fase 4 cerrada (2026-11-27)
 
-Gate superado: dos ejecuciones consecutivas `EXCELENTE` (7 y 8), con
+Gate superado: dos ejecuciones consecutivas `EXCELENTE` (8 y 9, rama `9e01d84`), con
 `reconoce-input` y `reconoce-input-group` verdes.
 
 El gate cambió el Caso, no el skill otra vez: «Tipo de vía + Vía» **es** un
