@@ -38,7 +38,8 @@ describe("Bloque A · component-recognizer/reconocimiento-perfil", () => {
     '| 3 | select | por defecto | - | main, dirección | tipo de vía, provincia y municipio |',
     '| 4 | button | primario | base | main, acciones | "Guardar" |',
     '| 5 | button | transparente | base | main, acciones | "Volver" y "Cancelar" |',
-    '| 6 | footer | - | - | pie | enlaces y logos institucionales |',
+    '| 6 | input-group | por defecto | - | main, dirección, fila 1 | select "Tipo de vía" + input "Vía" |',
+    '| 7 | footer | - | - | pie | enlaces y logos institucionales |',
   ].join("\n");
 
   it("existe el Caso en disco con su input/, expected/, rubric.md y el mockup", () => {
@@ -112,14 +113,11 @@ describe("Bloque A · component-recognizer/reconocimiento-perfil", () => {
     expect(resultado.detalle.find((d) => d.id === "reconoce-select")?.passed).toBe(false);
   });
 
-  it("identificar `input-group` en vez de `input` es INACEPTABLE", () => {
-    const mal = SALIDA_OK.replace("| input |", "| input-group |");
+  it("llamar `input-group` a todos los campos atómicos es INACEPTABLE", () => {
+    const mal = SALIDA_OK.replace(/\| input \|/g, "| input-group |");
     const resultado = gradeDe(SKILL, ID, mal, ["component-recognizer"]);
     expect(resultado.grade).toBe("INACEPTABLE");
     expect(resultado.detalle.find((d) => d.id === "reconoce-input")?.passed).toBe(false);
-    expect(
-      resultado.detalle.find((d) => d.id === "no-inventa-input-group")?.passed,
-    ).toBe(false);
   });
 
   it("identificar un componente inventado (no en el catálogo) es INACEPTABLE", () => {
@@ -148,7 +146,7 @@ describe("Bloque A · component-recognizer/reconocimiento-perfil", () => {
 
   it("añadir una fila `header-mini` baja de EXCELENTE (Quality), no suspende", () => {
     const conHeaderMini = SALIDA_OK.replace(
-      "\n| 6 | footer |",
+      "\n| 7 | footer |",
       '\n| 7 | header-mini | - | - | cabecera | franja mínima |\n| 6 | footer |',
     );
     const resultado = gradeDe(SKILL, ID, conHeaderMini, ["component-recognizer"]);
@@ -159,9 +157,21 @@ describe("Bloque A · component-recognizer/reconocimiento-perfil", () => {
     ).toBe(false);
   });
 
+  it("olvidar el `input-group` de la dirección baja de EXCELENTE (Quality)", () => {
+    const sinGrupo = SALIDA_OK.split("\n")
+      .filter((linea) => !linea.startsWith("| 6 | input-group |"))
+      .join("\n");
+    const resultado = gradeDe(SKILL, ID, sinGrupo, ["component-recognizer"]);
+    expect(resultado.grade).not.toBe("INACEPTABLE");
+    expect(resultado.grade).not.toBe("EXCELENTE");
+    expect(
+      resultado.detalle.find((d) => d.id === "reconoce-input-group")?.passed,
+    ).toBe(false);
+  });
+
   it("acertar los guards pero olvidar el footer baja de EXCELENTE (Quality)", () => {
     const sinFooter = SALIDA_OK.split("\n")
-      .filter((linea) => !linea.startsWith("| 6 | footer |"))
+      .filter((linea) => !linea.startsWith("| 7 | footer |"))
       .join("\n");
     const resultado = gradeDe(SKILL, ID, sinFooter, ["component-recognizer"]);
     expect(resultado.grade).not.toBe("INACEPTABLE");

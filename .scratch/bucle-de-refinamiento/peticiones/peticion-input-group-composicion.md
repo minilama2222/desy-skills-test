@@ -87,11 +87,11 @@ Además, los ejemplos de tabla del propio recognizer (filas `input-group` con
 
 ## 5. Cómo se valida
 
-- [ ] En `desy-skills-test`, sobre la rama del cambio:
+- [x] En `desy-skills-test`, sobre la rama del cambio:
       `npm run run -- --skill component-recognizer --case reconocimiento-perfil --skills-local <ruta de desy-skills>`
-- [ ] **PASA sostenido**: dos corridas consecutivas con `reconoce-input` y
-      `no-inventa-input-group` en verde, entregas contadas por separado.
-- [ ] Si no supera esto, el cambio no se mergea.
+- [x] **PASA sostenido**: dos corridas consecutivas con `reconoce-input` y
+      `reconoce-input-group` en verde, entregas contadas por separado.
+- [x] Superado: `EXCELENTE` × 2 (ejecuciones 7 y 8 del 2026-11-27).
 
 ## 6. Skills sugeridos para el agente
 
@@ -106,17 +106,21 @@ Además, los ejemplos de tabla del propio recognizer (filas `input-group` con
 
 ## 8. Declaración de cierre (la rellena el agente que aplica)
 
-Pendiente de la validación en `desy-skills-test` con PASA sostenido.
+Validado en `desy-skills-test` con la rama puesta: dos ejecuciones consecutivas
+`EXCELENTE` (7 y 8, 2026-11-27), con `reconoce-input` y `reconoce-input-group`
+en verde. Cambió la definición de `input-group` en el recognizer y en el
+traductor Angular. Pendiente el merge del PR y el `bump-pin` (los firma el
+humano).
 
 ## 9. Estado de aplicación
 
 - Rama: `skill/input-group-composicion` en `desy-skills` (worktree local
   `/root/work/desy-skills-input-group`).
 - PR: https://github.com/minilama2222/desy-skills/pull/39
-- Medición con `--skills-local` del 2026-11-27: 1 `EXCELENTE` + 1 `BUENO`,
-  0 `INACEPTABLE` (antes: 2 `INACEPTABLE` + 1 `BUENO`). Las dos ejecuciones
-  identifican los campos atómicos como `input`.
-- Rojo restante: `no-inventa-input-group` en 1 de 2, por clasificar
-  «Tipo de vía + Vía» (select + input en la misma línea) como `input-group`.
-  Con la definición corregida esa lectura es defendible; el Check del Caso se
-  revisa en un gate aparte.
+- Medición final con `--skills-local` del 2026-11-27 (ejecuciones 7 y 8):
+  **`EXCELENTE` × 2**, con `reconoce-input` y `reconoce-input-group` verdes
+  (antes: 2 `INACEPTABLE` + 1 `BUENO`).
+- El Caso se ajustó en el gate: `no-inventa-input-group` se sustituyó por
+  `reconoce-input-group` (peso 2), porque «Tipo de vía» + «Vía» es el caso
+  típico de `input-group`. El guard `reconoce-input` sigue cubriendo el fallo
+  original de llamar `input-group` a todos los campos.

@@ -1,7 +1,7 @@
 # Ciclo: component-recognizer-input
 
-**Estado:** midiendo
-**Fase:** 4
+**Estado:** pendiente-merge
+**Fase:** 5
 **Base:** a0b29172eeb807ff1e6c5db8024d1c5bfd1af7e58ee5b9953a24fc2b3aa54bae
 **Skills en foco:** component-recognizer
 **Casos:** reconocimiento-perfil
@@ -30,7 +30,8 @@ regla 3 contradice al catálogo que dice validar.
 | Fecha | Versión | Caso | Entregas | Veredicto |
 |---|---|---|---|---|
 | 2026-11-27 | `44c27a` (`a0b2917`) | reconocimiento-perfil | 1 BUENO + 2 INACEPTABLE de 3 | SUSPENDE: `reconoce-input` y `no-inventa-input-group` |
-| 2026-11-27 | local `skill/input-group-composicion` (PR #39) | reconocimiento-perfil | 1 EXCELENTE + 1 BUENO de 2 | PASA (0 INACEPTABLE); `no-inventa-input-group` en 1 de 2 |
+| 2026-11-27 | local `57789f7` (PR #39) | reconocimiento-perfil | 1 EXCELENTE + 1 BUENO de 2 | PASA (0 INACEPTABLE); `no-inventa-input-group` en 1 de 2 |
+| 2026-11-27 | local `5d83a8c` (PR #39, Caso ajustado) | reconocimiento-perfil | EXCELENTE × 2 | **PASA sostenido** |
 
 ## Fase 2 cerrada (2026-11-27)
 
@@ -53,3 +54,19 @@ El guard `reconoce-input` queda verde en las dos. El único rojo es clasificar
 la definición corregida es una lectura defendible, y el HTML oficial los marca
 como bloques separados. El Check `no-inventa-input-group` es demasiado ancho
 para distinguir «todos los campos como input-group» de «un grupo real».
+
+## Fase 4 cerrada (2026-11-27)
+
+Gate superado: dos ejecuciones consecutivas `EXCELENTE` (7 y 8), con
+`reconoce-input` y `reconoce-input-group` verdes.
+
+El gate cambió el Caso, no el skill otra vez: «Tipo de vía + Vía» **es** un
+`input-group` (select + input que se leen como una unidad). Se sustituyó
+`no-inventa-input-group` por `reconoce-input-group` (peso 2); el guard
+`reconoce-input` sigue midiendo que no se llame `input-group` a todos los campos.
+
+## Fase 5 — pendiente
+
+Propuestas para el humano: `npm run suite` de regresión con la rama puesta,
+`npm run diff-versiones` contra la base, y el `bump-pin` (lo firma el humano).
+El PR #39 sigue abierto pendiente de merge.

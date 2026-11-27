@@ -12,8 +12,8 @@ El hecho no-negociable de la **tarea de reconocimiento** es el **componente**:
 
 - **reconoce-header**: la cabecera de webapp con logo, nombre de app y navegación
   es un `header`. El componente ha de existir en `catalog.json`.
-- **reconoce-input**: los campos de texto con label son `input`, no `input-group`
-  ni otro contenedor. El componente ha de existir en `catalog.json`.
+- **reconoce-input**: los campos de texto sueltos con label son `input`, no
+  `input-group` ni otro contenedor. El componente ha de existir en `catalog.json`.
 - **reconoce-select**: los tres desplegables (tipo de vía, provincia, municipio)
   son `select`. El componente ha de existir en `catalog.json`.
 - **reconoce-accion-button**: las acciones «Guardar», «Volver» y «Cancelar» son
@@ -38,9 +38,10 @@ El hecho no-negociable de la **tarea de reconocimiento** es el **componente**:
 - **no-inventa-header-mini** (peso 1): la cabecera tiene navegación y nombre de
   app, así que no es la franja mínima `header-mini`. Se mira la tabla, no la
   prosa.
-- **no-inventa-input-group** (peso 1): los campos son atómicos (`input` con su
-  label); el mockup no agrupa campos en un `input-group`. Se mira la tabla, no la
-  prosa.
+- **reconoce-input-group** (peso 2): la fila «Tipo de vía» + «Vía» es un
+  `input-group`: un `select` y un `input` que se leen como una unidad semántica
+  en la misma línea. Una fila de campos independientes (Número / Escalera /
+  Piso / Puerta) no lo es; esos siguen siendo `input` atómicos.
 
 ## Validación contra el catálogo
 
@@ -65,7 +66,7 @@ informe por Caso cita esa sección **por título**, no por número de línea, y
 - reconoce-footer: desy-component-recognizer → «Paso 4: Output en tabla» — no hay regla específica de `footer`; el catálogo es la fuente y la tabla es donde se declara
 - no-inventa-header-advanced: desy-component-recognizer → «5. **header vs header-mini vs header-advanced**»
 - no-inventa-header-mini: desy-component-recognizer → «5. **header vs header-mini vs header-advanced**»
-- no-inventa-input-group: desy-component-recognizer → «3. **"input" vs "input-group" vs "date-input" vs "datepicker"**»
+- reconoce-input-group: desy-component-recognizer → «3. **"input" vs "input-group" vs "date-input" vs "datepicker"**»
 
 Prosa de apoyo: desy-component-recognizer → «Paso 3: Matching con el catálogo»,
 que es donde se contrasta cada bloque con el catálogo; las «Reglas críticas de

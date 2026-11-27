@@ -84,11 +84,11 @@
       }
     },
     {
-      "id": "no-inventa-input-group",
+      "id": "reconoce-input-group",
       "severity": "quality",
-      "weight": 1,
+      "weight": 2,
       "assert": {
-        "kind": "no_reconoce_componente",
+        "kind": "reconoce_componente",
         "componente": "input-group"
       }
     }
