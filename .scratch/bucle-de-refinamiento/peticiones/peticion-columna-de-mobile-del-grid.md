@@ -6,7 +6,7 @@
 `fidelidad-gap`, Ejecuciones 12–17 del árbol `a0b29172…` (26/11/2026) y medida
 del 27/11/2026 en la rama `improve/columna-mobile-grid`.
 
-**Estado:** aplicada en el PR #40 (pendiente de merge; ver §7).
+**Estado:** aplicada en el PR #40 (abierto); **no PASA sostenido** (ver §7).
 
 ---
 
@@ -96,7 +96,7 @@ de la referencia». Texto propuesto:
 ## 5. Cómo se valida
 
 - [x] `npm run run -- --skill implement-pattern --case patron-pagina-paso-1-nombre-nif --skills-local <checkout> --n 4 --tope 6`
-- [x] `fidelidad-gap` verde en todas las entregas contadas (10/10)
+- [ ] `fidelidad-gap` verde en todas las entregas contadas: con la prosa genérica, **3/5**
 - [x] Sin regresión en `implement-layout-patterns/fieldset-grid-acciones` (EXCELENTE × 2)
 
 ## 6. Lo que no debe hacer
@@ -109,12 +109,14 @@ de la referencia». Texto propuesto:
 
 ## 7. Declaración de cierre (la rellena el agente que aplica)
 
-Validada el 2026-11-27 sobre la rama `improve/columna-mobile-grid` (`f977b12`):
+Medida el 2026-11-27 en dos pasos:
 
-- 10 entregas del Caso: `fidelidad-gap` **verde 10/10**.
-- 9 `EXCELENTE` + 1 `INACEPTABLE` por `un-solo-h1`, que sumaba dos documentos
-  válidos con un h1 cada uno. Corregido en el harness (`a2787ce`); esa Ejecución
-  se re-graduó a `EXCELENTE`.
-- Regresión `fieldset-grid-acciones`: `EXCELENTE` × 2.
+1. Prosa que nombraba el Caso y su «Gold»: `fidelidad-gap` 10/10. **Se descarta
+   como sobreajuste**: el skill decía las clases exactas del eval.
+2. Prosa genérica (`3644f7e`, 5 entregas): `fidelidad-gap` **3/5**. Dos fallos
+   reales —`gap-base` en vez de `gap-lg`, y `lg:grid-cols-5`— y dos falsos
+   negativos del harness, ya corregidos: `un-solo-h1` sumaba documentos
+   (`a2787ce`) y el gap solo miraba `<div>` (`de8a117`).
 
-PR: https://github.com/minilama2222/desy-skills/pull/40
+No se declara PASA sostenido. El PR #40 queda abierto:
+https://github.com/minilama2222/desy-skills/pull/40

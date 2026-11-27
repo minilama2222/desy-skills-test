@@ -1,7 +1,7 @@
 # Ciclo: patron-pagina-gap
 
-**Estado:** pendiente-merge (PR #40)
-**Fase:** 5
+**Estado:** abierto — gate de fase 4 no superado (gap 3/5 con prosa genérica)
+**Fase:** 4
 **Base:** cce1633b4ba5dd37e25873deacc1555d21d7c11f8ba4ec525a2cf654cab7d380
 **Skills en foco:** implement-layout-patterns
 **Casos:** patron-pagina-paso-1-nombre-nif
@@ -319,7 +319,8 @@ PASA en el Caso, con `fidelidad-gap` rojo en parte de las entregas y
 línea: medir la rama `improve/columna-mobile-grid` y decidir si la petición
 cierra el gap.
 
-**Medido el 27/11 (`f977b12`):** `fidelidad-gap` verde 10/10 y
-`fieldset-grid-acciones` EXCELENTE × 2. Gate superado; PR #40 abierto. La única
-INACEPTABLE era un falso positivo de `un-solo-h1` (dos documentos con un h1
-cada uno), corregido en el harness (`a2787ce`).
+**Medido el 27/11 en dos pasos:** con la prosa que nombraba el Caso y su Gold,
+gap 10/10 —pero era sobreajuste y se descartó—. Con la prosa genérica
+(`3644f7e`, 5 entregas), gap **3/5**: dos fallos reales (`gap-base`,
+`lg:grid-cols-5`) y dos falsos negativos del harness, corregidos (`a2787ce`,
+`de8a117`). El gate **no se supera**: PR #40 abierto, sin PASA sostenido.
