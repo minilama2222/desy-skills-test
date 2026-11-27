@@ -4,7 +4,7 @@
 
 **Origen:** Caso `component-recognizer/reconocimiento-perfil`, checks `reconoce-input` (guard) y `no-inventa-input-group` (quality), Ejecuciones 2, 3 y 4 del árbol `a0b29172eeb807ff1e6c5db8024d1c5bfd1af7e58ee5b9953a24fc2b3aa54bae` (pin `44c27a`, 27/11/2026)
 
-**Estado:** propuesta
+**Estado:** aplicada en el PR #39 (pendiente de merge; ver §9)
 
 ---
 
@@ -106,4 +106,17 @@ Además, los ejemplos de tabla del propio recognizer (filas `input-group` con
 
 ## 8. Declaración de cierre (la rellena el agente que aplica)
 
-Pendiente.
+Pendiente de la validación en `desy-skills-test` con PASA sostenido.
+
+## 9. Estado de aplicación
+
+- Rama: `skill/input-group-composicion` en `desy-skills` (worktree local
+  `/root/work/desy-skills-input-group`).
+- PR: https://github.com/minilama2222/desy-skills/pull/39
+- Medición con `--skills-local` del 2026-11-27: 1 `EXCELENTE` + 1 `BUENO`,
+  0 `INACEPTABLE` (antes: 2 `INACEPTABLE` + 1 `BUENO`). Las dos ejecuciones
+  identifican los campos atómicos como `input`.
+- Rojo restante: `no-inventa-input-group` en 1 de 2, por clasificar
+  «Tipo de vía + Vía» (select + input en la misma línea) como `input-group`.
+  Con la definición corregida esa lectura es defendible; el Check del Caso se
+  revisa en un gate aparte.
