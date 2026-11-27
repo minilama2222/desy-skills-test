@@ -4,7 +4,7 @@
 
 **Origen:** Caso `component-recognizer/reconocimiento-perfil`, checks `reconoce-input` (guard) y `no-inventa-input-group` (quality), Ejecuciones 2, 3 y 4 del árbol `a0b29172eeb807ff1e6c5db8024d1c5bfd1af7e58ee5b9953a24fc2b3aa54bae` (pin `44c27a`, 27/11/2026)
 
-**Estado:** aplicada en el PR #39 (pendiente de merge; ver §9)
+**Estado:** aplicada y mergeada (PR #39, commit `6058b74`; ver §9)
 
 ---
 
@@ -109,14 +109,16 @@ Además, los ejemplos de tabla del propio recognizer (filas `input-group` con
 Validado en `desy-skills-test` con la rama puesta: dos ejecuciones consecutivas
 `EXCELENTE` (8 y 9, 2026-11-27), con `reconoce-input` y `reconoce-input-group`
 en verde. Cambió la definición de `input-group` en el recognizer y en el
-traductor Angular. Pendiente el merge del PR y el `bump-pin` (los firma el
+traductor Angular. El PR #39 se mergeó el 2026-11-27 (merge commit
+`6058b74`). Pendiente el `bump-pin` y la suite de regresión (los firma el
 humano).
 
 ## 9. Estado de aplicación
 
 - Rama: `skill/input-group-composicion` en `desy-skills` (worktree local
   `/root/work/desy-skills-input-group`).
-- PR: https://github.com/minilama2222/desy-skills/pull/39
+- PR: https://github.com/minilama2222/desy-skills/pull/39 (**mergeado** el
+  2026-11-27; merge commit `6058b7407e69243fe6aa46e324921b232667bac5`).
 - Medición final con `--skills-local` del 2026-11-27 (ejecuciones 8 y 9):
   **`EXCELENTE` × 2**, con `reconoce-input` y `reconoce-input-group` verdes
   (antes: 2 `INACEPTABLE` + 1 `BUENO`).
