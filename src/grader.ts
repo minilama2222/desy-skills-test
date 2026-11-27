@@ -1,6 +1,11 @@
 import type { AnclaDeSkill, Assert, Check, HechoEstructural, TipoCaso } from "./caso.js";
 import { parseChecks } from "./caso.js";
-import { propsValidasDeMacro, componenteEnCatalogo, varianteEnCatalogo } from "./catalogo.js";
+import {
+  propsValidasDeMacro,
+  componenteEnCatalogo,
+  varianteEnCatalogo,
+  variantesEquivalentes,
+} from "./catalogo.js";
 import {
   ambitoDeTokens,
   clasesPorElemento,
@@ -280,10 +285,11 @@ function evaluar(
 
 /**
  * ¿El SUT identificó este componente (que ha de existir en el catálogo) y, si se
- * pide, le asignó una variante documentada? Se leen las filas de la tabla de
- * identificación: la fila del componente es la que tiene una celda que resuelve
- * a él; la variante ha de estar en **esa misma fila** (así `primario` vale para
- * `button` pero no para `input-group`).
+ * pide, le asignó **esa** variante documentada? Se leen las filas de la tabla
+ * de identificación: la fila del componente es la que tiene una celda que
+ * resuelve a él; la variante ha de estar en **esa misma fila** y ser la pedida
+ * (así `primario` vale para `button` pero no para `input-group`, ni
+ * `transparente` satisface un Check de `primario`).
  */
 function reconoceComponente(
   texto: string,
@@ -304,7 +310,8 @@ function reconoceComponente(
       (celda) =>
         !esCeldaPlaceholder(celda) &&
         !celdaNombraComponente(celda, componente) &&
-        varianteEnCatalogo(componente, celda),
+        varianteEnCatalogo(componente, celda) &&
+        variantesEquivalentes(variante, celda),
     ),
   );
 }

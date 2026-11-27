@@ -7,6 +7,7 @@ import {
   capturarConAgentBrowser,
   dimensionesDePng,
   problemaDePng,
+  TOLERANCIA_SCROLLBAR,
 } from "../src/captura-gold.js";
 
 /**
@@ -67,7 +68,9 @@ for (const caso of casosConMockup()) {
       `${bytes.length} bytes`,
   );
 
-  const problema = problemaDePng(bytes, ANCHO_MOCKUP);
+  // La captura de una página con scrollbar sale hasta ~20px más estrecha que el
+  // viewport (1280 → 1265 en el perfil): se tolera la franja del scrollbar.
+  const problema = problemaDePng(bytes, ANCHO_MOCKUP, TOLERANCIA_SCROLLBAR);
   if (problema !== undefined) {
     hallazgos.push(`${caso.ruta}: ${problema}`);
   }

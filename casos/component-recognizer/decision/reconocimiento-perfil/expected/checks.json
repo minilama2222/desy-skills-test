@@ -1,21 +1,30 @@
 {
   "checks": [
     {
-      "id": "reconoce-input-group",
+      "id": "reconoce-header",
       "severity": "guard",
       "weight": 0,
       "assert": {
         "kind": "reconoce_componente",
-        "componente": "input-group"
+        "componente": "header"
       }
     },
     {
-      "id": "reconoce-header-mini",
+      "id": "reconoce-input",
       "severity": "guard",
       "weight": 0,
       "assert": {
         "kind": "reconoce_componente",
-        "componente": "header-mini"
+        "componente": "input"
+      }
+    },
+    {
+      "id": "reconoce-select",
+      "severity": "guard",
+      "weight": 0,
+      "assert": {
+        "kind": "reconoce_componente",
+        "componente": "select"
       }
     },
     {
@@ -38,6 +47,16 @@
       }
     },
     {
+      "id": "reconoce-accion-transparente",
+      "severity": "quality",
+      "weight": 1,
+      "assert": {
+        "kind": "reconoce_componente",
+        "componente": "button",
+        "variante": "transparente"
+      }
+    },
+    {
       "id": "reconoce-footer",
       "severity": "quality",
       "weight": 1,
@@ -53,6 +72,24 @@
       "assert": {
         "kind": "no_reconoce_componente",
         "componente": "header-advanced"
+      }
+    },
+    {
+      "id": "no-inventa-header-mini",
+      "severity": "quality",
+      "weight": 1,
+      "assert": {
+        "kind": "no_reconoce_componente",
+        "componente": "header-mini"
+      }
+    },
+    {
+      "id": "no-inventa-input-group",
+      "severity": "quality",
+      "weight": 1,
+      "assert": {
+        "kind": "no_reconoce_componente",
+        "componente": "input-group"
       }
     }
   ]

@@ -283,13 +283,21 @@ export function dimensionesDePng(
  * de la captura canónica). Es la regla que comparten los verificadores de la
  * Captura de Gold y del mockup, para no repetir el chequeo y testearlo aparte.
  */
-export function problemaDePng(bytes: Buffer, anchoEsperado?: number): string | undefined {
+export function problemaDePng(
+  bytes: Buffer,
+  anchoEsperado?: number,
+  tolerancia = 0,
+): string | undefined {
   const dims = dimensionesDePng(bytes);
   if (dims === undefined) {
     return "el fichero generado no es un PNG válido";
   }
-  if (anchoEsperado !== undefined && dims.ancho !== anchoEsperado) {
-    return `ancho inesperado: ${dims.ancho} (esperado ${anchoEsperado})`;
+  if (
+    anchoEsperado !== undefined &&
+    (dims.ancho > anchoEsperado || dims.ancho < anchoEsperado - tolerancia)
+  ) {
+    const margen = tolerancia === 0 ? "" : ` (se admite hasta ${tolerancia}px menos)`;
+    return `ancho inesperado: ${dims.ancho} (esperado ${anchoEsperado}${margen})`;
   }
   return undefined;
 }

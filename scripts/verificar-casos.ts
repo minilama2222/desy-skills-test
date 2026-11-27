@@ -161,7 +161,9 @@ function citasEnHead(ruta: string): { citas?: string[]; error?: string } {
     const texto = execFileSync("git", ["show", `HEAD:${ruta}`], {
       cwd: REPO_ROOT,
       encoding: "utf8",
-      stdio: ["ignore", "pipe", "ignore"],
+      // stderr se captura: sin él no se distingue «el fichero es nuevo» de «git
+      // falló», y un Caso recién movido se reportaba como error de medición.
+      stdio: ["ignore", "pipe", "pipe"],
     });
     return { citas: seccionesCitadasEnRubric(texto) };
   } catch (error) {
@@ -173,7 +175,9 @@ function citasEnHead(ruta: string): { citas?: string[]; error?: string } {
     }
     const err = error as { stderr?: unknown; status?: number };
     const stderr = typeof err.stderr === "string" ? err.stderr : "";
-    if (/does not exist|path .* does not exist|unknown revision/i.test(stderr)) {
+    if (
+      /does not exist|exists on disk, but not in|unknown revision/i.test(stderr)
+    ) {
       return {};
     }
     return { error: `git show HEAD:${ruta} falló: ${stderr.trim() || String(error)}` };

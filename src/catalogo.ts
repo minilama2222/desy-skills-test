@@ -149,6 +149,16 @@ const CLASE_CSS = /^(c-|ds-|\.c-)/;
  * No usa el fuzzy `SequenceMatcher` del linter (ratio ≥ 0.65): demasiado
  * permisivo para un Guard. Exacto + substring ya cubren el vocabulario real.
  */
+/**
+ * ¿Dos etiquetas de variante son el **mismo** hecho? Normaliza y traduce
+ * español↔inglés como el linter (`primario` ≡ `primary`). Es lo que permite
+ * distinguir «el botón es primario» de «el botón es transparente»: que una
+ * variante esté documentada no basta si el Check pide otra (ticket 21).
+ */
+export function variantesEquivalentes(a: string, b: string): boolean {
+  return normalizarLinter(a) === normalizarLinter(b) || traducirLinter(a) === traducirLinter(b);
+}
+
 export function varianteEnCatalogo(componente: string, variante: string): boolean {
   if (CLASE_CSS.test(normalizarLinter(variante))) return false;
   const canonico = normalizarLinter(componente);

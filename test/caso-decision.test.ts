@@ -283,6 +283,19 @@ describe("Caso-decisión: assert `reconoce_componente` contra el catálogo", () 
     expect(resultado.grade).toBe("INACEPTABLE");
   });
 
+  it("una variante documentada distinta de la pedida no vale (primario ≠ transparente)", () => {
+    // Que la fila declare una variante documentada no basta: el Check pide una
+    // en concreto. Sin esto, un botón transparente satisfacía `primario` con
+    // solo existir otra variante en la tabla (ticket 21).
+    const checks = declarar("reconoce-boton", "guard", 0, {
+      kind: "reconoce_componente",
+      componente: "button",
+      variante: "transparente",
+    });
+    const resultado = gradoCon("caso-decision", checks, TABLA);
+    expect(resultado.grade).toBe("INACEPTABLE");
+  });
+
   it("rechaza un checks.json de `reconoce_componente` sin componente", () => {
     expect(() =>
       parseChecks(declarar("x", "guard", 0, { kind: "reconoce_componente" })),

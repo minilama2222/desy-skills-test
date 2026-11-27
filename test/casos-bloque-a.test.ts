@@ -25,23 +25,25 @@ const gradeDe = (skill: string, id: string, salida: string, flujo: string[] = []
   return grado(evidencia(salida, flujo), { tipo: caso.tipo, checks: caso.checks });
 };
 
-describe("Bloque A · component-recognizer/reconocimiento-login", () => {
+describe("Bloque A · component-recognizer/reconocimiento-perfil", () => {
   const SKILL = "component-recognizer";
-  const ID = "reconocimiento-login";
+  const ID = "reconocimiento-perfil";
 
-  /** Tabla de identificación correcta de un login de webapp (salida dorada). */
+  /** Tabla de identificación correcta del perfil de usuario/a (salida dorada). */
   const SALIDA_OK = [
     "| Nº | Componente | Variante | Tamaño | Ubicación en imagen | Notas |",
     "|:--:|:-----------|:---------|:------:|:--------------------|:------|",
-    '| 1 | header-mini | - | - | header | logo Aragón, sin nav |',
-    '| 2 | input-group | text | - | main, formulario | label "Usuario" |',
-    '| 3 | input-group | password | - | main, formulario | label "Contraseña" |',
-    '| 4 | button | primary | base | main, final del form | "Acceder" |',
-    '| 5 | footer | - | - | footer | institucional con 3 logos |',
+    '| 1 | header | - | - | cabecera | logo, nombre de app y navegación |',
+    '| 2 | input | text | - | main, formulario | nombre, NIF, correo y teléfono |',
+    '| 3 | select | por defecto | - | main, dirección | tipo de vía, provincia y municipio |',
+    '| 4 | button | primario | base | main, acciones | "Guardar" |',
+    '| 5 | button | transparente | base | main, acciones | "Volver" y "Cancelar" |',
+    '| 6 | footer | - | - | pie | enlaces y logos institucionales |',
   ].join("\n");
 
   it("existe el Caso en disco con su input/, expected/, rubric.md y el mockup", () => {
     expect(existsSync(join(dirCaso(SKILL, ID), "input", "prompt.md"))).toBe(true);
+    expect(existsSync(join(dirCaso(SKILL, ID), "input", "mockup.html"))).toBe(true);
     expect(existsSync(join(dirCaso(SKILL, ID), "input", "mockup.png"))).toBe(true);
     expect(existsSync(join(dirCaso(SKILL, ID), "expected", "checks.json"))).toBe(true);
     expect(existsSync(join(dirCaso(SKILL, ID), "rubric.md"))).toBe(true);
@@ -62,10 +64,11 @@ describe("Bloque A · component-recognizer/reconocimiento-login", () => {
   });
 
   it("acepta la variante escrita en español (`primario`) como el linter", () => {
-    // El catálogo documenta `primario`; la tabla de ejemplo usa `primary`. La
-    // validación contra el catálogo traduce español↔inglés, así que ambas valen.
-    const enEspanol = SALIDA_OK.replace("| button | primary |", "| button | primario |");
-    const resultado = gradeDe(SKILL, ID, enEspanol, ["component-recognizer"]);
+    // El catálogo documenta `primario`; la tabla de ejemplo usa la misma
+    // etiqueta. La validación contra el catálogo traduce español↔inglés, así
+    // que `primary` y `primario` son el mismo hecho.
+    const enIngles = SALIDA_OK.replace("| button | primario |", "| button | primary |");
+    const resultado = gradeDe(SKILL, ID, enIngles, ["component-recognizer"]);
     expect(resultado.grade).toBe("EXCELENTE");
   });
 
@@ -75,7 +78,7 @@ describe("Bloque A · component-recognizer/reconocimiento-login", () => {
     // catálogo es de ejemplos representativos, no exhaustivos) pierde el Quality
     // de variante, pero no se suspende.
     const conVocabularioPropio = SALIDA_OK.replace(
-      "| button | primary |",
+      "| button | primario |",
       "| button | destacado |",
     );
     const resultado = gradeDe(SKILL, ID, conVocabularioPropio, ["component-recognizer"]);
@@ -90,10 +93,9 @@ describe("Bloque A · component-recognizer/reconocimiento-login", () => {
   });
 
   it("no identificar el `button` de la acción sí suspende (el componente es el Guard)", () => {
-    const sinBoton = SALIDA_OK.replace(
-      '| 4 | button | primary | base | main, final del form | "Acceder" |\n',
-      "",
-    );
+    const sinBoton = SALIDA_OK.split("\n")
+      .filter((linea) => !linea.includes("| button |"))
+      .join("\n");
     const resultado = gradeDe(SKILL, ID, sinBoton, ["component-recognizer"]);
     expect(resultado.grade).toBe("INACEPTABLE");
     expect(resultado.detalle.find((d) => d.id === "reconoce-accion-button")?.passed).toBe(
@@ -101,33 +103,42 @@ describe("Bloque A · component-recognizer/reconocimiento-login", () => {
     );
   });
 
-  it("identificar un `input` suelto en vez de `input-group` es INACEPTABLE", () => {
-    const mal = SALIDA_OK.replace(/\| input-group \|/g, "| input |");
+  it("no identificar los `select` de la dirección suspende (el componente es el Guard)", () => {
+    const sinSelect = SALIDA_OK.split("\n")
+      .filter((linea) => !linea.startsWith("| 3 | select |"))
+      .join("\n");
+    const resultado = gradeDe(SKILL, ID, sinSelect, ["component-recognizer"]);
+    expect(resultado.grade).toBe("INACEPTABLE");
+    expect(resultado.detalle.find((d) => d.id === "reconoce-select")?.passed).toBe(false);
+  });
+
+  it("identificar `input-group` en vez de `input` es INACEPTABLE", () => {
+    const mal = SALIDA_OK.replace("| input |", "| input-group |");
     const resultado = gradeDe(SKILL, ID, mal, ["component-recognizer"]);
     expect(resultado.grade).toBe("INACEPTABLE");
+    expect(resultado.detalle.find((d) => d.id === "reconoce-input")?.passed).toBe(false);
     expect(
-      resultado.detalle.find((d) => d.id === "reconoce-input-group")?.passed,
+      resultado.detalle.find((d) => d.id === "no-inventa-input-group")?.passed,
     ).toBe(false);
   });
 
   it("identificar un componente inventado (no en el catálogo) es INACEPTABLE", () => {
-    const mal = SALIDA_OK.replaceAll("| input-group |", "| input-field |");
+    const mal = SALIDA_OK.replace("| input |", "| input-field |");
     const resultado = gradeDe(SKILL, ID, mal, ["component-recognizer"]);
     expect(resultado.grade).toBe("INACEPTABLE");
   });
 
   it("declarar `header-advanced` (un portal de 3 bandas) baja el Grade (Quality, no Guard)", () => {
-    const mal = SALIDA_OK.replace("| header-mini |", "| header-advanced |");
+    const mal = SALIDA_OK.replace("| header |", "| header-advanced |");
     const resultado = gradeDe(SKILL, ID, mal, ["component-recognizer"]);
     expect(resultado.grade).toBe("INACEPTABLE");
   });
 
   it("mencionar `header-advanced` para descartarlo no pierde nada: el Check mira la tabla (ticket 30)", () => {
-    // Antes perdía el Quality, y eso bastaba para que una respuesta correcta no
-    // fuera EXCELENTE —y el Caso, SUSPENDE—. El Check ahora lee filas, no prosa:
-    // nombrar el componente para descartarlo es justo lo que se quiere.
+    // Nombrar el componente para descartarlo es justo lo que se quiere; el Check
+    // lee filas, no prosa.
     const conDescarte =
-      SALIDA_OK + "\nNo es un `header-advanced` de 3 bandas porque es un login.";
+      SALIDA_OK + "\nNo es un `header-advanced` de 3 bandas: es un header de webapp.";
     const resultado = gradeDe(SKILL, ID, conDescarte, ["component-recognizer"]);
     expect(
       resultado.detalle.find((d) => d.id === "no-inventa-header-advanced")?.passed,
@@ -135,11 +146,23 @@ describe("Bloque A · component-recognizer/reconocimiento-login", () => {
     expect(resultado.grade).toBe("EXCELENTE");
   });
 
-  it("acertar los guards pero olvidar el footer baja de EXCELENTE (Quality)", () => {
-    const sinFooter = SALIDA_OK.replace(
-      '\n| 5 | footer | - | - | footer | institucional con 3 logos |',
-      "",
+  it("añadir una fila `header-mini` baja de EXCELENTE (Quality), no suspende", () => {
+    const conHeaderMini = SALIDA_OK.replace(
+      "\n| 6 | footer |",
+      '\n| 7 | header-mini | - | - | cabecera | franja mínima |\n| 6 | footer |',
     );
+    const resultado = gradeDe(SKILL, ID, conHeaderMini, ["component-recognizer"]);
+    expect(resultado.grade).not.toBe("INACEPTABLE");
+    expect(resultado.grade).not.toBe("EXCELENTE");
+    expect(
+      resultado.detalle.find((d) => d.id === "no-inventa-header-mini")?.passed,
+    ).toBe(false);
+  });
+
+  it("acertar los guards pero olvidar el footer baja de EXCELENTE (Quality)", () => {
+    const sinFooter = SALIDA_OK.split("\n")
+      .filter((linea) => !linea.startsWith("| 6 | footer |"))
+      .join("\n");
     const resultado = gradeDe(SKILL, ID, sinFooter, ["component-recognizer"]);
     expect(resultado.grade).not.toBe("INACEPTABLE");
     expect(resultado.grade).not.toBe("EXCELENTE");

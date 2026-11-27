@@ -74,8 +74,8 @@ Hay **14** Casos:
   tokens se suman los de **fidelidad estructural** (container, escala del `h1`,
   gap de la rejilla, contra el Gold) y el del **encadenado** de skills.
 - Tres **Casos-decisión** (Slice 3, Bloque A — reconocimiento y elección):
-  `casos/component-recognizer/decision/reconocimiento-login/` (identifica los
-  componentes de un login DESY contra el catálogo),
+  `casos/component-recognizer/decision/reconocimiento-perfil/` (identifica los
+  componentes de la página oficial de perfil de usuario/a contra el catálogo),
   `casos/choose-page-template/decision/404-portal-publico/` (elige la familia
   portal para un 404) y `casos/choose-library/decision/portal-turistico/`
   (recomienda `desy-html` para un portal público). No producen HTML: su artefacto
