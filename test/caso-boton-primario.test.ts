@@ -31,6 +31,12 @@ describe("Caso boton-primario (Slice 1)", () => {
     expect(caso.prompt).toMatch(/Enviar/);
   });
 
+  it("el prompt pide escribir el componente en src/ y avisa de que el chat no cuenta", () => {
+    const caso = cargarCaso(CASO_DIR);
+    expect(caso.prompt).toMatch(/src\//);
+    expect(caso.prompt).toMatch(/chat/i);
+  });
+
   it("se carga como Caso-componente del skill implement-component", () => {
     const caso = cargarCaso(CASO_DIR);
     expect(caso.tipo).toBe("caso-componente");

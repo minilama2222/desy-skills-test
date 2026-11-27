@@ -1,6 +1,8 @@
 # Rúbrica — boton-primario (Caso-componente, Slice 1)
 
 Petición: «Genera un botón primario de tamaño estándar con el texto "Enviar"».
+El SUT debe escribirlo en un fichero nuevo dentro de `src/`; lo que quede solo
+en el chat no cuenta.
 
 ## Guards (su fallo ⇒ INACEPTABLE)
 
