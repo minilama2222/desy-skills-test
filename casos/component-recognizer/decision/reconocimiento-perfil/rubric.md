@@ -58,16 +58,18 @@ informe por Caso cita esa sección **por título**, no por número de línea, y
 
 - reconoce-header: desy-component-recognizer → «5. **header vs header-mini vs header-advanced**»
 - reconoce-input: desy-component-recognizer → «3. **"input" vs "input-group" vs "date-input" vs "datepicker"**»
-- reconoce-select: desy-component-recognizer → «Paso 3: Matching con el catálogo»
+- reconoce-select: desy-component-recognizer → «8. **Ejemplos visualmente similares ≠ mismo componente**»
 - reconoce-accion-button: desy-component-recognizer → «11. **Acción subrayada = `button` transparente, no `link`**»
 - reconoce-accion-primaria: desy-component-recognizer → «Linter de variantes (post-reconocimiento)»
 - reconoce-accion-transparente: desy-component-recognizer → «11. **Acción subrayada = `button` transparente, no `link`**»
-- reconoce-footer: desy-component-recognizer → «Paso 4: Output en tabla»
+- reconoce-footer: desy-component-recognizer → «Paso 4: Output en tabla» — no hay regla específica de `footer`; el catálogo es la fuente y la tabla es donde se declara
 - no-inventa-header-advanced: desy-component-recognizer → «5. **header vs header-mini vs header-advanced**»
 - no-inventa-header-mini: desy-component-recognizer → «5. **header vs header-mini vs header-advanced**»
 - no-inventa-input-group: desy-component-recognizer → «3. **"input" vs "input-group" vs "date-input" vs "datepicker"**»
 
-Prosa de apoyo: las «Reglas críticas de matching» son el catálogo de confusiones
+Prosa de apoyo: desy-component-recognizer → «Paso 3: Matching con el catálogo»,
+que es donde se contrasta cada bloque con el catálogo; las «Reglas críticas de
+matching» son el catálogo de confusiones
 típicas —`input` frente a `input-group` (regla 3), las cabeceras (regla 5), el
 botón transparente (regla 11)—; el «Linter de variantes» valida
 `primario` ≡ `primary` y `transparente` ≡ `transparent` contra el catálogo; y la

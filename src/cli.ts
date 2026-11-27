@@ -66,7 +66,7 @@ function usage(): never {
       "      `local (sin commit)`) en vez de los de vendor/. Nunca escribe en vendor/.",
       "  grade <id> <severity> <assert> [weight]  Puntúa un Check sobre Evidencia vacía.",
       "  load <ruta>  Carga un Caso desde su carpeta y muestra su JSON.",
-      "  capturar-gold --skill <skill> --case <caso>  Genera/valida la Captura de Gold (Gold-imagen) del Caso-página.",
+      "  capturar-gold --skill <skill> --case <caso> [--url <url>]  Genera/valida la Captura de Gold (Gold-imagen) del Caso-página desde la URL viva.",
       "  report [--reports <dir>]  Agrega las Ejecuciones en JSON y renderiza el Scorecard.",
       "  bump-pin <ref>  Actualiza vendor/ + pin.json al ref dado (rama, tag o SHA).",
     ].join("\n"),

@@ -1230,7 +1230,7 @@ describe("permisosDelSandbox: los assets del skill, y nada más (ticket 27)", ()
 /**
  * Ticket 29: `salida.md` de un Caso-decisión era el log JSONL, con el texto del
  * modelo escapado en una sola línea. Los Checks que miran filas de tabla no veían
- * ninguna: `reconocimiento-login` daba 0 de 6 por el formato. El ADR-0011 dice que
+ * ninguna: el Caso de reconocimiento daba 0 de 6 por el formato. El ADR-0011 dice que
  * el Artefacto es «el texto que el SUT emitió», así que se decodifica.
  */
 describe("prosaDelSut: el artefacto de un Caso-decisión es la prosa (ticket 29)", () => {

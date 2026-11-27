@@ -1,7 +1,11 @@
 # Captura de Gold: fixture versionada con caché por clave
 
-La **Captura de Gold** (Gold-imagen) es el screenshot de un Gold-HTML a 1900px
-de ancho, generado con `agent-browser`. Un Caso-página la lleva como referencia
+La **Captura de Gold** (Gold-imagen) es el screenshot de un Gold a 1900px de
+ancho, generado con `agent-browser`. La forma canónica es capturar la **URL viva**
+del Gold (con su CSS y sus fuentes aplicados); el `gold.html` del Caso es la copia
+exacta que esa URL servía al capturar. Sin URL, se abre el `gold.html` local y la
+captura **falla** si enlaza una hoja de estilo local que no existe: un PNG sin
+estilos no es una referencia visual válida. Un Caso-página la lleva como referencia
 visual en su prompt (ver el ticket 08). Se genera **una vez** y se reutiliza; no
 se recaptura en cada Ejecución, porque abrir un navegador y capturar es lento
 (segundos) y añadiría no-determinismo al bucle de test.
@@ -23,13 +27,21 @@ actual; si no coincide con la guardada, se recaptura. Así:
 - **Cambiar el viewport** cambia el hash → caduca.
 - Nada más caduca: si ambos siguen iguales, la fixture se reutiliza tal cual.
 
+El manifiesto puede declarar además la `url` de origen. Es **procedencia**, no
+parte de la clave: sirve para que la próxima recaptura sepa que el modo canónico
+es la URL viva, pero cambiar la URL sin cambiar el HTML no invalida la imagen
+(el HTML descargado es la copia que se contrasta).
+
 La regla es pura (`capturaVigente`), así que su test de invalidación **no abre un
 navegador**: inyecta un capturador falso y comprueba que se regenera sólo cuando
 toca. El adaptador real (`capturarConAgentBrowser`) **no se prueba en la suite**:
 abre un navegador con proceso propio, y meterlo en un runner de tests en paralelo
 deja procesos vivos y cuelga la suite. Se verifica con un script aparte
 (`npm run verificar-captura-gold`) que captura un Gold-HTML real y comprueba que
-el PNG mide 1900px de ancho.
+el PNG mide 1900px de ancho. El guardarraíl del pre-commit (`verificar-casos`)
+comprueba además las dimensiones del PNG commiteado contra el manifiesto: ancho
+con la tolerancia del scrollbar y un alto mínimo que descarta una captura
+truncada.
 
 ## Alternativas descartadas
 
@@ -52,8 +64,8 @@ el PNG mide 1900px de ancho.
 - El `gold.png` fija el ancho a **1900px** (`ANCHO_CAPTURA`). Cambiarlo es una
   decisión explícita que invalida todas las capturas (el manifiesto lo delata).
 - El manifiesto `gold.captura.json` es un formato estable y legible:
-  `{ ancho, clave, fichero }`. Hace auditable de un vistazo con qué Gold-HTML y
-  qué viewport se generó la imagen.
+  `{ ancho, clave, fichero, url? }`. Hace auditable de un vistazo con qué
+  Gold-HTML y qué viewport se generó la imagen, y de qué URL se capturó.
 - **En Windows**, `agent-browser` se instala como shim `.cmd`, no como `.exe`;
   `spawnSync` no lo resuelve para subcomandos. El adaptador lo invoca vía
   `cmd.exe /c`. Es una diferencia de plataforma, no de diseño.

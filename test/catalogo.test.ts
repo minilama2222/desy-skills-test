@@ -4,6 +4,7 @@ import {
   componenteEnCatalogo,
   propsValidasDeMacro,
   varianteEnCatalogo,
+  variantesEquivalentes,
 } from "../src/catalogo.js";
 
 describe("componenteDeMacro", () => {
@@ -101,5 +102,20 @@ describe("varianteEnCatalogo", () => {
 
   it("devuelve falso para un componente que no existe", () => {
     expect(varianteEnCatalogo("boton-magico", "primario")).toBe(false);
+  });
+});
+
+describe("variantesEquivalentes", () => {
+  it("trata español e inglés como el mismo hecho", () => {
+    expect(variantesEquivalentes("primario", "primary")).toBe(true);
+    expect(variantesEquivalentes("transparente", "transparent")).toBe(true);
+  });
+
+  it("distingue variantes distintas del mismo componente", () => {
+    expect(variantesEquivalentes("primario", "transparente")).toBe(false);
+  });
+
+  it("acepta la variante pedida dentro de una celda más larga", () => {
+    expect(variantesEquivalentes("primario", "primary (grande)")).toBe(true);
   });
 });

@@ -194,6 +194,13 @@ export function hojasDeEstiloLocales(html: string): string[] {
 export const TOLERANCIA_SCROLLBAR = 20;
 
 /**
+ * Alto mínimo de una Captura de Gold de página completa. Una imagen de pocos
+ * píxeles de alto es una captura truncada, no la página; el ancho por sí solo no
+ * la detecta (ticket 22).
+ */
+export const ALTO_MINIMO_CAPTURA = 100;
+
+/**
  * ¿El `gold.png` commiteado mide lo que declara su manifiesto? (ticket 22). El
  * guardarraíl no miraba las dimensiones: un PNG capturado sin CSS pasaba porque
  * la clave del manifiesto coincidía con el `gold.html`. La regla es pura sobre
@@ -209,17 +216,19 @@ export function problemaDeDimensionesDeLaCaptura(
   const manifiesto = leerManifiestoCaptura(dirInput);
   if (!existsSync(png) || manifiesto === undefined) return undefined;
 
-  const dims = dimensionesDePng(readFileSync(png));
+  const bytes = readFileSync(png);
+  const dims = dimensionesDePng(bytes);
   if (dims === undefined) return "el gold.png commiteado no es un PNG válido";
-  const ancho = dims.ancho;
-  if (ancho > manifiesto.ancho || ancho < manifiesto.ancho - TOLERANCIA_SCROLLBAR) {
+  if (dims.alto < ALTO_MINIMO_CAPTURA) {
     return (
-      `el gold.png mide ${ancho}px de ancho y el manifiesto declara ` +
-      `${manifiesto.ancho}px (se admite hasta ${TOLERANCIA_SCROLLBAR}px menos ` +
-      "por el scrollbar); recaptura con `npm run capturar-gold`"
+      `el gold.png commiteado mide ${dims.alto}px de alto (mínimo ` +
+      `${ALTO_MINIMO_CAPTURA}px): es una captura truncada; recaptura con ` +
+      "`npm run capturar-gold`"
     );
   }
-  return undefined;
+  const problema = problemaDePng(bytes, manifiesto.ancho, TOLERANCIA_SCROLLBAR);
+  if (problema === undefined) return undefined;
+  return `el gold.png commiteado: ${problema}; recaptura con \`npm run capturar-gold\``;
 }
 
 /**

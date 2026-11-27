@@ -9,4 +9,4 @@ enlaces y los logos.
 
 Devuelve la tabla de identificación del skill (Nº, Componente, Variante, Tamaño,
 Ubicación, Notas). No implementes nada: solo identifica los componentes contra el
-catálogo. Los comentarios HTML del mockup marcan qué bloque es cada componente.
+catálogo.

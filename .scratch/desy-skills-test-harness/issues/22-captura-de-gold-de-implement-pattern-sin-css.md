@@ -12,7 +12,7 @@ copiando un `styles.css` a mano.
 
 **Blocked by:** —
 
-**Status:** ready-for-agent
+**Status:** done
 
 ## La evidencia
 
@@ -38,21 +38,21 @@ copiando un `styles.css` a mano.
 
 ## Qué debe quedar
 
-- [ ] Descargar el HTML exacto de
+- [x] Descargar el HTML exacto de
       `https://desy.aragon.es/patron-pagina-paso-1-nombre-nif.html` a
       `input/gold.html` y comprobar que sustituye a la versión recortada.
-- [ ] Capturar `input/gold.png` desde la **URL viva**, con el CSS aplicado; no
+- [x] Capturar `input/gold.png` desde la **URL viva**, con el CSS aplicado; no
       desde un `file://` con un CSS copiado. Comprobar visualmente que no salen
       el spinner ni el skip-link y que la tipografía y la rejilla son las del
       Gold.
-- [ ] Recalcular `gold.captura.json` con el HTML nuevo y el ancho de la captura.
-- [ ] Que `capturar-gold` falle si el Gold se abre en local y referencia un CSS
+- [x] Recalcular `gold.captura.json` con el HTML nuevo y el ancho de la captura.
+- [x] Que `capturar-gold` falle si el Gold se abre en local y referencia un CSS
       local que no existe, en vez de capturar una página sin estilos. Si la
       captura canónica pasa a ser la URL viva, documentar ese modo.
-- [ ] Que el guardarraíl compruebe las dimensiones del `gold.png` commiteado (o
+- [x] Que el guardarraíl compruebe las dimensiones del `gold.png` commiteado (o
       ajuste el ancho esperado si los 1885 px son el scrollbar y no un error).
-- [ ] Pasar `npm run precommit` y `npx tsx scripts/verificar-captura-gold.ts`.
-- [ ] Re-medir `implement-pattern/patron-pagina-paso-1-nombre-nif` para confirmar
+- [x] Pasar `npm run precommit` y `npx tsx scripts/verificar-captura-gold.ts`.
+- [x] Re-medir `implement-pattern/patron-pagina-paso-1-nombre-nif` para confirmar
       que la nueva referencia visual no rompe el Caso. No se toca ningún Check
       para que pase: si el Gold cambia, se revisa el Caso, no el skill.
 
@@ -62,3 +62,36 @@ El Gold-imagen es una **fixture de medida**, no una salida del skill. Un PNG sin
 CSS invalida la parte visual de `design-match` y engaña al SUT, pero no dice nada
 de `desy-implement-pattern`. La corrección es del harness: captura, assets y
 guardarraíles de la fixture.
+
+## Comments
+
+### Cierre (2026-11-27)
+
+Hecho en la rama `spec/harness-21-22`:
+
+- `input/gold.html` es la copia exacta de
+  `https://desy.aragon.es/patron-pagina-paso-1-nombre-nif.html` (33.629 bytes,
+  frente a los 12.064 de la versión recortada).
+- `input/gold.png` se capturó **desde la URL viva** con `agent-browser` a 1900×
+  1080, con el CSS y las fuentes aplicados: cabecera, formulario, acciones y pie
+  reales, sin spinner ni skip-link.
+- `gold.captura.json` se recalculó con el HTML nuevo y declara además `url`, el
+  origen del que salió la imagen; las próximas recapturas la reutilizan.
+- `capturar-gold` acepta `--url` y, en modo local, **falla** si el Gold enlaza
+  una hoja de estilo local inexistente, en vez de capturar una página sin CSS.
+- `verificar-casos` comprueba las dimensiones del `gold.png` commiteado: el
+  ancho ha de estar entre el del manifiesto y 20 px menos (franja del scrollbar).
+- `npm run precommit` en verde y `npx tsx scripts/verificar-captura-gold.ts` en
+  verde.
+
+### Medición con el SUT (3 ejecuciones)
+
+`npm run run -- --skill implement-pattern --case patron-pagina-paso-1-nombre-nif --n 3 --tope 3`:
+`INACEPTABLE` × 3, todas por `encadenado-canonico`; la tercera falla además
+`un-solo-h1` y `fidelidad-gap`.
+
+La nueva referencia **no rompe el Caso**: los Checks de fidelidad estructural y
+a11y del Gold siguen pasando en el test que reproduce el Gold, y dos de las tres
+ejecuciones no fallan ningún Check de contenido. Los fallos son del Flujo
+observado del SUT (orden distinto del canónico, o sin `validate-accessibility`),
+no de la fixture. No se ha tocado ningún Check para que pase.

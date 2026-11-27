@@ -141,6 +141,29 @@ export function componenteEnCatalogo(nombre: string): boolean {
 const CLASE_CSS = /^(c-|ds-|\.c-)/;
 
 /**
+ * ¿Dos etiquetas de variante son el **mismo** hecho? Normaliza y traduce
+ * español↔inglés como el linter (`primario` ≡ `primary`). Es lo que permite
+ * distinguir «el botón es primario» de «el botón es transparente»: que una
+ * variante esté documentada no basta si el Check pide otra (ticket 21).
+ */
+export function variantesEquivalentes(a: string, b: string): boolean {
+  const aNorm = normalizarLinter(a);
+  const bNorm = normalizarLinter(b);
+  const aEn = traducirLinter(a);
+  const bEn = traducirLinter(b);
+  // Igualdad o contención, como `varianteEnCatalogo`: una celda
+  // «primary (grande)» sigue diciendo que la variante es primaria.
+  return (
+    aNorm === bNorm ||
+    aEn === bEn ||
+    aNorm.includes(bNorm) ||
+    bNorm.includes(aNorm) ||
+    aEn.includes(bEn) ||
+    bEn.includes(aEn)
+  );
+}
+
+/**
  * ¿La variante declarada es un **ejemplo documentado** del componente en el
  * catálogo? Normaliza y traduce español↔inglés como el linter (`primario` ≡
  * `primary`), acepta match exacto o substring, y rechaza una clase CSS usada
@@ -149,16 +172,6 @@ const CLASE_CSS = /^(c-|ds-|\.c-)/;
  * No usa el fuzzy `SequenceMatcher` del linter (ratio ≥ 0.65): demasiado
  * permisivo para un Guard. Exacto + substring ya cubren el vocabulario real.
  */
-/**
- * ¿Dos etiquetas de variante son el **mismo** hecho? Normaliza y traduce
- * español↔inglés como el linter (`primario` ≡ `primary`). Es lo que permite
- * distinguir «el botón es primario» de «el botón es transparente»: que una
- * variante esté documentada no basta si el Check pide otra (ticket 21).
- */
-export function variantesEquivalentes(a: string, b: string): boolean {
-  return normalizarLinter(a) === normalizarLinter(b) || traducirLinter(a) === traducirLinter(b);
-}
-
 export function varianteEnCatalogo(componente: string, variante: string): boolean {
   if (CLASE_CSS.test(normalizarLinter(variante))) return false;
   const canonico = normalizarLinter(componente);

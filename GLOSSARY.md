@@ -313,7 +313,7 @@ La forma descargada del Gold: el `patron-pagina-*.html` servido por desy.aragon.
 La Captura de Gold. Es la referencia visual contra la que se compara el output.
 
 **Captura de Gold**:
-El screenshot a 1900px de ancho generado con `agent-browser` a partir del Gold-HTML. Es la forma canónica del Gold-imagen. Se guarda como **fixture versionada** junto al Gold-HTML del Caso (`input/gold.png`), con un manifiesto (`input/gold.captura.json`) que registra el ancho y una clave (hash del Gold-HTML + ancho): si el HTML o el viewport cambian, la clave caduca y se recaptura. No se regenera en cada Ejecución. Ver ADR-0008.
+El screenshot a 1900px de ancho generado con `agent-browser` a partir del Gold. La forma canónica es capturar la **URL viva** del Gold —con su CSS y sus fuentes aplicados—; el `gold.html` del Caso es la copia exacta que esa URL servía al capturar. Se guarda como **fixture versionada** junto al Gold-HTML del Caso (`input/gold.png`), con un manifiesto (`input/gold.captura.json`) que registra el ancho, una clave (hash del Gold-HTML + ancho) y, si se capturó de la web, la `url` de origen: si el HTML o el viewport cambian, la clave caduca y se recaptura; la `url` es procedencia, no parte de la clave. Un Gold local sólo se captura si sus hojas de estilo locales existen. No se regenera en cada Ejecución. Ver ADR-0008.
 _Avoid_: usar los SVG/PNG de preview de la doc como referencia visual.
 
 ### Pinning

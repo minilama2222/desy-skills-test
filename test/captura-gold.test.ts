@@ -356,6 +356,12 @@ describe("problemaDeDimensionesDeLaCaptura (ticket 22)", () => {
     expect(problemaDeDimensionesDeLaCaptura(preparar(1900, 800))).toMatch(/ancho/i);
   });
 
+  it("señala una captura truncada de alto casi cero", () => {
+    const d = preparar(1900, 1900);
+    writeFileSync(join(d, "gold.png"), pngConDimensiones(1900, 1));
+    expect(problemaDeDimensionesDeLaCaptura(d)).toMatch(/alto/i);
+  });
+
   it("señala un PNG que no es PNG", () => {
     const d = preparar(1900, 1900);
     writeFileSync(join(d, "gold.png"), "no soy un png");
@@ -363,6 +369,35 @@ describe("problemaDeDimensionesDeLaCaptura (ticket 22)", () => {
   });
 
   it("sin PNG o sin manifiesto no añade un segundo hallazgo", () => {
-    expect(problemaDeDimensionesDeLaCaptura(mkdtempSync(join(tmpdir(), "vacio-")))).toBeUndefined();
+    dir = mkdtempSync(join(tmpdir(), "vacio-"));
+    expect(problemaDeDimensionesDeLaCaptura(dir)).toBeUndefined();
+  });
+});
+
+/**
+ * Ticket 22: la captura canónica pasa a ser la URL viva. El manifiesto tiene
+ * que recordar de dónde salió para que la próxima recaptura no vuelva a abrir
+ * un `file://` sin CSS.
+ */
+describe("asegurarCaptura guarda la URL viva en el manifiesto (ticket 22)", () => {
+  let dir: string | undefined;
+
+  afterEach(() => {
+    if (dir) rmSync(dir, { recursive: true, force: true });
+    dir = undefined;
+  });
+
+  it("persiste la url junto al ancho y la clave", () => {
+    dir = mkdtempSync(join(tmpdir(), "captura-url-"));
+    writeFileSync(join(dir, "gold.html"), "<main>Gold</main>");
+    const url = "https://desy.aragon.es/patron-pagina-paso-1-nombre-nif.html";
+
+    asegurarCaptura(dir, {
+      ancho: ANCHO_CAPTURA,
+      url,
+      capturar: (destino) => writeFileSync(destino, "PNG"),
+    });
+
+    expect(leerManifiestoCaptura(dir)?.url).toBe(url);
   });
 });
