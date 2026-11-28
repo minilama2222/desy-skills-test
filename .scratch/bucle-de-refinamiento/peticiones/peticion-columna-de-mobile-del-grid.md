@@ -6,7 +6,7 @@
 `fidelidad-gap`, Ejecuciones 12–17 del árbol `a0b29172…` (26/11/2026) y medida
 del 27/11/2026 en la rama `improve/columna-mobile-grid`.
 
-**Estado:** aplicada en el PR #40 (abierto); **no PASA sostenido** (ver §7).
+**Estado:** mergeada (PR #40, commit `bd51f4f`); **no PASA sostenido** (ver §7).
 
 ---
 
@@ -118,5 +118,6 @@ Medida el 2026-11-27 en dos pasos:
    negativos del harness, ya corregidos: `un-solo-h1` sumaba documentos
    (`a2787ce`) y el gap solo miraba `<div>` (`de8a117`).
 
-No se declara PASA sostenido. El PR #40 queda abierto:
+No se declara PASA sostenido. El PR #40 se mergeó como corrección (el skill ya
+no se acopla al Caso ni a su Gold), con el 3/5 como hallazgo de capacidad:
 https://github.com/minilama2222/desy-skills/pull/40

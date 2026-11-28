@@ -1,7 +1,7 @@
 # Ciclo: patron-pagina-gap
 
-**Estado:** abierto — gate de fase 4 no superado (gap 3/5 con prosa genérica)
-**Fase:** 4
+**Estado:** abierto — PR #40 mergeado; pendiente `bump-pin`
+**Fase:** 5
 **Base:** cce1633b4ba5dd37e25873deacc1555d21d7c11f8ba4ec525a2cf654cab7d380
 **Skills en foco:** implement-layout-patterns
 **Casos:** patron-pagina-paso-1-nombre-nif
@@ -323,4 +323,6 @@ cierra el gap.
 gap 10/10 —pero era sobreajuste y se descartó—. Con la prosa genérica
 (`3644f7e`, 5 entregas), gap **3/5**: dos fallos reales (`gap-base`,
 `lg:grid-cols-5`) y dos falsos negativos del harness, corregidos (`a2787ce`,
-`de8a117`). El gate **no se supera**: PR #40 abierto, sin PASA sostenido.
+`de8a117`). El gate **no se supera**, pero el PR #40 se mergeó como corrección del
+acoplamiento (`bd51f4f`). El gap 3/5 queda como hallazgo de capacidad, no como
+petición cerrada. Pendiente el `bump-pin` al merge commit.
