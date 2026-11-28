@@ -1,7 +1,7 @@
 # Ciclo: patron-pagina-gap
 
-**Estado:** abierto — PR #40 mergeado; pendiente `bump-pin`
-**Fase:** 5
+**Estado:** abierto — pin bumpeado a `bd51f4f`; gate de fase 4 no superado (gap 3/5)
+**Fase:** 4
 **Base:** cce1633b4ba5dd37e25873deacc1555d21d7c11f8ba4ec525a2cf654cab7d380
 **Skills en foco:** implement-layout-patterns
 **Casos:** patron-pagina-paso-1-nombre-nif
@@ -325,4 +325,8 @@ gap 10/10 —pero era sobreajuste y se descartó—. Con la prosa genérica
 `lg:grid-cols-5`) y dos falsos negativos del harness, corregidos (`a2787ce`,
 `de8a117`). El gate **no se supera**, pero el PR #40 se mergeó como corrección del
 acoplamiento (`bd51f4f`). El gap 3/5 queda como hallazgo de capacidad, no como
-petición cerrada. Pendiente el `bump-pin` al merge commit.
+petición cerrada. El `bump-pin` a `bd51f4f` se aplicó el 2026-11-28. El ciclo **no se cierra**:
+`fidelidad-gap` sigue 3/5 con la prosa genérica y el criterio pedía todas las
+entregas. El 3/5 es el hallazgo: dos entregas no midieron la referencia
+(`gap-base`, `lg:grid-cols-5`). Decidir en el próximo gate si se acepta como
+límite de capacidad o se itera con una regla genérica más precisa.
