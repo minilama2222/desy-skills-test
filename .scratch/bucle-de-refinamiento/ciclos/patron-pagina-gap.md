@@ -1,7 +1,7 @@
 # Ciclo: patron-pagina-gap
 
-**Estado:** abierto — pin bumpeado a `bd51f4f`; gate de fase 4 no superado (gap 3/5)
-**Fase:** 4
+**Estado:** pendiente-merge (PR #41); gap 4/4 en las entregas con página
+**Fase:** 5
 **Base:** cce1633b4ba5dd37e25873deacc1555d21d7c11f8ba4ec525a2cf654cab7d380
 **Skills en foco:** implement-layout-patterns
 **Casos:** patron-pagina-paso-1-nombre-nif
@@ -330,3 +330,17 @@ petición cerrada. El `bump-pin` a `bd51f4f` se aplicó el 2026-11-28. El ciclo 
 entregas. El 3/5 es el hallazgo: dos entregas no midieron la referencia
 (`gap-base`, `lg:grid-cols-5`). Decidir en el próximo gate si se acepta como
 límite de capacidad o se itera con una regla genérica más precisa.
+
+## Iteración con la retícula (2026-11-28)
+
+Tras el 3/5 del PR #40, la doc oficial de la retícula dio la regla general:
+4 columnas en `lg`, 2 en móvil, `gap-lg`, reparto con `col-span-*`.
+
+- Rama `skill/reticula-4-columnas` (`a125fed`), PR #41.
+- `fidelidad-gap` **4/4** en las entregas con página; 2 `sin-artefacto` fuera del
+  cómputo.
+- Regresión `fieldset-grid-acciones`: `EXCELENTE` × 4.
+
+El gap queda resuelto. Queda el merge del #41 y el `bump-pin`; después el ciclo
+puede cerrarse (el `encadenado-canonico` restante está descartado como cambio de
+skill).

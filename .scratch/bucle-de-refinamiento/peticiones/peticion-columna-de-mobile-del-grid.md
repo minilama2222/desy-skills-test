@@ -6,7 +6,7 @@
 `fidelidad-gap`, Ejecuciones 12–17 del árbol `a0b29172…` (26/11/2026) y medida
 del 27/11/2026 en la rama `improve/columna-mobile-grid`.
 
-**Estado:** mergeada (PR #40, commit `bd51f4f`) y pin bumpeado; **no PASA sostenido** (ver §7).
+**Estado:** PR #40 mergeado; la regla general se completa en el PR #41 (abierto). Gap 4/4 con #41 (ver §11).
 
 ---
 
@@ -123,3 +123,20 @@ no se acopla al Caso ni a su Gold), con el 3/5 como hallazgo de capacidad:
 https://github.com/minilama2222/desy-skills/pull/40
 
 El pin de `desy-skills-test` se bumpeó a `bd51f4f` (2026-11-28).
+
+## 11. Iteración con la retícula del sistema (2026-11-28)
+
+La doc oficial [Retícula — DESY](https://desy.aragon.es/estilos-reticula.html)
+da la regla general que faltaba: **4 columnas en `lg`, 2 en móvil, `gap-lg`**, y
+el reparto se hace con `col-span-*`, no cambiando `lg:grid-cols-N`.
+
+Rama `skill/reticula-4-columnas` (`a125fed`), PR #41:
+
+- 6 ejecuciones: **4 entregas con página y `fidelidad-gap` verde 4/4**.
+- 2 `sin-artefacto` (una no escribió página, otra agotó el techo de 20 min), fuera
+  del cómputo del gap.
+- Regresión `implement-layout-patterns/fieldset-grid-acciones`: `EXCELENTE` × 4.
+
+Los rojos restantes de las entregas válidas son `encadenado-canonico`, ya
+descartado como cambio de skill. El gap queda resuelto; el PR #41 está pendiente
+de merge.
